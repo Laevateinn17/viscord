@@ -7,6 +7,7 @@ import { CreateUserDTO } from './dto/create-user.dto';
 import { Result } from 'src/interfaces/result.interface';
 import { UserResponseDTO } from './dto/user-response.dto';
 import { UserProfile } from 'src/user-profiles/entities/user-profile.entity';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsersService {
@@ -43,9 +44,14 @@ export class UsersService {
     }
 
     let user = new User(userData);
-    user.profile = new UserProfile(userData);
+    user.profile = UserProfile.create(userData);
+
+    const salt = bcrypt.genSaltSync();
+
+    user.password = bcrypt.hashSync(user.password, salt);
 
     await this.userRepository.save(user);
+    delete user.password;
     return {
       status: HttpStatus.CREATED,
       data: new UserResponseDTO(user),
