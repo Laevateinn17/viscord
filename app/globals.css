@@ -5,6 +5,15 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --header-secondary: #c5c5d0;
+  --input-background: #2a2a30;
+  --input-border: #3d3d43;
+  --text-link: #8EA2FA;
+  --primary-button: #5865f2;
+  --container-background: #2e2e34;
+  --container-background-hover: #3a3a41;
+  --text-muted: #ababb1;
+  --checkbox-background-checked: #5865f2;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -14,8 +23,76 @@
   }
 }
 
+@font-face {
+  font-family: "GG Sans";
+  src: url("../fonts/gg\ sans\ Bold.woff") format("woff"),
+    url("../fonts/gg sans Bold.ttf") format("truetype");
+  font-weight: 700, bold;
+}
+
+@font-face {
+  font-family: "GG Sans";
+  src: url("../fonts/gg\ sans\ Semibold.ttf") format("truetype"),
+  url("../fonts/gg\ sans\ Semibold.woff") format("woff");
+  font-weight: 600;
+}
+
+@font-face {
+  font-family: "GG Sans";
+  src: url("../fonts/gg\ sans\ Medium.ttf") format("truetype"),
+  url("../fonts/gg\ sans\ Medium.woff") format("woff");
+  font-weight: 500;
+}
+
+@font-face {
+  font-family: "GG Sans";
+  src: url("../fonts/gg\ sans\ Regular.ttf") format("truetype"),
+  url("../fonts/gg\ sans\ Regular.woff") format("woff");
+  font-weight: 400;
+}
+
+html, body, div, span, applet, object, iframe,
+h1, h2, h3, h4, h5, h6, p, blockquote, pre,
+a, abbr, acronym, address, big, cite, code,
+del, dfn, em, img, ins, kbd, q, s, samp,
+small, strike, strong, sub, sup, tt, var,
+b, u, i, center,
+dl, dt, dd, ol, ul, li,
+fieldset, form, label, legend,
+table, caption, tbody, tfoot, thead, tr, th, td,
+article, aside, canvas, details, embed, 
+figure, figcaption, footer, header, hgroup, 
+menu, nav, output, ruby, section, summary,
+time, mark, audio, video {
+	margin: 0;
+	padding: 0;
+	border: 0;
+	font: inherit;
+	vertical-align: baseline;
+  font-family: "GG Sans";
+}
+/* HTML5 display-role reset for older browsers */
+article, aside, details, figcaption, figure, 
+footer, header, hgroup, menu, nav, section {
+	display: block;
+}
+ol, ul {
+	list-style: none;
+}
+
+table {
+	border-collapse: collapse;
+	border-spacing: 0;
+}
+
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+	line-height: 1;
+}
+
+a {
+	text-decoration: none;
+	color: black;
+	font-weight: 600;
 }

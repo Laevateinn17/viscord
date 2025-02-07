@@ -1,0 +1,10 @@
+
+.button {
+    background-color: var(--primary-button);
+    border: 1px solid transparent;
+    padding: 10px 16px;
+    line-height: 24px;
+    border-radius: 8px;
+    width: 100%;
+    font-weight: 500;
+}

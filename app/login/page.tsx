@@ -1,0 +1,139 @@
+"use client"
+import Image from 'next/image'
+import styles from './styles.module.css'
+import TextInput from '@/components/text-input/text-input'
+import TextLink from '@/components/text-link/text-link'
+import PrimaryButton from "@/components/primary-button/primary-button"
+import { FormEvent, FormEventHandler, useState } from "react"
+import { login } from "@/services/auth/auth.service"
+import { useAuth } from "@/contexts/auth.context"
+import { Response } from "@/interfaces/response"
+import { AuthResponseDTO } from "@/interfaces/dto/auth-response.dto"
+import { LoginDTO } from "@/interfaces/dto/login.dto"
+
+export default function Login() {
+    const [identifier, setIdentifier] = useState("");
+    const [password, setPassword] = useState("");
+
+    const [identifierError, setIdentifierError] = useState<string | null>(null);
+    const [passwordError, setPasswordError] = useState<string | null>(null);
+
+    const { token, setToken } = useAuth();
+
+    function validateIdentifier(): boolean{
+        if (identifier.length == 0) {
+            setIdentifierError("Email or username cannot be empty");
+            return false;
+        }
+
+        setIdentifierError(null);
+        return true;
+    }
+
+    function validatePassword(): boolean {
+        if (password.length == 0) {
+            setPasswordError("Password cannot be empty");
+            return false;
+        }
+
+        setIdentifierError(null);
+        return true;
+    }
+
+
+
+    async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+        e.preventDefault();
+
+        const validationPassed = validateIdentifier() && validatePassword();
+
+        if (!validationPassed) {
+            return;
+        }
+        
+        const dto: LoginDTO = {identifier: identifier, password: password};
+        const response: Response<AuthResponseDTO | null> = await login(dto);
+
+        if (response.success) {
+            const accessToken = (response.data as AuthResponseDTO).accessToken;
+            setToken(token);
+
+            setIdentifierError(null);
+            setPasswordError(null);
+            
+            return;
+        }
+
+        setIdentifierError(response.message);
+        setPasswordError(response.message);
+    }
+
+    return (
+        <div className={styles.page}>
+            <Image
+                src='/logo.svg'
+                alt='Discord'
+                width={0}
+                height={0}
+                className={styles.logo} />
+            <div className={styles["content-wrapper"]}>
+                <div className={styles['content-container'] + " drop-shadow-xl"}>
+                    <div className={styles['login-container']}>
+                        <div className={styles['title-container']}>
+                            <h1 className={"font-semibold text-2xl mb-2"}>Welcome back!</h1>
+                            <p className={styles["second-title"]}>We&apos;re so excited to see you again!</p>
+                        </div>
+                        <form action="" onSubmit={handleSubmit}>
+                            <div className={styles["login-form"]}>
+                                <div className="mb-5 pt-1">
+                                    <TextInput label="Email or username"
+                                        isRequired={true}
+                                        value={identifier}
+                                        errorMessage={identifierError}
+                                        onChange={(value) => setIdentifier(value)} />
+                                </div>
+                                <div className="pt-1">
+                                    <TextInput
+                                        label="Password"
+                                        type="password"
+                                        isRequired={true}
+                                        value={password}
+                                        errorMessage={passwordError}
+                                        onChange={(value) => setPassword(value)} />
+                                </div>
+                                <div className="mt-1 mb-5">
+                                    <TextLink text="Forgot your password?" href="" />
+                                </div>
+                                <div className="">
+                                    <PrimaryButton text="Log In"/>
+                                </div>
+                                <div className={styles["register-text"]}>
+                                    <span style={{ color: "var(--header-secondary)" }}>Need an account?{" "}</span>
+                                    <TextLink text="Register" href="/register" />
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div className={styles["vertical-separator"]}>
+                    </div>
+                    <div className={styles["quick-login-container"]}>
+                        <div className={styles["qr-code-card"]}>
+                            <div className={styles["qr-code"]}>
+                            </div>
+                            <div className={styles["qr-icon-container"]}>
+                                <Image src="/qr-icon.png" alt="" width={50} height={50} />
+                            </div>
+                        </div>
+                        <h1 className="text-2xl font-semibold mb-2">Log in with QR Code</h1>
+                        <div className={styles["qr-info-text"]}>
+                            <p>Scan this with the <span className="font-bold">Discord mobile app </span>to log in instantly.</p>
+                        </div>
+                        <div className="px-4 py-4">
+                            <TextLink text="Or, sign in with passkey" href="" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div >
+    )
+}

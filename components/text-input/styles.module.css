@@ -1,0 +1,48 @@
+
+.container {
+}
+
+.label-container {
+    display: flex;
+    font-size: 12px;
+    color: var(--header-secondary);
+    margin-bottom: 8px;
+    /* text-align: center ; */
+}
+
+.input {
+    width: 100%;
+    background-color: var(--input-background);
+    border: 1px solid var(--input-border);
+    padding: 12px 10px;
+    font-size: 16px;
+    border-radius: 8px;
+
+    height: 44px;
+    min-width: 0;
+}
+
+.text-helper {
+    margin-top: 10px;
+    font-size: 14px;
+    opacity: 0;
+    height: 0;
+    overflow: hidden;
+    transition: opacity 300ms ease, height 300ms ease;
+    line-height: 1.25;
+}
+
+.text-helper-active {
+    opacity: 1;
+    height: auto;
+}
+
+/* .text-helper {
+    margin-top: 10px;
+    font-size: 14px;
+    display: none;
+}
+
+.text-helper-active {
+    display: block;
+} */

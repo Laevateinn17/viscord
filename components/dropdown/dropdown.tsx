@@ -1,0 +1,65 @@
+"use client"
+import { FaChevronDown } from "react-icons/fa";
+import styles from './styles.module.css'
+import { useEffect, useRef, useState } from "react";
+
+export interface DropdownProps {
+    placeholder: string;
+    values: any[];
+    value: string;
+    onChange: (val: string) => void
+}
+
+
+export default function Dropdown({ placeholder, values, value, onChange }: DropdownProps) {
+    const [showDropdown, setShowDropdown] = useState(false);
+    const filteredResult = values.filter((item) => item.toString().toLowerCase().includes(value.toString().toLowerCase()));
+
+    const dropdownRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (showDropdown && dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setShowDropdown(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [showDropdown]);
+
+    return (
+        <div className={styles.container} ref={dropdownRef}>
+            <input className={styles["input"]}
+                placeholder={placeholder}
+                onFocus={() => setShowDropdown(true)}
+                value={value}
+                onBlur={
+                    () => {
+                        if (dropdownRef.current && !dropdownRef.current.contains(document.activeElement)) {
+                            // setShowDropdown(false);
+                        }
+                    }
+                }
+                onChange={(e) => onChange(e.target.value)} />
+            <span className={styles["dropdown-icon"]}><FaChevronDown size={14} /></span>
+            {showDropdown && <div className={styles["dropdown-select-container"]}>
+                {filteredResult.length != 0 ?
+                    filteredResult.map((item) => {
+                        return (
+                            <div className={styles["dropdown-select-item"]} key={item} onClick={() => {
+                                onChange(item);
+                                setShowDropdown(false);
+                            }}>{item}</div>
+                        )
+                    }) :
+                    <div className={styles["dropdown-select-item-not-found"]} onClick={() => {
+                        setShowDropdown(false);
+                    }}>No results found</div>}
+            </div>}
+        </div>
+    );
+}
+
