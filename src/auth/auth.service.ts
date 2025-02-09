@@ -13,6 +13,7 @@ import { UpdatePasswordDTO } from './dto/update-password.dto';
 import { createMap } from '@automapper/core';
 import { mapper } from 'src/mappings/mappers';
 import { ClientProxy, ClientProxyFactory, Transport } from '@nestjs/microservices';
+import { UserIdentityResponseDTO } from "./dto/user-identity-response.dto";
 
 @Injectable()
 export class AuthService {
@@ -27,12 +28,12 @@ export class AuthService {
       options: {
         urls: [`amqp://${process.env.RMQ_HOST}:${process.env.RMQ_PORT}`],
         queue: 'user_queue',
-        queueOptions: {durable: true}
+        queueOptions: { durable: true }
       }
     });
   }
 
-  async register(userData: RegisterUserDTO) : Promise<Result<AuthResponseDTO>> {
+  async register(userData: RegisterUserDTO): Promise<Result<AuthResponseDTO>> {
     const basicValidationMessage = userData.validate();
     if (basicValidationMessage) {
       return {
@@ -42,7 +43,7 @@ export class AuthService {
       };
     }
 
-    let searchedUser = await this.userRepository.findOneBy({email: userData.email});
+    let searchedUser = await this.userRepository.findOneBy({ email: userData.email });
 
     if (searchedUser) {
       return {
@@ -52,7 +53,7 @@ export class AuthService {
       };
     }
 
-    searchedUser = await this.userRepository.findOneBy({username: userData.username});
+    searchedUser = await this.userRepository.findOneBy({ username: userData.username });
 
     if (searchedUser) {
       return {
@@ -74,14 +75,14 @@ export class AuthService {
 
     //send message to userprofile service
     this.userService.emit('user_created', {
-      userId: user.id,
+      id: user.id,
       displayName: userData.displayName
     });
 
     const response = new AuthResponseDTO();
 
-    response.accessToken = await this.jwtService.signAsync({userId: user.id});
-    response.refreshToken = await this.jwtService.signAsync({userId: user.id}, {expiresIn: '1y'});
+    response.accessToken = await this.jwtService.signAsync({ userId: user.id });
+    response.refreshToken = await this.jwtService.signAsync({ userId: user.id }, { expiresIn: '1y' });
 
     return {
       status: HttpStatus.CREATED,
@@ -101,7 +102,7 @@ export class AuthService {
       };
     }
 
-    const user = await this.userRepository.findOne({where: [{email: loginDTO.identifier}, {username: loginDTO.identifier}]});
+    const user = await this.userRepository.findOne({ where: [{ email: loginDTO.identifier }, { username: loginDTO.identifier }] });
 
     if (!user) {
       return {
@@ -121,8 +122,8 @@ export class AuthService {
 
     const response = new AuthResponseDTO();
 
-    response.accessToken = await this.jwtService.signAsync({userId: user.id});
-    response.refreshToken = await this.jwtService.signAsync({userId: user.id}, {expiresIn: '1y'});
+    response.accessToken = await this.jwtService.signAsync({ userId: user.id });
+    response.refreshToken = await this.jwtService.signAsync({ userId: user.id }, { expiresIn: '1y' });
 
 
     return {
@@ -133,7 +134,7 @@ export class AuthService {
   }
 
   async refreshToken(userId: string): Promise<Result<string>> {
-    const accessToken = await this.jwtService.signAsync({userId: userId});
+    const accessToken = await this.jwtService.signAsync({ userId: userId });
 
     return {
       status: HttpStatus.OK,
@@ -152,8 +153,8 @@ export class AuthService {
       };
     }
 
-    await this.userRepository.update(id, {username: dto.username});
-    
+    await this.userRepository.update(id, { username: dto.username });
+
     return {
       status: HttpStatus.OK,
       message: 'Username updated successfully',
@@ -172,7 +173,7 @@ export class AuthService {
       };
     }
 
-    const user = await this.userRepository.findOne({where: {id}});
+    const user = await this.userRepository.findOne({ where: { id } });
 
     if (!await bcrypt.compare(dto.oldPassword, user.password)) {
       return {
@@ -190,16 +191,50 @@ export class AuthService {
     return {
       status: HttpStatus.OK,
       message: 'Password updated successfully',
-      data: null  
+      data: null
     }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} user`;
+  async getUserIdentity(id: string): Promise<Result<UserIdentityResponseDTO>> {
+
+    if (!id || id.length == 0) {
+      return {
+        status: HttpStatus.BAD_REQUEST,
+        data: null,
+        message: "Invalid request",
+      };
+    }
+
+    try {
+
+      const user: UserIdentity = await this.userRepository.findOne({ where: { id: id } });
+
+      if (!user) {
+        return {
+          status: HttpStatus.BAD_REQUEST,
+          data: null,
+          message: "User not found",
+        };
+      }
+
+      delete user.password;
+      return {
+        status: HttpStatus.OK,
+        data: mapper.map(user, UserIdentity, UserIdentityResponseDTO),
+        message: "User identity retrieved successfully"
+      };
+    } catch(error) {
+        return {
+          status: HttpStatus.BAD_REQUEST,
+          data: null,
+          message: "User not found",
+        };
+    }
   }
 
   onModuleInit() {
     createMap(mapper, RegisterUserDTO, UserIdentity);
+    createMap(mapper, UserIdentity, UserIdentityResponseDTO);
   }
 
 }

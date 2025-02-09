@@ -72,10 +72,13 @@ export class AuthController {
   }
 
   @UseGuards(AuthGuard)
-  @Post('verify-token')
-  async verifyToken(@Req() request: Request) {
+  @Get('verify-token')
+  async verifyToken(@Req() request: Request, @Res() res: Response) {
     const id = request['userId'];
-    return id;
+
+    console.log('verifying id')
+    res.setHeader('X-User-Id', id);
+    return res.status(HttpStatus.OK).json({ id });
   }
 
   @Get()
@@ -88,6 +91,15 @@ export class AuthController {
   async refreshToken(@Req() request: Request, @Res() res: Response) {
     const id = request['userId'];
     const result = await this.authService.refreshToken(id);
+    const { status } = result;
+
+    return res.status(status).json(result);
+  }
+
+  @Get('/user/:id')
+  async getUserIdentity(@Param('id') id: string, @Res() res: Response) {
+    console.log('getUserIdentity request for ', id)
+    const result = await this.authService.getUserIdentity(id);
     const { status } = result;
 
     return res.status(status).json(result);

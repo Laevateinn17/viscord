@@ -11,7 +11,7 @@ import { UserIdentity } from './entities/user-identity.entity';
       useFactory: async () => ({
         secret: process.env.JWT_SECRET,
         signOptions: {
-          expiresIn: '60s'
+          expiresIn: '5m'
         }
       })
     }),
