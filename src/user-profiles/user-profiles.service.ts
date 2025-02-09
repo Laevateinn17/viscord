@@ -13,11 +13,10 @@ import { UserProfileResponseDTO } from './dto/user-profile-response.dto';
 export class UserProfilesService {
   constructor(
     @InjectRepository(UserProfile) private userProfileRepository: Repository<UserProfile>
-  ) {}
+  ) { }
 
   async create(dto: CreateUserProfileDto): Promise<Result<CreateUserProfileDto>> {
     const validationMessage = dto.validate();
-
     if (validationMessage) {
       return {
         status: HttpStatus.BAD_REQUEST,
@@ -27,13 +26,45 @@ export class UserProfilesService {
     }
 
     let userProfile = mapper.map(dto, CreateUserProfileDto, UserProfile);
-    
     await this.userProfileRepository.save(userProfile)
     console.log(`User profile ${userProfile.displayName} is saved`);
   }
 
-  findAll() {
-    return `This action returns all userProfiles`;
+  async getById(id: string): Promise<Result<UserProfileResponseDTO>> {
+    console.log(id)
+    if (!id || id.length == 0) {
+      return {
+        status: HttpStatus.BAD_REQUEST,
+        data: null,
+        message: "Invalid request",
+      };
+    }
+
+    try {
+      const userProfile: UserProfile = await this.userProfileRepository.findOne({ where: { id: id } });
+
+      if (!userProfile) {
+        return {
+          status: HttpStatus.BAD_REQUEST,
+          data: null,
+          message: "User not found",
+        };
+      }
+
+      return {
+        status: HttpStatus.OK,
+        data: mapper.map(userProfile, UserProfile, UserProfileResponseDTO),
+        message: "User profile retrieved successfully"
+      };
+
+    } catch (error) {
+      console.log(error)
+      return {
+        status: HttpStatus.BAD_REQUEST,
+        data: null,
+        message: "An unknown error occurred",
+      };
+    }
   }
 
   findOne(id: number) {
@@ -46,7 +77,7 @@ export class UserProfilesService {
 
   onModuleInit() {
     createMap(mapper, CreateUserProfileDto, UserProfile);
-    createMap(mapper, UserProfileResponseDTO, UserProfile);
+    createMap(mapper, UserProfile, UserProfileResponseDTO);
   }
 
 }

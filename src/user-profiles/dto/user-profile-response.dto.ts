@@ -25,7 +25,4 @@ export class UserProfileResponseDTO {
     
     @AutoMap()
     updatedAt: Date;
-    
-    @AutoMap()
-    userId: string
 }

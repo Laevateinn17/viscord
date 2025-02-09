@@ -2,12 +2,12 @@ import { AutoMap } from "@automapper/classes";
 
 export class CreateUserProfileDto {
     @AutoMap()
-    userId: string;
+    id: string;
     @AutoMap()
     displayName: string;
 
     validate(): (string | undefined) {
-        if (!this.userId || this.userId.length === 0) {
+        if (!this.id || this.id.length === 0) {
             return "User id is empty";
         }
         if (!this.displayName || this.displayName.length === 0) {

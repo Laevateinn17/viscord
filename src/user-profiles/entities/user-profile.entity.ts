@@ -5,7 +5,7 @@ import { AutoMap } from "@automapper/classes";
 @Entity({name: 'user_profile'})
 export class UserProfile {
     @AutoMap()
-    @PrimaryGeneratedColumn('uuid')
+    @PrimaryColumn()
     id: string
 
     @AutoMap()
