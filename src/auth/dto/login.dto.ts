@@ -5,11 +5,11 @@ export class LoginDTO {
 
     validate(): string {
         if (!this.identifier || this.identifier.length == 0) {
-            return 'Username or email cannot be empty'
+            return 'Login or password is invalid'
         }
 
         if (!this.password || this.password.length == 0) {
-            return 'Password cannot be empty'
+            return 'Login or password is invalid'
         }
     }
 }

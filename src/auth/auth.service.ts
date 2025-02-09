@@ -25,7 +25,7 @@ export class AuthService {
     this.userService = ClientProxyFactory.create({
       transport: Transport.RMQ,
       options: {
-        urls: ['amqp://localhost:5672'],
+        urls: [`amqp://${process.env.RMQ_HOST}:${process.env.RMQ_PORT}`],
         queue: 'user_queue',
         queueOptions: {durable: true}
       }
@@ -66,8 +66,6 @@ export class AuthService {
 
     const salt = await bcrypt.genSalt();
 
-    console.log('salt is ', salt);
-    console.log(user);
 
     user.password = await bcrypt.hash(user.password, salt);
 
@@ -108,7 +106,7 @@ export class AuthService {
     if (!user) {
       return {
         status: HttpStatus.BAD_REQUEST,
-        message: 'User not found',
+        message: 'Login or password is invalid.',
         data: null
       };
     }
@@ -116,7 +114,7 @@ export class AuthService {
     if (!await bcrypt.compare(loginDTO.password, user.password)) {
       return {
         status: HttpStatus.UNAUTHORIZED,
-        message: 'Wrong password',
+        message: 'Login or password is invalid.',
         data: null
       };
     }
@@ -202,8 +200,6 @@ export class AuthService {
 
   onModuleInit() {
     createMap(mapper, RegisterUserDTO, UserIdentity);
-    console.log('mapped')
-    // createMap(mapper, LoginDTO, UserIdentity)
   }
 
 }
