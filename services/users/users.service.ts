@@ -6,7 +6,6 @@ import { api } from "../api";
 const ENDPOINT = `${process.env.NEXT_PUBLIC_API_URL}/users`
 
 export async function getCurrentUserData(): Promise<Response<UserData>> {
-    console.log('getting current user')
     try {
         const response = await api.get(ENDPOINT + '/current');
         if (response.status === HttpStatusCode.Ok) {

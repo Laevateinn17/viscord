@@ -4,7 +4,7 @@ import styles from './styles.module.css'
 import TextInput from '@/components/text-input/text-input'
 import TextLink from '@/components/text-link/text-link'
 import PrimaryButton from "@/components/primary-button/primary-button"
-import { FormEvent, FormEventHandler, useReducer, useRef, useState } from "react"
+import { FormEvent, FormEventHandler, useEffect, useReducer, useRef, useState } from "react"
 import { login } from "@/services/auth/auth.service"
 import { useAuth } from "@/contexts/auth.context"
 import { Response } from "@/interfaces/response"
@@ -25,6 +25,13 @@ export default function Login() {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const router = useRouter()
+
+
+    useEffect(() => {
+        if (token) {
+            router.push("/channels/me");
+        }
+    }, [token])
 
     function validateIdentifier(): boolean {
         if (identifier.length == 0) {
@@ -64,8 +71,8 @@ export default function Login() {
         setIsSubmitting(false);
 
         if (!response.success) {
-            setIdentifierError(response.message);
-            setPasswordError(response.message);
+            setIdentifierError(response.message as string);
+            setPasswordError(response.message as string);
 
             return;
         }
@@ -75,7 +82,6 @@ export default function Login() {
 
         setIdentifierError(null);
         setPasswordError(null);
-        router.push("/channels/me");
     }
 
     return (
@@ -107,10 +113,9 @@ export default function Login() {
                             <TextLink text="Forgot your password?" href="" />
                         </div>
                         <div className="">
-                            <PrimaryButton
-                                text="Log In"
-                                isLoading={isSubmitting}
-                            />
+                            <PrimaryButton isLoading={isSubmitting}>
+                                <p>Log In</p>
+                            </PrimaryButton>
                         </div>
                         <div className={styles["register-text"]}>
                             <span style={{ color: "var(--header-secondary)" }}>Need an account?{" "}</span>

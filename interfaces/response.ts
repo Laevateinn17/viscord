@@ -1,10 +1,11 @@
+import { ErrorResponse } from "./errors/error-response";
 
 export class Response<T> {
     success: boolean
     data?: T
-    message: string
+    message: string | ErrorResponse
 
-    constructor({ success, data, message}: {success: boolean, data?: T, message: string}) {
+    constructor({ success, data, message}: {success: boolean, data?: T, message: string | ErrorResponse}) {
         this.success = success;
         this.data = data;
         this.message = message;
@@ -14,7 +15,7 @@ export class Response<T> {
         return new Response<T>({ success: true, data: data, message: message });
     }
 
-    static Failed<T>({ data, message}: {data?: T, message: string}) {
+    static Failed<T>({ data, message}: {data?: T, message: string | ErrorResponse}) {
         return new Response<T>  ({ success: false, data: data, message: message });
     }
 }

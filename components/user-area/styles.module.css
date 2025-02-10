@@ -1,5 +1,136 @@
-
 .container {
-    height: 52px;
-    width: 100%;
+  height: 52px;
+  width: 100%;
+  padding: 0px 8px;
+  background-color: var(--background-secondary-alt);
+  display: flex;
+  align-items: center;
+}
+
+.user-info-container {
+  display: flex;
+  align-items: center;
+  background-color: inherit;
+  border-radius: 4px;
+  padding: 4px 0;
+  cursor: pointer;
+  flex-grow: 1;
+  margin-right: 8px;
+
+  cursor: pointer;
+
+  &:hover {
+    background-color: var(--background-modifier-selected);
+  }
+}
+
+.user-identifier-wrapper {
+  font-size: 12px;
+  font-weight: 400;
+  padding: 0 4px;
+  padding-left: 8px;
+  line-height: 13px;
+}
+
+.pfp-wrapper {
+  border-radius: 25px;
+  position: relative;
+  display: flex;
+  /* align-items: center; */
+  justify-content: center;
+  background-color: inherit;
+}
+
+.pfp-container {
+  width: 32px;
+  height: 32px;
+  border-radius: 25px;
+  background-color: var(--background-primary);
+  align-self: center;
+  /* justify-self: center; */
+}
+
+.display-name-text {
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  color: var(--header-primary);
+  line-height: 18px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.subtext {
+  color: var(--header-secondary);
+  line-height: 13px;
+  text-overflow: ellipsis;
+  position: relative;
+}
+
+.status-container {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  transform: translateY(25%) translateX(25%);
+  background-color: inherit;
+  border-radius: 50px;
+  padding: 1.5px;
+}
+
+.setting-wrapper {
+  display: flex;
+  flex: 0 1 auto;
+  justify-content: center;
+  align-items: center;
+}
+
+.icon-container {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  cursor: pointer;
+  &:hover {
+    background-color: var(--background-modifier-selected);
+  }
+
+  svg {
+    /* fill: var(--icon) !important;
+    stroke: var(--icon); */
+  }
+}
+
+.status-text {
+    transform: translateZ(0);
+    transition: all 200ms ease;
+    opacity: 1;
+}
+
+.status-text-hover {
+    transform: translate3d(0, -107%, 0);
+    opacity: 0;
+}
+
+.username-text {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    transform: translate3d(0, 107%, 0);
+    transition: all 200ms ease;
+    opacity: 0;
+}
+
+.username-text-hover {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+}
+
+
+.idle-icon {
+    transform: scale(-1,1);
 }

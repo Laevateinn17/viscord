@@ -5,12 +5,16 @@ import TextLink from '@/components/text-link/text-link'
 import PrimaryButton from "@/components/primary-button/primary-button"
 import DateInput from "@/components/date-input/date-input"
 import Checkbox from "@/components/checkbox/checkbox"
-import { FormEvent, useRef, useState } from "react"
+import { FormEvent, useEffect, useRef, useState } from "react"
 import { MIN_AGE_REQUIREMENT, MIN_PASSWORD_LENGTH } from "@/constants/validations"
 import { RegisterDTO } from "@/interfaces/dto/register.dto"
 import { register } from "@/services/auth/auth.service"
 import { AuthResponse } from "@/interfaces/auth-response"
 import { useAuth } from "@/contexts/auth.context"
+import { ErrorResponse } from "@/interfaces/errors/error-response"
+import { Response } from "@/interfaces/response"
+import { RegisterError } from "@/interfaces/errors/register-error"
+import { useRouter } from "next/navigation"
 
 export default function Register() {
     const containerRef = useRef<HTMLDivElement>(null!);
@@ -22,14 +26,23 @@ export default function Register() {
     const [dob, setDOB] = useState("");
     const [subscribe, setSubscribe] = useState(false);
 
-    const [emailError, setEmailError] = useState<string | null>(null);
-    const [usernameError, setUsernameError] = useState<string | null>(null);
-    const [passwordError, setPasswordError] = useState<string | null>(null);
-    const [dobError, setDOBError] = useState<string | null>(null);
+    const [emailError, setEmailError] = useState<string | null | undefined>(null);
+    const [usernameError, setUsernameError] = useState<string | null | undefined>(null);
+    const [passwordError, setPasswordError] = useState<string | null | undefined>(null);
+    const [dobError, setDOBError] = useState<string | null | undefined>(null);
 
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const { setToken } = useAuth();
+    const {token, setToken } = useAuth();
+
+    const router = useRouter()
+
+
+    useEffect(() => {
+        if (token) {
+            router.push("/channels/me");
+        }
+    }, [token])
 
     function validateEmail() {
         if (!email || email.length === 0) {
@@ -46,6 +59,7 @@ export default function Register() {
         setEmailError(null);
         return true;
     }
+
 
     function validateUsername() {
         if (!username || username.length === 0) {
@@ -115,87 +129,96 @@ export default function Register() {
             subscribe: subscribe
         };
 
-
-        const response = await register(dto);
-
-        if (response.success) {
-            const accessToken = (response.data as AuthResponse).accessToken;
-            setToken(accessToken);
-
-            setEmailError(null);
-            setPasswordError(null);
-            setUsernameError(null);
-            setDOBError(null);
-
+        setIsSubmitting(true)
+        const response: Response<AuthResponse> = await register(dto);
+        setIsSubmitting(false)
+        console.log(response)
+        if (!response.success) {
+            if (response.message instanceof ErrorResponse) {
+                const error = response.message as RegisterError;
+                setEmailError(error.email);
+                setPasswordError(error.password);
+                setUsernameError(error.username);
+                setDOBError(error.dateOfBirth);
+            }
             return;
         }
-    }
+        console.log(response);
+        const accessToken = (response.data as AuthResponse).accessToken;
+        setToken(accessToken);
 
+        setEmailError(null);
+        setPasswordError(null);
+        setUsernameError(null);
+        setDOBError(null);
+    }
     return (
-            <div className={styles['content-container'] + " drop-shadow-xl"} ref={containerRef}>
-                <div className={styles['register-container']}>
-                    <div className={styles['title-container']}>
-                        <h1 className={"font-semibold text-2xl mb-2"}>Create an account</h1>
-                    </div>
-                    <form action="" onSubmit={handleSubmit}>
-                        <div className={styles["login-form"]}>
-                            <div className="mb-5 pt-1">
-                                <TextInput label="Email"
-                                    isRequired={true}
-                                    value={email}
-                                    errorMessage={emailError}
-                                    onChange={(val) => setEmail(val)} />
-                            </div>
-                            <div className="mb-5 pt-1">
-                                <TextInput label="Display Name"
-                                    value={displayName}
-                                    onChange={(val) => setDisplayName(val)}
-                                    helper="This is how other see you. You can use special characters and emoji." />
-                            </div>
-                            <div className="mb-5 pt-1">
-                                <TextInput label="Username"
-                                    value={username}
-                                    onChange={(val) => setUsername(val)}
-                                    errorMessage={usernameError}
-                                    isRequired={true}
-                                    helper="Please only use numbers, letters, underscores _, or periods." />
-                            </div>
-                            <div className="mb-5 pt-1">
-                                <TextInput label="Password"
-                                    isRequired={true}
-                                    type="password"
-                                    value={password}
-                                    errorMessage={passwordError}
-                                    onChange={setPassword} />
-                            </div>
-                            <div className="pt-1 mb-4">
-                                <DateInput label="Date of Birth"
-                                    errorMessage={dobError}
-                                    isRequired={true}
-                                    onChange={(date) => setDOB(date.toISOString())} />
-                            </div>
-                            <div className="mb-5">
-                                <Checkbox
-                                    value={subscribe}
-                                    onChange={(val) => setSubscribe(val)} >
-                                    <p className={styles["subscribe-text"]}>(Optional) It&apos;s okay to send me emails with Discord updates, tips, and special offers. You can opt out at any time.</p>
-                                </Checkbox>
-                            </div>
-                            <div className="">
-                                <PrimaryButton text="Continue" />
-                            </div>
-                            <div className={styles["tos-text"]}>
-                                <p>By registering, you agree to Discord&apos;s <TextLink text="Term of Service" fontSize={12} href="" /> and <TextLink fontSize={12} text="Privacy Policy" href="" /></p>
-                            </div>
-                            <div className={styles["login-text"]}>
-                                <TextLink text="Already have an account?" href="/login" 
-                                onClick={ () =>
+        <div className={styles['content-container'] + " drop-shadow-xl"} ref={containerRef}>
+            <div className={styles['register-container']}>
+                <div className={styles['title-container']}>
+                    <h1 className={"font-semibold text-2xl mb-2"}>Create an account</h1>
+                </div>
+                <form action="" onSubmit={handleSubmit}>
+                    <div className={styles["login-form"]}>
+                        <div className="mb-5 pt-1">
+                            <TextInput label="Email"
+                                isRequired={true}
+                                value={email}
+                                errorMessage={emailError}
+                                onChange={(val) => setEmail(val)} />
+                        </div>
+                        <div className="mb-5 pt-1">
+                            <TextInput label="Display Name"
+                                value={displayName}
+                                onChange={(val) => setDisplayName(val)}
+                                helper="This is how other see you. You can use special characters and emoji." />
+                        </div>
+                        <div className="mb-5 pt-1">
+                            <TextInput label="Username"
+                                value={username}
+                                onChange={(val) => setUsername(val)}
+                                errorMessage={usernameError}
+                                isRequired={true}
+                                helper="Please only use numbers, letters, underscores _, or periods." />
+                        </div>
+                        <div className="mb-5 pt-1">
+                            <TextInput label="Password"
+                                isRequired={true}
+                                type="password"
+                                value={password}
+                                errorMessage={passwordError}
+                                onChange={setPassword} />
+                        </div>
+                        <div className="pt-1 mb-4">
+                            <DateInput label="Date of Birth"
+                                errorMessage={dobError}
+                                isRequired={true}
+                                onChange={(date) => setDOB(date.toISOString())} />
+                        </div>
+                        <div className="mb-5">
+                            <Checkbox
+                                value={subscribe}
+                                onChange={(val) => setSubscribe(val)} >
+                                <p className={styles["subscribe-text"]}>(Optional) It&apos;s okay to send me emails with Discord updates, tips, and special offers. You can opt out at any time.</p>
+                            </Checkbox>
+                        </div>
+                        <div className="">
+                            <PrimaryButton isLoading={isSubmitting}>
+                                <p>Continue</p>
+                            </PrimaryButton>
+                        </div>
+                        <div className={styles["tos-text"]}>
+                            <p>By registering, you agree to Discord&apos;s <TextLink text="Term of Service" fontSize={12} href="" /> and <TextLink fontSize={12} text="Privacy Policy" href="" /></p>
+                        </div>
+                        <div className={styles["login-text"]}>
+                            <TextLink text="Already have an account?" href="/login"
+                                onClick={() =>
                                     containerRef.current.classList.toggle(styles["content-container-disappear"])
                                 } />
-                            </div>
                         </div>
-                    </form>
-                </div>
+                    </div>
+                </form>
             </div>
+        </div>
     );
 }

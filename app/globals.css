@@ -6,6 +6,10 @@
   --background-primary: #313338;
   --background-tertiary: #1e1f22;
   --background-secondary: #2b2d31;
+  --background-secondary-alt: #232428;
+  --background-modifier-selected: rgba(78, 80, 88, 0.6);
+  --background-modifier-hover: rgba(78, 80, 88, 0.3);
+  --background-modifier-accent: rgba(78, 80, 88, 0.48);
   --foreground: #171717;
   --header-secondary: #c5c5d0;
   --input-background: #2a2a30;
@@ -17,7 +21,11 @@
   --container-background-hover: #3a3a41;
   --text-muted: #949ba4;
   --checkbox-background-checked: #5865f2;
-  --header-modifier-accent: #35363c
+  --header-modifier-accent: #35363c;
+  --icon: #b5bac1;
+  --channel-default: oklab(0.686636 -0.00407365 -0.0149199);
+  --interactive-normal: oklab(0.787067 -0.00258079 -0.0110391);
+  --interactive-hover: oklab(0.89908 -0.00192907 -0.0048306);
 }
 
 @media (prefers-color-scheme: dark) {

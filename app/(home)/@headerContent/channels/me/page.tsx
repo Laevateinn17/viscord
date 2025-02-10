@@ -13,7 +13,6 @@ export default function MeChannelHeader() {
     return (
         <div className={styles["search-container"]}>
             <p className={styles["search-placeholder"]}>Find or start a conversation</p>
-            <PrimaryButton text="click" onClick={() => test()}/>
         </div>
     );
 }

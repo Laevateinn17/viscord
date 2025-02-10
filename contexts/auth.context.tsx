@@ -4,6 +4,7 @@ import { api } from "@/services/api";
 import { refreshToken } from "@/services/auth/auth.service";
 import { getCurrentUserData } from "@/services/users/users.service";
 import axios, { AxiosInstance, HttpStatusCode } from "axios";
+import { responseCookiesToRequestCookies } from "next/dist/server/web/spec-extension/adapters/request-cookies";
 import { useRouter } from "next/navigation";
 import { createContext, ReactNode, useContext, useEffect, useRef, useState } from "react";
 
@@ -28,17 +29,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         if (tokenRef.current) {
-            console.log("new token issued")
             setToken(tokenRef.current)
         }
     }, [tokenRef.current])
+
+    useEffect(() => {
+        if (token) {
+            getCurrentUserData().then(response => {
+                if (response.success) {
+                    setUser(response.data!);
+                }
+            });
+        }
+    }, [token])
 
     useEffect(() => {
 
         const refreshTokenInterceptor = api.interceptors.response.use(
             (response) => response,
             async (error: any) => {
-                console.log(error.config._retry)
                 if (error.response.status === HttpStatusCode.Unauthorized && !error.config._retry) {
                     error.config._retry = true;
                     try {
@@ -50,7 +59,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
                         const newToken = response.data?.accessToken;
                         tokenRef.current = newToken ?? null;
-                        console.log("token refreshed");
                         error.config.headers['Authorization'] = `Bearer ${newToken}`;
 
                         return api.request(error.config);
@@ -65,8 +73,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             });
         const addIdentityInterceptor = api.interceptors.request.use((config) => {
             const token = tokenRef.current;
-            console.log(config.url)
-            console.log("ay", token)
             if (token) {
                 config.headers.Authorization = `Bearer ${token}`;
             }
@@ -75,15 +81,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         
         getCurrentUserData().then(response => {
-            console.log(response)
             if (!response.success) {
                 router.push("/login")
             }
             setUser(response.data!);
         })
         return () => {
-            axios.interceptors.response.eject(refreshTokenInterceptor)
-            axios.interceptors.request.eject(addIdentityInterceptor);
+            api.interceptors.response.eject(refreshTokenInterceptor)
+            api.interceptors.request.eject(addIdentityInterceptor);
         }
     }, [])
 

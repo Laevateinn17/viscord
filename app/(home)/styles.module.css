@@ -1,9 +1,21 @@
 
 .page {
-    background: var(--background-secondary);
     min-height: 100vh;
-    display: flex;
     user-select: none;
+    display: flex;
+}
+
+
+.main-content {
+    display: flex;
+    min-width: 100%;
+    min-height: 100%;
+    transition: all 200ms ease;
+    background: var(--background-secondary);
+}
+
+.main-content-hidden {
+    transform: scale(0.9);
 }
 
 .guild-sidebar-container {
