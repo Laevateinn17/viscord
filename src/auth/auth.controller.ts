@@ -16,8 +16,8 @@ export class AuthController {
   async register(@Body(new ValidationPipe({ transform: true })) userData: RegisterUserDTO, @Res() res: Response) {
     const result = await this.authService.register(userData);
     const { status } = result
-
-    if (status === HttpStatus.OK) {
+    
+    if (status === HttpStatus.CREATED) {
       res.cookie('refreshToken', result.data.refreshToken, {
         httpOnly: true,
         sameSite: 'lax',
@@ -98,7 +98,6 @@ export class AuthController {
 
   @Get('/user/:id')
   async getUserIdentity(@Param('id') id: string, @Res() res: Response) {
-    console.log('getUserIdentity request for ', id)
     const result = await this.authService.getUserIdentity(id);
     const { status } = result;
 

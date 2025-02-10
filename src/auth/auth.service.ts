@@ -14,6 +14,9 @@ import { createMap } from '@automapper/core';
 import { mapper } from 'src/mappings/mappers';
 import { ClientProxy, ClientProxyFactory, Transport } from '@nestjs/microservices';
 import { UserIdentityResponseDTO } from "./dto/user-identity-response.dto";
+import { ErrorResponse } from "./errors/error-response";
+import { RegisterError } from "./errors/register-error";
+import { registerDecorator } from "class-validator";
 
 @Injectable()
 export class AuthService {
@@ -48,7 +51,9 @@ export class AuthService {
     if (searchedUser) {
       return {
         status: HttpStatus.BAD_REQUEST,
-        message: 'This email is already registered',
+        message: {
+         email:'This email is already registered'
+        } as RegisterError,
         data: null
       };
     }
@@ -58,7 +63,9 @@ export class AuthService {
     if (searchedUser) {
       return {
         status: HttpStatus.BAD_REQUEST,
-        message: 'This username is already used',
+        message: {
+          username: 'This username is already used'
+        } as RegisterError,
         data: null
       };
     }

@@ -1,6 +1,7 @@
 
 import { AutoMap } from "@automapper/classes";
 import { Transform } from "class-transformer";
+import { RegisterError } from "../errors/register-error";
 
 export class RegisterUserDTO {
     @AutoMap()
@@ -13,46 +14,57 @@ export class RegisterUserDTO {
     password: string;
 
     @AutoMap()
-    @Transform(({value}) => new Date(value))
+    @Transform(({ value }) => new Date(value))
     dateOfBirth: Date;
 
-    validate(): (string | undefined) {
+    validate(): (RegisterError | undefined) {
+        const error: RegisterError = {};
         if (!this.email || this.email.length === 0) {
-            return 'Email must be filled.';
+            error.email = 'Email must be filled.'
+            return error;
         }
         if (!this.displayName || this.displayName.length === 0) {
-            return 'Display name must be filled.';
+            error.displayName = 'Display name must be filled.'
+            return error;
         }
         if (!this.username || this.username.length === 0) {
-            return 'Username must be filled.';
+            error.username =  'Username must be filled.';
+            return error;
         }
         if (!this.password || this.password.length === 0) {
-            return 'Password must be filled.';
+            error.password = 'Password must be filled.';
+            return error;
         }
         if (!this.dateOfBirth) {
-            return 'Date of Birth must be filled.';
+            error.dateOfBirth = 'Date of Birth must be filled.';
+            return error;
         }
 
         if (!this.email.match(
             /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
         )) {
-            return 'Email is not valid.';
+            error.email = 'Email is not valid.';
+            return error;
         }
 
         if (this.username.split(' ').length > 1) {
-            return 'Username must not contain any spaces.';
+            error.username = 'Username must not contain any spaces.';
+            return error;
         }
 
         if (this.username.match(/[^A-Za-z0-9_.]/)) {
-            return 'Invalid username.';
+            error.username = 'Invalid username.';
+            return error;
         }
 
         if (this.password.length < this.MIN_PASSWORD_LENGTH) {
-            return `Password mmust be ${this.MIN_PASSWORD_LENGTH} or more characters.`;
+            error.password = `Password mmust be ${this.MIN_PASSWORD_LENGTH} or more characters.`;
+            return error;
         }
 
         if (new Date().getFullYear() - new Date(this.dateOfBirth).getFullYear() < this.MIN_AGE_REQUIREMENT) {
-            return `You must be ${this.MIN_AGE_REQUIREMENT} years or older to register`;
+            error.dateOfBirth = `You must be ${this.MIN_AGE_REQUIREMENT} years or older to register`;
+            return error;
         }
     }
 
