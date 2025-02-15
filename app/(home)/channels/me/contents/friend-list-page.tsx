@@ -1,7 +1,7 @@
 
 export default function FriendListPage() {
 
-    document.title = "Discord | Friends";
+    // document.title = "Discord | Friends";
     
     return (
         <div>

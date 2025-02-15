@@ -30,7 +30,7 @@ export default function HomeLayout({ headerContent, sidebarContent, children }: 
     const [isLoading, setIsLoading] = useState(true);
     const [isSettingOpen, setIsSettingOpen] = useState(false);
     const [content, setContent] = useState<ReactNode>(<div></div>);
-    const [prevTitle, setPrevTitle] = useState(document.title);
+    // const [prevTitle, setPrevTitle] = useState(document.title);
 
     useEffect(() => {
         if (user) {
@@ -42,13 +42,13 @@ export default function HomeLayout({ headerContent, sidebarContent, children }: 
     }, [user])
 
     useEffect(() => {
-        if (isSettingOpen) {
-            setPrevTitle(document.title);
-            document.title = "Discord | Settings";
-        }
-        else {
-            document.title = prevTitle;
-        }
+        // if (isSettingOpen) {
+        //     setPrevTitle(document.title);
+        //     document.title = "Discord | Settings";
+        // }
+        // else {
+        //     document.title = prevTitle;
+        // }
     }, [isSettingOpen])
 
     return (
