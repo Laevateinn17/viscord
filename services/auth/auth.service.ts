@@ -79,6 +79,7 @@ export async function refreshToken(): Promise<Response<AuthResponse>> {
             message: response.data.message
         });
     } catch (error) {
+        console.log(error)
         if (error instanceof AxiosError) {
             return Response.Failed<AuthResponse>({
                 message: error.response ? error.response.data.message as string : "An unknown Error occurred"

@@ -164,7 +164,7 @@
   padding: 8px 10px;
   flex-direction: row;
   font-size: 12px;
-  a {
+  .link {
     color: var(--interactive-normal);
   }
 }

@@ -31,9 +31,9 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased overflow-hidden`}
       >
         <AuthProvider>
-          <Suspense fallback={<Loading/>}>
+          {/* <Suspense fallback={<Loading/>}> */}
             {children}
-          </Suspense>
+          {/* </Suspense> */}
         </AuthProvider>
       </body>
     </html>

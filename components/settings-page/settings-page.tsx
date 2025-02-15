@@ -15,6 +15,7 @@ import { HiMagnifyingGlass } from "react-icons/hi2"
 import { login, logout } from "@/services/auth/auth.service"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/auth.context"
+import Head from "next/head"
 
 interface SettingsPageProps {
     show: boolean
@@ -169,7 +170,7 @@ export default function SettingsPage({ show, closeSettingsHandler }: SettingsPag
     async function handleLogout() {
         await logout();
 
-        setUser(null);
+        setUser(undefined);
         
         router.push("/login");
     }
@@ -199,7 +200,7 @@ export default function SettingsPage({ show, closeSettingsHandler }: SettingsPag
                             );
                         })}
                         <div>
-                            <SidebarItem isActive={false} onClick={() => { }}><p>What's New</p></SidebarItem>
+                            <SidebarItem isActive={false} onClick={() => { }}><p>What&apos;s New</p></SidebarItem>
                             <SidebarItem isActive={false} onClick={() => { }}><p>Merch</p></SidebarItem>
                             <SidebarItem isActive={false} onClick={() => { }}><p>HypeSquad</p></SidebarItem>
                             <div className={styles["section-separator"]}></div>
@@ -213,11 +214,11 @@ export default function SettingsPage({ show, closeSettingsHandler }: SettingsPag
                             </SidebarItem>
                             <div className={styles["section-separator"]}></div>
                             <div className={styles["socials-wrapper"]}>
-                                <Link href={"x.com"}><IconTwitter /></Link>
-                                <Link href={"https://www.instagram.com/vincent.ramaputra/"}><IconInstagram /></Link>
-                                <Link href={""}><IconFacebook /></Link>
-                                <Link href={""}><IconYoutube /></Link>
-                                <Link href={""}><IconTiktok /></Link>
+                                <Link className={styles["link"]} href={"x.com"}><IconTwitter /></Link>
+                                <Link className={styles["link"]} href={"https://www.instagram.com/vincent.ramaputra/"}><IconInstagram /></Link>
+                                <Link className={styles["link"]} href={""}><IconFacebook /></Link>
+                                <Link className={styles["link"]} href={""}><IconYoutube /></Link>
+                                <Link className={styles["link"]} href={""}><IconTiktok /></Link>
                             </div>
                             <div className={styles["notes"]}>
                                 <p>By VR23-2</p>

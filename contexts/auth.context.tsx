@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 import { createContext, Dispatch, ReactNode, SetStateAction, useContext, useEffect, useRef, useState } from "react";
 
 export interface AuthContextType {
-    user: UserData | null | undefined
+    user: UserData | undefined
     getUser: () => Promise<UserData | undefined>
     setUser: Dispatch<SetStateAction<UserData | undefined>>
 }
@@ -29,21 +29,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.log("user state ", user);
     }, [user])
 
-    async function getUser() {
+    async function getUser(): Promise<UserData | undefined> {
+        console.log("getting user")
         if (!user) {
             const response = await getCurrentUserData();
-            if (!response.success) {
-                router.push("/login");
-                return null;
+            if (response.success) {
+                setUser(response.data!);
+                return response.data;
             }
-            setUser(response.data!);
-            return response.data;
         }
         return user;
     }
 
-    useEffect(() => {
 
+    useEffect(() => {
         const refreshTokenInterceptor = api.interceptors.response.use(
             (response) => response,
             async (error: any) => {
@@ -78,6 +77,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
                 return Promise.reject(error);
             });
+
+
+        getUser();
         // const addIdentityInterceptor = api.interceptors.request.use((config) => {
         //     const token = tokenRef.current;
         //     console.log('attaching access token', token);

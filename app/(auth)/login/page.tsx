@@ -10,7 +10,7 @@ import { useAuth } from "@/contexts/auth.context"
 import { Response } from "@/interfaces/response"
 import { AuthResponse } from "@/interfaces/auth-response"
 import { LoginDTO } from "@/interfaces/dto/login.dto"
-import { useRouter } from "next/navigation"
+import { redirect, useRouter } from "next/navigation"
 import Link from "next/link"
 
 export default function Login() {
@@ -25,8 +25,13 @@ export default function Login() {
 
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const router = useRouter()
+    const router = useRouter();
 
+    useEffect(() => {
+        if (user) {
+            router.push("/channels/me");
+        }
+    }, [user]) // maybe perform this logic in middleware
 
     function validateIdentifier(): boolean {
         if (identifier.length == 0) {

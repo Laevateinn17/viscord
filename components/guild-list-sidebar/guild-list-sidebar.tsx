@@ -1,6 +1,7 @@
 import { GuildSummary } from "@/interfaces/guild-summary";
 import GuildIcon from "../guild-icon/guild-icon";
 import styles from "./styles.module.css"
+import { useEffect } from "react";
 const directMessageIcon: GuildSummary = {
     name: "Direct Messages",
     id: "me"
@@ -17,6 +18,9 @@ export default function GuildListSidebar() {
         );
     }
 
+    useEffect(() => {
+        console.log("rerender")
+    }, [])
     return (
         <div className={styles["guild-list-container"]}>
             <DMButton/>

@@ -97,10 +97,6 @@
     background-color: var(--background-modifier-selected);
   }
 
-  svg {
-    /* fill: var(--icon) !important;
-    stroke: var(--icon); */
-  }
 }
 
 .status-text {

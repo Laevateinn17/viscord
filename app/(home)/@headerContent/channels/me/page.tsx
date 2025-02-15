@@ -1,13 +1,7 @@
-"use client"
-import PrimaryButton from "@/components/primary-button/primary-button";
-import styles from "./styles.module.css"
-import { refreshToken } from "@/services/auth/auth.service";
-
 export default function MeChannelHeader() {
-
     return (
-        <div className={styles["search-container"]}>
-            <p className={styles["search-placeholder"]}>Find or start a conversation</p>
+        <div className={"w-full py-[10px]] rounded-sm"}>
+            <p className={"text-[var(--text-muted)] bg-[var(--background-tertiary)] leading-[28px] text-sm py-[1px]] px-[6px] cursor-pointer font-medium"}>Find or start a conversation</p>
         </div>
     );
 }

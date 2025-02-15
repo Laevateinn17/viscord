@@ -4,7 +4,6 @@ import { ReactNode, useEffect, useRef, useState } from "react"
 import styles from "./styles.module.css"
 import { usePathname, useRouter } from "next/navigation"
 import { PathnameContext } from "next/dist/shared/lib/hooks-client-context.shared-runtime"
-import TooltipRight from "../tooltip/tooltip-right"
 import Tooltip from "../tooltip/tooltip"
 
 interface GuildIconProps {
