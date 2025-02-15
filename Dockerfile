@@ -4,6 +4,10 @@ WORKDIR /app
 
 COPY package*.json .
 
+ARG BACKEND_API_URL
+
+ENV NEXT_PUBLIC_API_URL=${BACKEND_API_URL}
+
 RUN npm install
 
 COPY . .
