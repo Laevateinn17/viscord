@@ -32,10 +32,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async function getUser(): Promise<UserData | undefined | null> {
         if (!user) {
             const response = await getCurrentUserData();
-            if (response.success) {
+            if (!response.success) {
                 setUser(response.data!);
                 return response.data;
             }
+            setUser(undefined);
         }
         return user;
     }

@@ -29,6 +29,7 @@ export default function Login() {
     const router = useRouter();
 
     useEffect(() => {
+        console.log(user === null);
         if (user !== null) {
             if (user !== undefined) {
                 router.push("/channels/me");
