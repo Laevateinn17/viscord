@@ -17,6 +17,7 @@ export class UsersController {
   @Get("current")
   async getCurrentUser(@Headers('X-User-Id') id: string, @Res() res: Response) {
     const result = await this.usersService.getById(id);
+    
     const { status } = result;
 
     return res.status(status).json(result);
