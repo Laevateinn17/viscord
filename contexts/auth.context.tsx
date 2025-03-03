@@ -1,8 +1,9 @@
 "use client"
+import { UserStatus } from "@/enums/user-status.enum";
 import { UserData } from "@/interfaces/UserData";
 import { api } from "@/services/api";
 import { refreshToken } from "@/services/auth/auth.service";
-import { getCurrentUserData } from "@/services/users/users.service";
+import { getCurrentUserData, updateStatus } from "@/services/users/users.service";
 import axios, { AxiosInstance, HttpStatusCode } from "axios";
 import { responseCookiesToRequestCookies } from "next/dist/server/web/spec-extension/adapters/request-cookies";
 import { useRouter } from "next/navigation";
@@ -60,12 +61,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                         // tokenRef.current = newToken ?? null;
                         // error.config.headers['Authorization'] = `Bearer ${newToken}`;
 
-                        const userResponse = await getCurrentUserData();
-                        console.log("token received ", userResponse.data);
+                        const userResponse = await getUser();
+                        // console.log("token received ", userResponse.data);
 
-                        if (userResponse.success) {
-                            setUser(userResponse.data!);
-                        }
+                        // if (userResponse.success) {
+                        //     setUser(userResponse.data!);
+                        // }
 
                         return api.request(error.config);
                     }
