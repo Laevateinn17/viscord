@@ -8,8 +8,5 @@ export class UserIdentityResponseDTO {
     email: string;
     
     @AutoMap()
-    username: string;
-    
-    @AutoMap()
     dateOfBirth: Date;
 }

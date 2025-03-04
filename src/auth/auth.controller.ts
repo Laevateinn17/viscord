@@ -3,7 +3,6 @@ import { AuthService } from './auth.service';
 import { RegisterUserDTO } from './dto/register-user.dto';
 import { Request, Response } from 'express';
 import { LoginDTO } from './dto/login.dto';
-import { UpdateUsernameDTO } from './dto/update-username.dto';
 import { UpdatePasswordDTO } from './dto/update-password.dto';
 import { AuthGuard } from './guards/auth.guard';
 import { RefreshTokenGuard } from "./guards/refresh-token.guard";
@@ -64,14 +63,6 @@ export class AuthController {
   }
 
   @UseGuards(AuthGuard)
-  @Patch('update-username')
-  async updateUsername(@Req() request: Request, @Body(new ValidationPipe({ transform: true })) dto: UpdateUsernameDTO, @Res() res: Response) {
-    const id = request['userId'];
-    const result = await this.authService.updateUsername(id, dto);
-    const { status } = result;
-
-    return res.status(status).json(result);
-  }
 
   @UseGuards(AuthGuard)
   @Patch('update-password')
@@ -139,14 +130,6 @@ export class AuthController {
   @Get('user/:id')
   async getUserIdentity(@Param('id') id: string, @Res() res: Response) {
     const result = await this.authService.getUserIdentity(id);
-    const { status } = result;
-
-    return res.status(status).json(result);
-  }
-
-  @Get('username/:username')
-  async getUserIdentityByUsername(@Param('username') username: string, @Res() res: Response) {
-    const result = await this.authService.getUserIdentityByUsername(username);
     const { status } = result;
 
     return res.status(status).json(result);

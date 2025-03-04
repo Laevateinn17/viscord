@@ -15,10 +15,6 @@ export class UserIdentity {
     @AutoMap()
     @Column()
     password: string;
-
-    @AutoMap()
-    @Column()
-    username: string;
     
     @AutoMap()
     @Column()

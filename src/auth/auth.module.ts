@@ -4,6 +4,7 @@ import { AuthService } from './auth.service';
 import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserIdentity } from './entities/user-identity.entity';
+import { HttpModule } from "@nestjs/axios";
 
 @Module({
   imports: [
@@ -15,7 +16,8 @@ import { UserIdentity } from './entities/user-identity.entity';
         }
       })
     }),
-    TypeOrmModule.forFeature([UserIdentity])
+    TypeOrmModule.forFeature([UserIdentity]),
+    HttpModule
   ],
   controllers: [AuthController],
   providers: [AuthService],

@@ -8,7 +8,6 @@ import * as bcrypt from 'bcrypt';
 import { LoginDTO } from './dto/login.dto';
 import { AuthResponseDTO } from './dto/auth-response.dto';
 import { JwtService } from '@nestjs/jwt';
-import { UpdateUsernameDTO } from './dto/update-username.dto';
 import { UpdatePasswordDTO } from './dto/update-password.dto';
 import { createMap } from '@automapper/core';
 import { mapper } from 'src/mappings/mappers';
@@ -18,23 +17,26 @@ import { ErrorResponse } from "./errors/error-response";
 import { RegisterError } from "./errors/register-error";
 import { registerDecorator } from "class-validator";
 import { UserIdentityCompactResponseDTO } from "./dto/user-identity-compact-response.dto";
+import { HttpService } from "@nestjs/axios";
+import { AxiosError, AxiosResponse } from "axios";
+import { firstValueFrom } from "rxjs";
 
 @Injectable()
 export class AuthService {
-  private userService: ClientProxy;
 
   constructor(
-    @InjectRepository(UserIdentity) private userRepository: Repository<UserIdentity>,
-    private jwtService: JwtService
+    @InjectRepository(UserIdentity) private readonly userRepository: Repository<UserIdentity>,
+    private readonly jwtService: JwtService,
+    private readonly userService: HttpService
   ) {
-    this.userService = ClientProxyFactory.create({
-      transport: Transport.RMQ,
-      options: {
-        urls: [`amqp://${process.env.RMQ_HOST}:${process.env.RMQ_PORT}`],
-        queue: 'user-queue',
-        queueOptions: { durable: true }
-      }
-    });
+    // this.userService = ClientProxyFactory.create({
+    //   transport: Transport.RMQ,
+    //   options: {
+    //     urls: [`amqp://${process.env.RMQ_HOST}:${process.env.RMQ_PORT}`],
+    //     queue: 'user-queue',
+    //     queueOptions: { durable: true }
+    //   }
+    // });
   }
 
   async register(userData: RegisterUserDTO): Promise<Result<AuthResponseDTO>> {
@@ -46,6 +48,9 @@ export class AuthService {
         data: null
       };
     }
+
+    userData.email = userData.email.toLowerCase();
+    userData.username = userData.username.toLowerCase();
 
     let searchedUser = await this.userRepository.findOneBy({ email: userData.email });
 
@@ -59,33 +64,59 @@ export class AuthService {
       };
     }
 
-    searchedUser = await this.userRepository.findOneBy({ username: userData.username });
-
-    if (searchedUser) {
-      return {
-        status: HttpStatus.BAD_REQUEST,
-        message: {
-          username: 'This username is already used'
-        } as RegisterError,
-        data: null
-      };
-    }
-
     let user = mapper.map(userData, RegisterUserDTO, UserIdentity);
 
     const salt = await bcrypt.genSalt();
-
 
     user.password = await bcrypt.hash(user.password, salt);
 
     await this.userRepository.save(user);
     delete user.password;
 
-    //send message to userprofile service
-    this.userService.emit('user-created', {
-      id: user.id,
-      displayName: userData.displayName
-    });
+
+    let userProfileResponse: AxiosResponse
+
+    try {
+      const url = `http://${process.env.USER_SERVICE_HOST}:${process.env.USER_SERVICE_PORT}/user-profiles`;
+
+      userProfileResponse = await firstValueFrom(this.userService.post(url, {
+        id: user.id,
+        displayName: userData.displayName,
+        username: userData.username
+      }));
+    } catch (error) {
+      await this.userRepository.remove(user);
+
+      if (error instanceof AxiosError) {
+        return {
+          status: HttpStatus.BAD_REQUEST,
+          message: {
+            username: error.response.data.message
+          },
+          data: null
+        };
+      }
+      return {
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: {
+          username: "An unknown error occurred",
+          email: "An unknown error occurred"
+        },
+        data: null
+      };
+    }
+
+    if (userProfileResponse.status !== HttpStatus.CREATED) {
+      await this.userRepository.remove(user);
+      return {
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: {
+          username: "An unknown error occurred",
+          email: "An unknown error occurred"
+        },
+        data: null
+      };
+    }
 
     const response = new AuthResponseDTO();
 
@@ -110,7 +141,7 @@ export class AuthService {
       };
     }
 
-    const user = await this.userRepository.findOne({ where: [{ email: loginDTO.identifier }, { username: loginDTO.identifier }] });
+    const user = await this.userRepository.findOne({ where: { email: loginDTO.identifier } });
 
     if (!user) {
       return {
@@ -151,24 +182,6 @@ export class AuthService {
     };
   }
 
-  async updateUsername(id: string, dto: UpdateUsernameDTO): Promise<Result<any>> {
-    const validateResult = dto.validate();
-    if (validateResult) {
-      return {
-        status: HttpStatus.BAD_REQUEST,
-        message: validateResult,
-        data: null
-      };
-    }
-
-    await this.userRepository.update(id, { username: dto.username });
-
-    return {
-      status: HttpStatus.OK,
-      message: 'Username updated successfully',
-      data: null
-    };
-  }
 
   async updatePassword(id: string, dto: UpdatePasswordDTO): Promise<Result<any>> {
     const validateResult = dto.validate();
@@ -239,41 +252,6 @@ export class AuthService {
     }
   }
 
-  async getUserIdentityByUsername(username: string): Promise<Result<UserIdentityCompactResponseDTO>> {
-    if (!username || username.length == 0) {
-      return {
-        status: HttpStatus.BAD_REQUEST,
-        data: null,
-        message: "Invalid request",
-      };
-    }
-
-    try {
-
-      const user: UserIdentity = await this.userRepository.findOne({ where: { username: username } });
-
-      if (!user) {
-        return {
-          status: HttpStatus.BAD_REQUEST,
-          data: null,
-          message: "User not found",
-        };
-      }
-
-      delete user.password;
-      return {
-        status: HttpStatus.OK,
-        data: mapper.map(user, UserIdentity, UserIdentityResponseDTO),
-        message: "User identity retrieved successfully"
-      };
-    } catch (error) {
-      return {
-        status: HttpStatus.BAD_REQUEST,
-        data: null,
-        message: "User not found",
-      };
-    }
-  }
 
   onModuleInit() {
     createMap(mapper, RegisterUserDTO, UserIdentity);
