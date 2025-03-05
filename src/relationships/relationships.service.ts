@@ -23,7 +23,7 @@ export class RelationshipsService {
     if (userProfileResponse.status != HttpStatus.OK) {
       return {
         status: HttpStatus.BAD_REQUEST,
-        message: "User does not exist",
+        message: "Hm, didn't work. Double check that the username is correct.",
         data: null
       };
     }
@@ -33,28 +33,75 @@ export class RelationshipsService {
     if (recipient.id === senderId) {
       return {
         status: HttpStatus.BAD_REQUEST,
-        message: "Invalid request",
+        message: "Hm, didn't work. Double check that the username is correct.",
         data: null
       };
     }
-    const relationship: Relationship = new Relationship();
-    relationship.senderId = senderId;
-    relationship.recipientId = recipient.id;
-    relationship.type = RelationshipType.Pending;
 
-    try {
-      await this.relationshipRepository.save(relationship);
-    } catch (error) {
+    const existingRelationship = await this.relationshipRepository.findOne({ where: [{ senderId: senderId, recipientId: recipient.id }, { recipientId: senderId, senderId: recipient.id }] });
+
+    if (!existingRelationship) {
+      const relationship: Relationship = new Relationship();
+      relationship.senderId = senderId;
+      relationship.recipientId = recipient.id;
+      relationship.type = RelationshipType.Pending;
+
+      try {
+        await this.relationshipRepository.save(relationship);
+      } catch (error) {
+        return {
+          status: HttpStatus.INTERNAL_SERVER_ERROR,
+          message: "An unknown error occurred",
+          data: null
+        };
+      }
+
       return {
-        status: HttpStatus.INTERNAL_SERVER_ERROR,
-        message: "An unknown error occurred",
+        status: HttpStatus.NO_CONTENT,
+        message: "Request sent successfully",
         data: null
       };
     }
 
+    if (existingRelationship.type === RelationshipType.Friends) {
+      return {
+        status: HttpStatus.BAD_REQUEST,
+        message: "You're already friends with that user!",
+        data: null
+      };
+    }
+    else if ((existingRelationship.type === RelationshipType.Pending)) {
+      if (existingRelationship.senderId != senderId) {
+        const response = await this.acceptRequest(existingRelationship);
+        if (response.status !== HttpStatus.NO_CONTENT) {
+          return {
+            status: HttpStatus.BAD_REQUEST,
+            message: "Hm, didn't work. Double check that the username is correct.",
+            data: null
+          };
+        }
+
+        return {
+          status: HttpStatus.NO_CONTENT,
+          message: "Request accepted successfully",
+          data: null
+        };
+      }
+      else {
+        return {
+          status: HttpStatus.NO_CONTENT,
+          message: "Request sent successfully",
+          data: null
+        };
+
+      }
+    }
+    else if (existingRelationship.type === RelationshipType.Blocked && existingRelationship.senderId === senderId) {
+      return this.update(senderId, existingRelationship.id, { type: RelationshipType.Friends });
+    }
     return {
-      status: HttpStatus.NO_CONTENT,
-      message: "Request sent successfully",
+      status: HttpStatus.BAD_REQUEST,
+      message: "Hm, didn't work. Double check that the username is correct.",
       data: null
     };
   }
@@ -70,11 +117,11 @@ export class RelationshipsService {
 
     const relationships: Relationship[] = await this.relationshipRepository.find({ where: [{ senderId: userId }, { recipientId: userId }] });
 
-    const relationshipDTOs: RelationshipResponseDTO[] = await Promise.all(relationships.filter(rel => rel.type !== RelationshipType.Blocked || rel.senderId === userId).map(async (relationship) => {
+    const relationshipDTOs: RelationshipResponseDTO[] = await Promise.all(relationships.filter(rel => (rel.type !== RelationshipType.Blocked || rel.senderId === userId)).map(async (relationship) => {
       const user = (await this.userProfilesService.getById(relationship.senderId !== userId ? relationship.senderId : relationship.recipientId)).data;
       return {
         id: relationship.id,
-        type: relationship.type,
+        type: relationship.type === RelationshipType.Pending ? relationship.senderId === userId ? RelationshipType.Pending : RelationshipType.PendingReceived : relationship.type,
         user: user,
         createdAt: relationship.createdAt,
         updatedAt: relationship.updatedAt
@@ -102,16 +149,16 @@ export class RelationshipsService {
       };
     }
 
-    if (!dto) {
+    if (!dto || !dto.type) {
       dto = { type: RelationshipType.Friends };
     }
 
     const relationship: Relationship = await this.relationshipRepository.findOneBy({ id: id });
-    
+
     if (!relationship || (relationship.senderId != userId && relationship.recipientId != userId)) {
       return {
         status: HttpStatus.BAD_REQUEST,
-        message: "Invalid request",
+        message: "Relationship not found",
         data: null
       };
     }
@@ -140,8 +187,8 @@ export class RelationshipsService {
       };
     }
 
-    const rel = await this.relationshipRepository.findOne({where: [{senderId: userId, recipientId: blockedUserId}, {senderId: blockedUserId, recipientId: userId}]});
-    
+    const rel = await this.relationshipRepository.findOne({ where: [{ senderId: userId, recipientId: blockedUserId }, { senderId: blockedUserId, recipientId: userId }] });
+
     if (rel) {
       return this.blockUserUpdate(userId, rel);
     }
@@ -167,7 +214,7 @@ export class RelationshipsService {
 
     relationship.senderId = userId;
     relationship.recipientId = blockedUserId;
-    
+
     await this.relationshipRepository.save(relationship);
 
     return {
@@ -205,25 +252,35 @@ export class RelationshipsService {
         data: null
       };
     }
-    const relationship: Relationship = await this.relationshipRepository.findOneBy({ id: id });
+    let relationship: Relationship;
+    try {
+      console.log("id: ", id);
+      relationship = await this.relationshipRepository.findOneBy({ id: id });
 
-    if (!relationship || (relationship.senderId != userId && relationship.recipientId != userId)) {
-      return {
-        status: HttpStatus.BAD_REQUEST,
-        message: "Invalid request",
-        data: null
+      if (!relationship || (relationship.senderId != userId && relationship.recipientId != userId)) {
+        return {
+          status: HttpStatus.BAD_REQUEST,
+          message: "Invalid request",
+          data: null
+        }
       }
-    }
-    if (relationship.type === RelationshipType.Blocked && relationship.senderId != userId) {
+      if (relationship.type === RelationshipType.Blocked && relationship.senderId != userId) {
+        return {
+          status: HttpStatus.BAD_REQUEST,
+          message: "Invalid request",
+          data: null
+        };
+      }
+    } catch (error) {
       return {
         status: HttpStatus.BAD_REQUEST,
-        message: "Invalid request",
+        message: "An error occurred when deleting relationship",
         data: null
       };
     }
 
     try {
-      await this.relationshipRepository.delete({ id: id });
+      await this.relationshipRepository.remove(relationship);
     } catch (error) {
       return {
         status: HttpStatus.BAD_REQUEST,
