@@ -45,7 +45,7 @@ export class AuthController {
       res.cookie('refreshToken', result.data.refreshToken, {
         httpOnly: true,
         sameSite: "lax",
-        path: '/',
+        path: '/api/auth/refresh-token',
         maxAge: 365 * 24 * 60 * 60 * 1000 // 1 year
       });
       res.cookie('accessToken', result.data.accessToken, {
@@ -101,9 +101,12 @@ export class AuthController {
         path: '/',
         maxAge: 5 * 60 * 1000 // 5 mins
       });
+      return res.status(status).json(result);
     }
 
-    return res.status(status).json(result);
+    res.clearCookie("accessToken");
+    res.clearCookie("refreshToken");
+    return res.status(HttpStatus.UNAUTHORIZED).send();
   }
 
   @UseGuards(AuthGuard)
