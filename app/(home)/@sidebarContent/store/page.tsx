@@ -1,6 +1,18 @@
 "use client"
+<<<<<<<< HEAD:app/(home)/@sidebarContent/store/page.tsx
 import Relationship from "@/interfaces/relationship";
+========
+import SidebarContentContainer from "@/components/guild-sidebar/sidebar-content-container";
+import SidebarHeader from "@/components/guild-sidebar/sidebar-header";
+import UserAvatar from "@/components/user-avatar/user-avatar";
+import { DM_CHANNELS_CACHE } from "@/constants/cache";
+import Relationship from "@/interfaces/relationship";
+import { getDMChannels } from "@/services/channels/channels.service";
+>>>>>>>> 0430c8aa479cf1c99b7feb8e13a563efaf23b449:app/(home)/@sidebarContent/channels/me/page.tsx
 import { getRelationships } from "@/services/relationships/relationships.service";
+import { getImageURL } from "@/services/storage/storage.service";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { Fragment, ReactNode, useEffect, useState } from "react";
 import styled from "styled-components";
@@ -41,26 +53,94 @@ const MenuItem = styled.div`
     background: var(--background-modifier-selected);
     color: var(--interactive-hover);
     }
-    `
+`
+
 const IconContainer = styled.div`
-        width: 32px;
-        height: 32px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-right: 12px;
-        svg {
-        flex-shrink: 0;
-        width: 24px !important;
-        height: 24px;
-        }
-    `
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 12px;
+    svg {
+    flex-shrink: 0;
+    width: 24px !important;
+    height: 24px;
+    }
+`
 
+const DMListContainer = styled.div`
+    display: flex;
+    flex-direction: column;
+`
+
+const DMListHeader = styled.div`
+    color: var(--interactive-normal);
+    font-size: 14px;
+    font-weight: 500;
+    padding-left: 16px;
+    padding-right: 8px;
+    padding-bottom: 4px;
+    line-height: 18px;
+
+    &:hover {
+        color: var(--interactive-hover);
+    }
+`
+
+const DMListWrapper = styled.div`
+    display: flex;
+    flex-direction: column;
+`
+
+const Divider = styled.div`
+    height: 1px;
+    background-color: var(--divider-subtle);
+    margin: 12px 8px;
+`
+
+const DMItemContainer = styled.div`
+    display: flex;
+    margin-left: 8px;
+    padding-left: 8px;
+    padding-right: 16px;
+    border-radius: 8px;
+    align-items: center;
+    height: 42px;
+    color: var(--interactive-normal);
+    cursor: pointer;
+
+    &:hover {
+        color: var(--interactive-hover);
+        background: var(--background-mod-subtle);
+    }
+
+    &.active {
+        background: var(--background-modifier-selected);
+        color: var(--text-default);
+    }
+`
+
+const DMRecipientName = styled.p`
+    font-weight: 500;
+
+`
 export default function MeSidebarContent() {
-
-
     const pathname = usePathname();
     const router = useRouter();
+    const queryClient = useQueryClient();
+    const { data: dmChannels } = useQuery({
+        staleTime: Infinity,
+        queryKey: [DM_CHANNELS_CACHE],
+        queryFn: async () => {
+            const res = await getDMChannels();
+            if (res.success) {
+                return res.data!;
+            }
+
+            return [];
+        }
+    })
 
     const menuItems = [
         {
@@ -98,26 +178,45 @@ export default function MeSidebarContent() {
         }
     ]
 
-    const [activeContent, setActiveContent] = useState<string>(menuItems[0].id);
-    // const { setContent } = useContentContext();
-
-    // useEffect(() => {
-    //     if (activeContent) {
-    //         setContent(menuItems.find(item => item.id == activeContent)!.content);
-    //     }
-    // }, [activeContent])
     return (
         // <div className={styles["container"]}>
-        <Container>
-            <MenuContainer>
-                {router && menuItems.map((item) => {
-                    return (
-                        <MenuItem key={item.id} className={`${pathname === item.path ? "menu-item-active" : ""}`} onClick={() => router.push(item.path)}>
-                            {item.menuItem}
-                        </MenuItem>
-                    );
-                })}
-            </MenuContainer>
-        </Container>
+        <Fragment>
+            <SidebarHeader>
+                <div className={"w-full p-[10px] rounded-sm"}>
+                    <p className={"text-[var(--text-muted)] bg-[var(--background-tertiary)] leading-[28px] text-sm py-[1px]] px-[6px] cursor-pointer font-medium"}>Find or start a conversation</p>
+                </div>
+            </SidebarHeader>
+            <SidebarContentContainer>
+                <Container>
+                    <MenuContainer>
+                        {router && menuItems.map((item) => {
+                            return (
+                                <MenuItem key={item.id} className={`${pathname === item.path ? "menu-item-active" : ""}`} onClick={() => router.push(item.path)}>
+                                    {item.menuItem}
+                                </MenuItem>
+                            );
+                        })}
+                    </MenuContainer>
+                    <Divider />
+                    <DMListContainer>
+                        <DMListHeader>
+                            <p>Direct Messages</p>
+                        </DMListHeader>
+                        <DMListWrapper>
+                            {dmChannels?.map((channel) => {
+                                const recipient = channel.recipients[0];
+                                return (
+                                    <DMItemContainer className={`${pathname === `/channels/me/${channel.id}` ? "active" : ""}`} key={channel.id} onClick={() => router.push(`/channels/me/${channel.id}`)}>
+                                        <div className="mr-[12px]">
+                                            <UserAvatar user={recipient} showStatus={true} />
+                                        </div>
+                                        <DMRecipientName>{recipient.displayName}</DMRecipientName>
+                                    </DMItemContainer>);
+                            })}
+                        </DMListWrapper>
+                    </DMListContainer>
+                </Container>
+            </SidebarContentContainer>
+        </Fragment>
     )
 }
