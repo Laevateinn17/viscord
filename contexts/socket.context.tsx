@@ -1,17 +1,19 @@
 "use client"
 import { createContext, ReactNode, useContext, useEffect, useState } from "react";
 import { io, Socket } from "socket.io-client";
-import { useAuth } from "./auth.context";
 import { useQueryClient } from "@tanstack/react-query";
 import Relationship from "@/interfaces/relationship";
-import { FRIEND_ADDED_EVENT, FRIEND_REMOVED_EVENT, FRIEND_REQUEST_RECEIVED_EVENT, MESSAGE_RECEIVED_EVENT, USER_OFFLINE_EVENT, USER_ONLINE_EVENT } from "@/constants/message-broker";
+import { FRIEND_ADDED_EVENT, FRIEND_REMOVED_EVENT, FRIEND_REQUEST_RECEIVED_EVENT, GET_USERS_STATUS_EVENT, MESSAGE_RECEIVED_EVENT, USER_OFFLINE_EVENT, USER_ONLINE_EVENT } from "@/constants/events";
 import { MESSAGES_CACHE, RELATIONSHIPS_CACHE } from "@/constants/cache";
 import { Message } from "@/interfaces/message";
 import { HttpStatusCode } from "axios";
 import { refreshToken } from "@/services/auth/auth.service";
+import { useCurrentUserQuery } from "@/hooks/queries";
+import { useUserPresence } from "./user-presence.context";
 
 export interface SocketContextType {
-    socket: Socket
+    socket: Socket;
+    isReady: boolean;
 }
 
 const SocketContext = createContext<SocketContextType>(null!);
@@ -22,22 +24,10 @@ export function useSocket() {
 
 export default function SocketProvider({ children }: { children: ReactNode }) {
     const [socket, setSocket] = useState<Socket>(null!)
-    const { user } = useAuth();
+    const [isReady, setIsReady] = useState(false);
+    const { data: user } = useCurrentUserQuery();
     const queryClient = useQueryClient();
-
-    useEffect(() => {
-        if (!user) return;
-
-        if (!socket) {
-            const sock = io(process.env.NEXT_PUBLIC_WS_GATEWAY, {
-                withCredentials: true
-            });
-            setSocket(sock);
-            sock.on("connect", () => {
-                console.log("socket connected:", sock.id);
-            });
-        }
-    }, [user])
+    const { updatePresence } = useUserPresence();
 
     function handleFriendReceived(payload: Relationship) {
         console.log("received friend request", payload);
@@ -70,49 +60,11 @@ export default function SocketProvider({ children }: { children: ReactNode }) {
     }
 
     function handleFriendOnline(userId: string) {
-        console.log("user is online", userId)
-        queryClient.setQueryData<Relationship[]>([RELATIONSHIPS_CACHE], (old) => {
-            if (!old) {
-                return [];
-            }
-            console.log(old, userId);
-            const oldRel = old.find(rel => rel.user.id === userId)!;
-
-            const updatedRel: Relationship = {
-                ...oldRel,
-                user: {
-                    ...oldRel.user,
-                    isOnline: true
-                }
-            };
-
-            const newData = old.filter(rel => rel.user.id !== userId);
-
-            return [...newData, updatedRel];
-        })
+        updatePresence(userId, true);
     }
 
     function handleFriendOffline(userId: string) {
-        console.log("user is offline", userId)
-        queryClient.setQueryData<Relationship[]>([RELATIONSHIPS_CACHE], (old) => {
-            if (!old) {
-                return [];
-            }
-
-            const oldRel = old.find(rel => rel.user.id === userId)!;
-
-            const updatedRel: Relationship = {
-                ...oldRel,
-                user: {
-                    ...oldRel.user,
-                    isOnline: false
-                }
-            };
-
-            const newData = old.filter(rel => rel.user.id !== userId);
-
-            return [...newData, updatedRel];
-        })
+        updatePresence(userId, false);
     }
 
     function handleMessageReceived(payload: Message) {
@@ -128,6 +80,7 @@ export default function SocketProvider({ children }: { children: ReactNode }) {
         })
     }
 
+
     useEffect(() => {
         if (!socket) return;
         socket.on(FRIEND_REQUEST_RECEIVED_EVENT, handleFriendReceived);
@@ -136,23 +89,34 @@ export default function SocketProvider({ children }: { children: ReactNode }) {
         socket.on(USER_ONLINE_EVENT, handleFriendOnline);
         socket.on(USER_OFFLINE_EVENT, handleFriendOffline);
         socket.on(MESSAGE_RECEIVED_EVENT, handleMessageReceived);
+        socket.on("connect", () => {
+            setIsReady(true);
+        });
         socket.on('connect_error', (error: any) => {
             if (error.description === HttpStatusCode.Unauthorized) {
                 refreshToken();
             }
-        }) 
+        });
+
+        return () => {
+            socket.removeAllListeners();
+            socket.disconnect();
+            setIsReady(false);
+        }
 
     }, [socket])
 
     useEffect(() => {
-        return () => {
-            if (!socket) return;
-            socket.removeAllListeners();
-            socket.disconnect();
-        }
-    }, [])
+        if (!user || isReady) return;
 
-    return <SocketContext.Provider value={{ socket }}>
+        const sock = io(process.env.NEXT_PUBLIC_WS_GATEWAY, {
+            withCredentials: true
+        });
+        setSocket(sock);
+    }, [user]);
+
+
+    return <SocketContext.Provider value={{ socket, isReady }}>
         {children}
     </SocketContext.Provider>
 }

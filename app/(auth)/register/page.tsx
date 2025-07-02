@@ -10,7 +10,6 @@ import { MIN_AGE_REQUIREMENT, MIN_PASSWORD_LENGTH } from "@/constants/validation
 import { RegisterDTO } from "@/interfaces/dto/register.dto"
 import { register } from "@/services/auth/auth.service"
 import { AuthResponse } from "@/interfaces/auth-response"
-import { useAuth } from "@/contexts/auth.context"
 import { ErrorResponse } from "@/interfaces/errors/error-response"
 import { Response } from "@/interfaces/response"
 import { RegisterError } from "@/interfaces/errors/register-error"

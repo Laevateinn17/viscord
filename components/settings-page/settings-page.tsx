@@ -14,8 +14,9 @@ import IconTiktok from "../social-media/tiktok"
 import { HiMagnifyingGlass } from "react-icons/hi2"
 import { login, logout } from "@/services/auth/auth.service"
 import { useRouter } from "next/navigation"
-import { useAuth } from "@/contexts/auth.context"
 import Head from "next/head"
+import { useAuth } from "@/contexts/auth.context"
+import { useLogoutMutation } from "@/hooks/mutations"
 
 interface SettingsPageProps {
     show: boolean
@@ -31,7 +32,8 @@ interface SidebarItem {
 export default function SettingsPage({ show, closeSettingsHandler }: SettingsPageProps) {
     const [searchText, setSearchText] = useState("")
     const headers: string[] = ["User Settings", "Billing Settings", "App Settings", "Activity Settings"];
-    
+    const {mutateAsync: logoutMutation} = useLogoutMutation();
+
     const sidebarItems: any = {
         "User Settings": [
             {
@@ -164,14 +166,11 @@ export default function SettingsPage({ show, closeSettingsHandler }: SettingsPag
     }
 
     const [activeItem, setActiveItem] = useState<string>(sidebarItems[headers[0]][0].id);
-    const {setUser} = useAuth();
+    const { setUser } = useAuth();
     const router = useRouter();
 
     async function handleLogout() {
-        await logout();
-
-        setUser(undefined);
-        
+        await logoutMutation();
         router.push("/login");
     }
 

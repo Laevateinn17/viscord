@@ -1,5 +1,5 @@
 import styles from "./styles.module.css"
-import { UserData } from "@/interfaces/UserData";
+import { UserData } from "@/interfaces/user-data";
 import { UserStatus, UserStatusString } from "@/enums/user-status.enum";
 import { MdCircle, MdDoNotDisturbOn, MdOutlineCircle } from "react-icons/md";
 import { BsMicFill } from "react-icons/bs";
@@ -22,11 +22,11 @@ export default function UserArea({ user, openSettingsHandler }: UserAreaProps) {
         return <div></div>;
     }
     console.log(user.profile.status);
-    
+
     return (
         <div className={styles["container"]} onMouseEnter={() => setIsHovering(true)} onMouseLeave={() => setIsHovering(false)}>
             <div className={styles["user-info-container"]}>
-                    <UserAvatar user={user.profile}/>
+                <UserAvatar user={user.profile} showStatus={true} />
                 <div className={styles["user-identifier-wrapper"]}>
                     <p className={styles["display-name-text"]}>{user!.profile.displayName}</p>
                     <div className={styles["subtext"]}>

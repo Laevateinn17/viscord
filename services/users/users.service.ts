@@ -1,5 +1,5 @@
 import { Response } from "@/interfaces/response";
-import { UserData } from "@/interfaces/UserData";
+import { UserData } from "@/interfaces/user-data";
 import axios, { AxiosError, HttpStatusCode } from "axios";
 import { api } from "../api";
 import { UserStatus } from "@/enums/user-status.enum";

@@ -2,12 +2,12 @@ import { ReactNode } from "react"
 import styles from "./styles.module.css"
 
 interface HomeLayoutProps {
-    sidebarContent: ReactNode
+    children: ReactNode
 }
-export default function GuildSidebar({sidebarContent}: HomeLayoutProps) {
+export default function GuildSidebar({ children }: HomeLayoutProps) {
     return (
         <div className={styles["container"]}>
-                {sidebarContent}
+            {children}
         </div>
     );
 }

@@ -6,6 +6,9 @@ import { dateToAMPM, datetoFullDateString } from "@/utils/date.utils";
 import { ReactNode, useState } from "react";
 import Tooltip from "../tooltip/tooltip";
 import { MessageStatus } from "@/enums/message-status.enum";
+import { useContextMenu } from "@/contexts/context-menu.context";
+import { useRelationshipsQuery } from "@/hooks/queries";
+import { ContextMenuType } from "@/enums/context-menu-type.enum";
 
 const Container = styled.div`
     display: flex;
@@ -116,6 +119,8 @@ function Time({ date, children, className }: { date: Date, children: ReactNode, 
 export default function MessageItem({ sender, message, isSubsequent = false }: { sender: UserProfile, message: Message, isSubsequent?: boolean }) {
     const time = dateToAMPM(message.createdAt);
     const [hover, setHover] = useState(false);
+    const { data: relationships } = useRelationshipsQuery();
+    const { showMenu } = useContextMenu();
 
     if (sender === undefined) console.log('sender not found')
     return (
@@ -124,17 +129,27 @@ export default function MessageItem({ sender, message, isSubsequent = false }: {
                 {isSubsequent ?
                     <TimeText className={`text-[11px] ${hover ? 'active' : ''}`}>{time}</TimeText>
                     :
-                    <UserAvatar user={sender} size="40" showStatus={false} />}
+                    <div className="cursor-pointer" onContextMenu={(e) => {
+                        const relationship = relationships?.find(rel => rel.user.id === sender.id)
+                        if (relationship) {
+                            showMenu(e, ContextMenuType.USER, relationship);
+                        }
+                    }}><UserAvatar user={sender} size="40" showStatus={false} /></div>}
             </DetailContainer>
             <ContentContainer >
                 {!isSubsequent &&
                     <SubsequentMessageHelper>
-                        <SenderNameText>{sender.displayName}</SenderNameText>
+                        <SenderNameText onContextMenu={(e) => {
+                        const relationship = relationships?.find(rel => rel.user.id === sender.id)
+                        if (relationship) {
+                            showMenu(e, ContextMenuType.USER, relationship)
+                        }
+                    }}>{sender.displayName}</SenderNameText>
                         <Time date={message.createdAt} className="active">{getTimePoint(message.createdAt)} {time}</Time>
                     </SubsequentMessageHelper>
                 }
                 <ContentText className={`${message.status !== undefined && message.status === MessageStatus.Pending ? 'pending' : message.status !== undefined && message.status === MessageStatus.Error ? 'error' : ''}`}>{message.content}</ContentText>
             </ContentContainer>
-        </Container>
+        </Container >
     );
 }

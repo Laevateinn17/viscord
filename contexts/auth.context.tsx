@@ -1,18 +1,14 @@
 "use client"
 import { UserStatus } from "@/enums/user-status.enum";
-import { UserData } from "@/interfaces/UserData";
+import { UserData } from "@/interfaces/user-data";
 import { api } from "@/services/api";
 import { refreshToken } from "@/services/auth/auth.service";
 import { getCurrentUserData, updateStatus } from "@/services/users/users.service";
 import axios, { AxiosInstance, HttpStatusCode } from "axios";
 import { useRouter } from "next/navigation";
 import { createContext, Dispatch, ReactNode, SetStateAction, useContext, useEffect, useRef, useState } from "react";
-import { io, Socket } from "socket.io-client"
 
 export interface AuthContextType {
-    user: UserData | undefined | null
-    getUser: () => Promise<UserData | undefined | null>
-    setUser: Dispatch<SetStateAction<UserData | undefined | null>>
 }
 
 const AuthContext = createContext<AuthContextType>(null!)
@@ -55,12 +51,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                         const response = await refreshToken();
                         if (!response.success) {
 
-                            // router.push("/login");
+                            router.push("/login");
                             return Promise.reject(error);
                         }
-                        // const newToken = response.data?.accessToken;
-                        // tokenRef.current = newToken ?? null;
-                        // error.config.headers['Authorization'] = `Bearer ${newToken}`;
 
                         const userResponse = await getUser();
                         // console.log("token received ", userResponse.data);
@@ -100,7 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 
     return (
-        <AuthContext.Provider value={{ user, getUser, setUser }}>
+        <AuthContext.Provider value={{}}>
             {children}
         </AuthContext.Provider>
     );

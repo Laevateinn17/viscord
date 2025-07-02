@@ -13,6 +13,7 @@
   --background-mod-strong: rgba(151, 151, 159, 0.24);
   --background-mod-subtle: rgba(151, 151, 159, 0.08);
   --background-mod-faint: rgba(151, 151, 159, 0.04);
+  --background-surface-higher: oklab(0.278867 0.00249027 -0.00875303);
   --modal-background: oklab(0.339495 0.00330827 -0.0116803);
 
   --border-container: oklab(0.678888 0.00325716 -0.011175 / 0.121569);
@@ -28,10 +29,10 @@
   --input-border: #3d3d43;
   --input-focused: #7bb0f5;
   --chat-background-default: oklab(0.323409 0.00288205 -0.0101295);
-  
+
   --primary: #5865f2;
 
-  --text-link: #8EA2FA;
+  --text-link: #8ea2fa;
   --text-brand: oklab(0.755592 0.00608414 -0.121619);
   --text-positive: oklab(0.739922 -0.103905 0.0636804);
   --text-danger: oklab(0.71871 0.140732 0.059904);
@@ -42,7 +43,6 @@
   --icon-secondary: oklab(0.834228 0.00196606 -0.00659835);
   --icon-tertiary: oklab(0.75264 0.00240251 -0.00813961);
 
-  
   --container-background: #2e2e34;
   --container-background-hover: #3a3a41;
   --checkbox-background-checked: #5865f2;
@@ -52,7 +52,7 @@
 
   --interactive-normal: oklab(0.787067 -0.00258079 -0.0110391);
   --interactive-hover: oklab(0.89908 -0.00192907 -0.0048306);
-  
+
   --divider-subtle: oklab(0.999994 0.0000455678 0.0000200868 / 0.08);
 
   --button-secondary: rgba(151, 151, 159, 0.12);
@@ -65,6 +65,8 @@
   --status-danger: #f23f43;
 
   --channels-default: oklab(0.75264 0.00240251 -0.00813961);
+
+  --shadow-high: 0 12px 24px 0 hsl(none 0% 0% / 0.24);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -84,66 +86,144 @@
 @font-face {
   font-family: "GG Sans";
   src: url("../fonts/gg\ sans\ Semibold.ttf") format("truetype"),
-  url("../fonts/gg\ sans\ Semibold.woff") format("woff");
+    url("../fonts/gg\ sans\ Semibold.woff") format("woff");
   font-weight: 600;
 }
 
 @font-face {
   font-family: "GG Sans";
   src: url("../fonts/gg\ sans\ Medium.ttf") format("truetype"),
-  url("../fonts/gg\ sans\ Medium.woff") format("woff");
+    url("../fonts/gg\ sans\ Medium.woff") format("woff");
   font-weight: 500;
 }
 
 @font-face {
   font-family: "GG Sans";
   src: url("../fonts/gg\ sans\ Regular.ttf") format("truetype"),
-  url("../fonts/gg\ sans\ Regular.woff") format("woff");
+    url("../fonts/gg\ sans\ Regular.woff") format("woff");
   font-weight: 400;
 }
 
-html, body, div, span, applet, object, iframe,
-h1, h2, h3, h4, h5, h6, p, blockquote, pre,
-a, abbr, acronym, address, big, cite, code,
-del, dfn, em, img, ins, kbd, q, s, samp,
-small, strike, strong, sub, sup, tt, var,
-b, u, i, center,
-dl, dt, dd, ol, ul, li,
-fieldset, form, label, legend,
-table, caption, tbody, tfoot, thead, tr, th, td,
-article, aside, canvas, details, embed, 
-figure, figcaption, footer, header, hgroup, 
-menu, nav, output, ruby, section, summary,
-time, mark, audio, video {
-	margin: 0;
-	padding: 0;
-	border: 0;
-	font: inherit;
-	vertical-align: baseline;
+html,
+body,
+div,
+span,
+applet,
+object,
+iframe,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+blockquote,
+pre,
+a,
+abbr,
+acronym,
+address,
+big,
+cite,
+code,
+del,
+dfn,
+em,
+img,
+ins,
+kbd,
+q,
+s,
+samp,
+small,
+strike,
+strong,
+sub,
+sup,
+tt,
+var,
+b,
+u,
+i,
+center,
+dl,
+dt,
+dd,
+ol,
+ul,
+li,
+fieldset,
+form,
+label,
+legend,
+table,
+caption,
+tbody,
+tfoot,
+thead,
+tr,
+th,
+td,
+article,
+aside,
+canvas,
+details,
+embed,
+figure,
+figcaption,
+footer,
+header,
+hgroup,
+menu,
+nav,
+output,
+ruby,
+section,
+summary,
+time,
+mark,
+audio,
+video {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font: inherit;
+  vertical-align: baseline;
   font-family: "GG Sans";
 }
 /* HTML5 display-role reset for older browsers */
-article, aside, details, figcaption, figure, 
-footer, header, hgroup, menu, nav, section {
-	display: block;
+article,
+aside,
+details,
+figcaption,
+figure,
+footer,
+header,
+hgroup,
+menu,
+nav,
+section {
+  display: block;
 }
-ol, ul {
-	list-style: none;
+ol,
+ul {
+  list-style: none;
 }
 
 table {
-	border-collapse: collapse;
-	border-spacing: 0;
+  border-collapse: collapse;
+  border-spacing: 0;
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-	line-height: 1;
+  line-height: 1;
 }
 
 a {
-	text-decoration: none;
-	color: black;
-	font-weight: 600;
+  text-decoration: none;
+  color: black;
+  font-weight: 600;
 }

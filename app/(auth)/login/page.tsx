@@ -6,12 +6,12 @@ import TextLink from '@/components/text-link/text-link'
 import PrimaryButton from "@/components/primary-button/primary-button"
 import { FormEvent, FormEventHandler, useEffect, useReducer, useRef, useState } from "react"
 import { login, refreshToken } from "@/services/auth/auth.service"
-import { useAuth } from "@/contexts/auth.context"
 import { Response } from "@/interfaces/response"
 import { AuthResponse } from "@/interfaces/auth-response"
 import { LoginDTO } from "@/interfaces/dto/login.dto"
 import { redirect, useRouter } from "next/navigation"
 import Link from "next/link"
+import { useCurrentUserQuery } from "@/hooks/queries"
 
 export default function Login() {
     const containerRef = useRef<HTMLDivElement>(null!);
@@ -21,7 +21,7 @@ export default function Login() {
     const [identifierError, setIdentifierError] = useState<string | null>(null);
     const [passwordError, setPasswordError] = useState<string | null>(null);
 
-    const { user } = useAuth();
+    const { data: user } = useCurrentUserQuery();
 
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -29,12 +29,11 @@ export default function Login() {
     const router = useRouter();
 
     useEffect(() => {
-        if (user !== null) {
-            if (user !== undefined) {
-                router.push("/channels/me");
-            }
-            setIsLoading(false);
+        console.log(user);
+        if (user !== undefined) {
+            router.push("/channels/me");
         }
+        setIsLoading(false);
     }, [user])
 
     function validateIdentifier(): boolean {
