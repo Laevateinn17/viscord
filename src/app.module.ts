@@ -10,6 +10,10 @@ import { RelationshipsController } from './relationships/relationships.controlle
 import { RelationshipsModule } from './relationships/relationships.module';
 import { MessagesController } from './messages/messages.controller';
 import { MessagesModule } from './messages/messages.module';
+import { UserProfilesController } from './user-profiles/user-profiles.controller';
+import { UserProfilesModule } from './user-profiles/user-profiles.module';
+import { GuildsController } from './guilds/guilds.controller';
+import { GuildsModule } from './guilds/guilds.module';
 
 export const mapper = createMapper({
   strategyInitializer: classes(),
@@ -19,8 +23,8 @@ export const mapper = createMapper({
   imports: [ConfigModule.forRoot({
     isGlobal: true,
     envFilePath: '.env'
-  }), WsModule, RelationshipsModule, MessagesModule],
-  controllers: [AppController],
+  }), WsModule, RelationshipsModule, MessagesModule, UserProfilesModule, GuildsModule],
+  controllers: [AppController, UserProfilesController, GuildsController],
   providers: [AppService]
 })
 export class AppModule {

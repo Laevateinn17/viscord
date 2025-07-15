@@ -4,9 +4,11 @@ import { RelationshipResponseDTO } from "src/relationships/dto/relationship-resp
 import { Body, Controller, Inject, Injectable, ValidationPipe } from "@nestjs/common";
 import { Payload } from "./dto/payload.dto";
 import { ClientProxy, ClientProxyFactory, EventPattern, MessagePattern, Transport } from "@nestjs/microservices";
-import { CLIENT_READY_EVENT, FRIEND_ADDED_EVENT, FRIEND_REMOVED_EVENT, FRIEND_REQUEST_RECEIVED_EVENT, GET_DM_CHANNELS_EVENT, GET_USERS_STATUS_EVENT, GET_USERS_STATUS_RESPONSE_EVENT, GET_GUILDS_EVENT, GET_RELATIONSHIPS_EVENT, MESSAGE_RECEIVED_EVENT, USER_OFFLINE_EVENT, USER_ONLINE_EVENT, USER_QUEUE } from "src/constants/events";
+import { CLIENT_READY_EVENT, FRIEND_ADDED_EVENT, FRIEND_REMOVED_EVENT, FRIEND_REQUEST_RECEIVED_EVENT, GET_DM_CHANNELS_EVENT, GET_USERS_STATUS_EVENT, GET_USERS_STATUS_RESPONSE_EVENT, GET_GUILDS_EVENT, GET_RELATIONSHIPS_EVENT, MESSAGE_RECEIVED_EVENT, USER_OFFLINE_EVENT, USER_ONLINE_EVENT, USER_QUEUE, USER_STATUS_UPDATE_EVENT, USER_TYPING_EVENT } from "src/constants/events";
 import { HttpService } from "@nestjs/axios";
 import axios from "axios";
+import { UserStatusUpdateDTO } from "src/user-profiles/dto/user-status-update.dto";
+import { UserTypingDTO } from "src/guilds/dto/user-typing.dto";
 
 @Injectable()
 @WebSocketGateway({ namespace: "/ws" })
@@ -53,7 +55,7 @@ export class WsGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayD
 
 
   async handleFriendReceived(dto: Payload<RelationshipResponseDTO>) {
-    const socketId = this.users.get(dto.userId as string);
+    const socketId = this.users.get(dto.recipients[0]);
     if (!socketId) {
       return;
     }
@@ -61,7 +63,7 @@ export class WsGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayD
   }
 
   async handleFriendAdded(dto: Payload<RelationshipResponseDTO>) {
-    const socketId = this.users.get(dto.userId as string);
+    const socketId = this.users.get(dto.recipients[0]);
     if (!socketId) {
       return;
     }
@@ -69,7 +71,7 @@ export class WsGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayD
   }
 
   async handleFriendRemoved(dto: Payload<RelationshipResponseDTO>) {
-    const socketId = this.users.get(dto.userId as string);
+    const socketId = this.users.get(dto.recipients[0]);
     if (!socketId) {
       return;
     }
@@ -77,7 +79,7 @@ export class WsGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayD
   }
 
   async handleUserOnline(payload: Payload<string>) {
-    const userIds = payload.userId as string[];
+    const userIds = payload.recipients as string[];
 
     userIds.forEach(userId => {
       const socketId = this.users.get(userId);
@@ -88,7 +90,7 @@ export class WsGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayD
   }
 
   async handleUserOffline(payload: Payload<string>) {
-    const userIds = payload.userId as string[];
+    const userIds = payload.recipients as string[];
 
     userIds.forEach(userId => {
       const socketId = this.users.get(userId);
@@ -99,7 +101,7 @@ export class WsGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayD
   }
 
   async handleMessageReceived(payload: Payload<any>) {
-    const userIds = payload.userId as string[];
+    const userIds = payload.recipients;
     userIds.forEach(userId => {
       const socketId = this.users.get(userId);
       if (socketId) {
@@ -126,5 +128,28 @@ export class WsGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayD
     const socketId = this.users.get(userId as string);
 
     this.server.to(socketId).emit(GET_USERS_STATUS_RESPONSE_EVENT, friendsStatus);
+  }
+
+  async handleUserStatusUpdate(payload: Payload<UserStatusUpdateDTO>) {
+    const recipients = [];
+    for (const recipient of payload.recipients) {
+      const socketId = this.users.get(recipient);
+      if (socketId) {
+        recipients.push(socketId);
+      }
+    }
+    this.server.to(recipients).emit(USER_STATUS_UPDATE_EVENT, { userId: payload.data.userId, status: payload.data.status });
+  }
+
+  async handleBroadcastUserTyping(payload: Payload<UserTypingDTO>) {
+    const recipients = [];
+    for (const recipient of payload.recipients) {
+      const socketId = this.users.get(recipient);
+      if (socketId) {
+        recipients.push(socketId);
+      }
+    }
+
+    this.server.to(recipients).emit(USER_TYPING_EVENT, { userId: payload.data.userId, channelId: payload.data.channelId });
   }
 }

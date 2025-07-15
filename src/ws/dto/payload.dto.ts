@@ -3,7 +3,7 @@ import { AutoMap } from "@automapper/classes"
 export class Payload<T> {
 
     @AutoMap()
-    userId: string | string[]
+    recipients: string[]
 
     @AutoMap()
     data: T

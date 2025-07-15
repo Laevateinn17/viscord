@@ -39,13 +39,13 @@ export class RelationshipsController {
 
     @MessagePattern(USER_ONLINE_EVENT)
     async handleUserOnline(@Body(new ValidationPipe({ transform: true })) dto: Payload<string>) {
-        console.log("USER ONLINE", dto.userId)
+        console.log("USER ONLINE", dto.recipients)
         this.gateway.handleUserOnline(dto);
     }
 
     @MessagePattern(USER_OFFLINE_EVENT)
     async handleUserOffline(@Body(new ValidationPipe({ transform: true })) dto: Payload<string>) {
-        console.log("USER OFFLINE", dto.userId)
+        console.log("USER OFFLINE", dto.recipients)
         this.gateway.handleUserOffline(dto);
     }
 }
