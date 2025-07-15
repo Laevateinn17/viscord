@@ -3,6 +3,7 @@ import { ReactNode, useEffect, useState } from "react"
 import styles from "./styles.module.css"
 import Tooltip from "../tooltip/tooltip"
 import styled from "styled-components"
+import { LoadingIndicator } from "../loading-indicator/loading-indicator"
 
 interface PrimaryButtonProps {
     children: ReactNode
@@ -54,9 +55,10 @@ export default function PrimaryButton({ className, children, onClick, isLoading,
             {tooltip &&
                 <Tooltip position={tooltipPosition!} show={isHovering} text={tooltip} fontSize={tooltipSize} />}
             {isLoading === true ?
-                <div className={styles["loading-wrapper"]}>
-                    <div className={styles["dot-flashing"]}></div>
-                </div>
+                // <div className={styles["loading-wrapper"]}>
+                //     <div className={styles["dot-flashing"]}></div>
+                // </div>
+                <LoadingIndicator/>
                 :
                 children}
         </Button>

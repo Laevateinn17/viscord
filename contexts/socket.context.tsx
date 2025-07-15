@@ -1,15 +1,19 @@
 "use client"
-import { createContext, ReactNode, useContext, useEffect, useState } from "react";
+import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from "react";
 import { io, Socket } from "socket.io-client";
 import { useQueryClient } from "@tanstack/react-query";
 import Relationship from "@/interfaces/relationship";
-import { FRIEND_ADDED_EVENT, FRIEND_REMOVED_EVENT, FRIEND_REQUEST_RECEIVED_EVENT, GET_USERS_STATUS_EVENT, MESSAGE_RECEIVED_EVENT, USER_OFFLINE_EVENT, USER_ONLINE_EVENT } from "@/constants/events";
+import { FRIEND_ADDED_EVENT, FRIEND_REMOVED_EVENT, FRIEND_REQUEST_RECEIVED_EVENT, GET_USERS_STATUS_EVENT, MESSAGE_RECEIVED_EVENT, USER_OFFLINE_EVENT, USER_ONLINE_EVENT, USER_STATUS_UPDATE_EVENT, USER_TYPING_EVENT } from "@/constants/events";
 import { MESSAGES_CACHE, RELATIONSHIPS_CACHE } from "@/constants/cache";
 import { Message } from "@/interfaces/message";
 import { HttpStatusCode } from "axios";
 import { refreshToken } from "@/services/auth/auth.service";
 import { useCurrentUserQuery } from "@/hooks/queries";
 import { useUserPresence } from "./user-presence.context";
+import { UserStatus } from "@/enums/user-status.enum";
+import { useAppState } from "./app-state.context";
+import { useUserProfileStore } from "@/app/stores/user-profiles-stores";
+import { useUserTypingStore } from "@/app/stores/user-typing-stores";
 
 export interface SocketContextType {
     socket: Socket;
@@ -27,7 +31,10 @@ export default function SocketProvider({ children }: { children: ReactNode }) {
     const [isReady, setIsReady] = useState(false);
     const { data: user } = useCurrentUserQuery();
     const queryClient = useQueryClient();
-    const { updatePresence } = useUserPresence();
+    const { presenceMap, updatePresence, } = useUserPresence();
+    const { userProfiles, updateStatus } = useUserProfileStore();
+    const { handleTypingStart, handleTypingStop } = useUserTypingStore();
+
 
     function handleFriendReceived(payload: Relationship) {
         console.log("received friend request", payload);
@@ -68,6 +75,7 @@ export default function SocketProvider({ children }: { children: ReactNode }) {
     }
 
     function handleMessageReceived(payload: Message) {
+        handleTypingStop(payload.channelId, payload.senderId);
         queryClient.setQueryData<Message[]>([MESSAGES_CACHE, payload.channelId], (old) => {
             if (!old) {
                 return [];
@@ -80,6 +88,18 @@ export default function SocketProvider({ children }: { children: ReactNode }) {
         })
     }
 
+    const handleUserStatusUpdate = (payload: { userId: string, status: UserStatus }) => {
+        updateStatus(payload.userId, payload.status);
+    };
+
+    const handleUserTyping = (payload: {userId: string, channelId: string}) => {
+        handleTypingStart(payload.channelId, payload.userId);
+    }
+
+    useEffect(() => {
+        if (!socket) return;
+        socket.on(USER_STATUS_UPDATE_EVENT, handleUserStatusUpdate);
+    }, [userProfiles, socket])
 
     useEffect(() => {
         if (!socket) return;
@@ -89,6 +109,7 @@ export default function SocketProvider({ children }: { children: ReactNode }) {
         socket.on(USER_ONLINE_EVENT, handleFriendOnline);
         socket.on(USER_OFFLINE_EVENT, handleFriendOffline);
         socket.on(MESSAGE_RECEIVED_EVENT, handleMessageReceived);
+        socket.on(USER_TYPING_EVENT, handleUserTyping)
         socket.on("connect", () => {
             setIsReady(true);
         });

@@ -4,18 +4,13 @@ import { ReactNode, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import styled from "styled-components";
 import Tooltip from "../tooltip/tooltip";
-import { Guild } from "@/interfaces/guild";
-import { FaChevronRight, FaCirclePlus } from "react-icons/fa6";
+import { FaCirclePlus } from "react-icons/fa6";
 import { FaCompass } from "react-icons/fa";
 import { HiDownload } from "react-icons/hi";
-import Modal from "../modal/modal";
-import Image from "next/image";
-import TextInput from "../text-input/text-input";
-import PrimaryButton from "../primary-button/primary-button";
-import Link from "next/link";
 import { CreateGuildModal } from "./create-guild-modal";
 import { useGuildsQuery } from "@/hooks/queries";
 import { getImageURL } from "@/services/storage/storage.service";
+import { useUserPresence } from "@/contexts/user-presence.context";
 
 const GuildIconContainer = styled.div`
     width: 72px;
@@ -72,7 +67,7 @@ const IconContainer = styled.div`
     }
 `
 
-export function GuildIcon({ children, guild }: { children: ReactNode, guild: GuildSummary }) {
+export function GuildIcon({ children, guild, onClick }: { children: ReactNode, guild: GuildSummary, onClick?: () => any }) {
     const pathName = usePathname();
     const router = useRouter();
     const [isHovering, setIsHovering] = useState(false);
@@ -95,10 +90,13 @@ export function GuildIcon({ children, guild }: { children: ReactNode, guild: Gui
                 className={`${pathName.includes(targetPath) ? 'active' : ''}`}
                 onMouseEnter={onMouseEnter}
                 onMouseLeave={onMouseLeave}
-                onClick={(() => {
-                    if (pathName.includes(targetPath)) return;
-                    router.push(targetPath)
-                })}>
+                onClick={() => {
+                    if (onClick) {
+                        onClick();
+                    } else if (!pathName.includes(targetPath)) {
+                        router.push(targetPath);
+                    }
+                }}>
                 {children}
             </IconContainer>
             <Tooltip show={isHovering} text={guild.name} position="right" />
@@ -142,12 +140,13 @@ function DMButton({ active }: { active: boolean }) {
     );
 }
 
-export default function GuildListSidebar({isDM}: {isDM: boolean}) {
+export default function GuildListSidebar({ isDM }: { isDM: boolean }) {
     const [showModal, setShowModal] = useState(false);
     const { data: guilds } = useGuildsQuery();
+    const { userProfiles } = useUserPresence();
     return (
         <div className={styles["guild-list-container"]}>
-            <DMButton active={isDM}/>
+            <DMButton active={isDM} />
             <div className={styles["horizontal-divider"]}></div>
             {guilds && guilds.map(guild => {
                 const initials = guild.name.split(' ').map(s => s[0]).join(' ');
@@ -167,7 +166,7 @@ export default function GuildListSidebar({isDM}: {isDM: boolean}) {
                 <GuildIcon guild={{ id: 'create', name: 'Add a server' }} onClick={() => { setShowModal(true) }}>
                     <FaCirclePlus size={20} />
                 </GuildIcon>
-                <GuildIcon guild={{ id: 'discovery', name: 'Discover' }}>
+                <GuildIcon guild={{ id: 'discovery', name: 'Discover' }} onClick={() => console.log(userProfiles)}>
                     <FaCompass size={20} />
                 </GuildIcon>
                 <GuildIcon guild={{ id: 'download', name: 'Download app' }}>

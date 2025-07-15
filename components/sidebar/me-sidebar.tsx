@@ -1,8 +1,11 @@
 "use client"
+import { useUserProfileStore } from "@/app/stores/user-profiles-stores";
+import { useUserTypingStore } from "@/app/stores/user-typing-stores";
 import SidebarContentContainer from "@/components/guild-sidebar/sidebar-content-container";
 import SidebarHeader from "@/components/guild-sidebar/sidebar-header";
 import UserAvatar from "@/components/user-avatar/user-avatar";
 import { DM_CHANNELS_CACHE } from "@/constants/cache";
+import { useUserPresence } from "@/contexts/user-presence.context";
 import { useCurrentUserQuery } from "@/hooks/queries";
 import Relationship from "@/interfaces/relationship";
 import { getDMChannels } from "@/services/channels/channels.service";
@@ -126,7 +129,10 @@ const DMRecipientName = styled.p`
 export default function MeSidebarContent() {
     const pathname = usePathname();
     const router = useRouter();
-    const {data: user} = useCurrentUserQuery();
+    const { data: user } = useCurrentUserQuery();
+    const { userProfileMap, presenceMap, getUserProfile } = useUserPresence();
+    const { userProfiles } = useUserProfileStore();
+    const { isUserTyping } = useUserTypingStore();
     const { data: dmChannels } = useQuery({
         staleTime: Infinity,
         queryKey: [DM_CHANNELS_CACHE],
@@ -176,6 +182,10 @@ export default function MeSidebarContent() {
         }
     ]
 
+    useEffect(() => {
+        console.log("user profiles is changed");
+    }, [userProfileMap])
+
     return (
         // <div className={styles["container"]}>
         <Fragment>
@@ -202,11 +212,12 @@ export default function MeSidebarContent() {
                         </DMListHeader>
                         <DMListWrapper>
                             {dmChannels?.map((channel) => {
-                                const recipient = channel.recipients.find(rep => rep.id != user!.id)!;
+                                const recipient = userProfiles[channel.recipients.find(rep => rep.id != user!.id)!.id];
+
                                 return (
                                     <DMItemContainer className={`${pathname === `/channels/me/${channel.id}` ? "active" : ""}`} key={channel.id} onClick={() => router.push(`/channels/me/${channel.id}`)}>
                                         <div className="mr-[12px]">
-                                            <UserAvatar user={recipient} showStatus={true} />
+                                            <UserAvatar user={recipient} showStatus={true} isTyping={isUserTyping(channel.id, recipient.id)}/>
                                         </div>
                                         <DMRecipientName>{recipient.displayName}</DMRecipientName>
                                     </DMItemContainer>);

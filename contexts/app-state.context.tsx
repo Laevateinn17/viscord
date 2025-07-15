@@ -1,8 +1,10 @@
-import { createContext, Dispatch, ReactNode, SetStateAction, useContext, useState } from "react";
+import { createContext, Dispatch, ReactNode, SetStateAction, useCallback, useContext, useEffect, useState } from "react";
 
 interface AppStateContextType {
     isLoading: boolean
     setIsLoading: Dispatch<SetStateAction<boolean>>
+    a: number
+    setA: Dispatch<SetStateAction<number>>
 }
 
 const AppStateContext = createContext<AppStateContextType>(null!);
@@ -12,10 +14,14 @@ export function useAppState() {
 }
 
 
-export default function AppStateProvider({children}: {children: ReactNode}) {
+export default function AppStateProvider({ children }: { children: ReactNode }) {
     const [isLoading, setIsLoading] = useState(true);
+    const [a, setA] = useState(0);
+    useEffect(() => {
+        console.log("rerendering app state");
+    })
     return (
-        <AppStateContext.Provider value={{isLoading, setIsLoading}}>
+        <AppStateContext.Provider value={{ isLoading, setIsLoading, a, setA }}>
             {children}
         </AppStateContext.Provider>
     )

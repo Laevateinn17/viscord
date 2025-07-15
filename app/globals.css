@@ -14,6 +14,7 @@
   --background-mod-subtle: rgba(151, 151, 159, 0.08);
   --background-mod-faint: rgba(151, 151, 159, 0.04);
   --background-surface-higher: oklab(0.278867 0.00249027 -0.00875303);
+  --background-surface-high: oklab(0.262384 0.00252247 -0.00889932);
   --modal-background: oklab(0.339495 0.00330827 -0.0116803);
 
   --border-container: oklab(0.678888 0.00325716 -0.011175 / 0.121569);

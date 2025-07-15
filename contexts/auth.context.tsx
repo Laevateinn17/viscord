@@ -3,7 +3,7 @@ import { UserStatus } from "@/enums/user-status.enum";
 import { UserData } from "@/interfaces/user-data";
 import { api } from "@/services/api";
 import { refreshToken } from "@/services/auth/auth.service";
-import { getCurrentUserData, updateStatus } from "@/services/users/users.service";
+import { getCurrentUserData } from "@/services/users/users.service";
 import axios, { AxiosInstance, HttpStatusCode } from "axios";
 import { useRouter } from "next/navigation";
 import { createContext, Dispatch, ReactNode, SetStateAction, useContext, useEffect, useRef, useState } from "react";

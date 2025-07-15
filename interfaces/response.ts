@@ -18,4 +18,5 @@ export class Response<T> {
     static Failed<T>({ data, message}: {data?: T, message: string | ErrorResponse}) {
         return new Response<T>  ({ success: false, data: data, message: message });
     }
+
 }

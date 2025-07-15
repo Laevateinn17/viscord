@@ -5,6 +5,7 @@
   background-color: var(--background-tertiary);
   display: flex;
   align-items: center;
+  position:relative;
 }
 
 .user-info-container {
@@ -16,8 +17,6 @@
   cursor: pointer;
   flex-grow: 1;
   margin-right: 8px;
-  overflow: hidden;
-
   cursor: pointer;
 
   &:hover {

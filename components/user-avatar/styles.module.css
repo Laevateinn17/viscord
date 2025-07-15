@@ -1,6 +1,6 @@
 
 .pfp-container {
-  border-radius: 25px;
+  border-radius: 50%;
   /* background-color: var(--background-primary); */
   align-self: center;
   overflow: hidden;
@@ -19,7 +19,7 @@
 }
 
 .pfp-wrapper {
-  border-radius: 25px;
+  border-radius: 50%;
   position: relative;
   display: flex;
   justify-content: center;

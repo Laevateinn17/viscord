@@ -4,11 +4,13 @@ import { getDMChannels } from "@/services/channels/channels.service";
 import { getGuildDetail, getGuilds } from "@/services/guild/guild.service";
 import { getMessages } from "@/services/messages/messages.service";
 import { UndefinedInitialDataOptions, useQuery, useQueryClient, UseQueryOptions } from "@tanstack/react-query";
-import { Message} from "@/interfaces/message"
+import { Message } from "@/interfaces/message"
 import { getRelationships } from "@/services/relationships/relationships.service";
 import { getCurrentUserData } from "@/services/users/users.service";
 import Relationship from "@/interfaces/relationship";
 import { Channel } from "@/interfaces/channel";
+import { UserProfile } from "@/interfaces/user-profile";
+import { UserData } from "@/interfaces/user-data";
 
 export function useCurrentUserQuery() {
     return useQuery({
@@ -23,6 +25,18 @@ export function useCurrentUserQuery() {
             return res.data!;
         }
     });
+}
+
+export function useUpdateCurrentUser() {
+    const queryClient = useQueryClient();
+
+    const updateCurrentUser = (userData: Partial<UserData>) => {
+        queryClient.setQueryData<UserData>([CURRENT_USER_CACHE], (old) =>
+            old ? { ...old, ...userData } : old
+        );
+    };
+
+    return updateCurrentUser;
 }
 
 export function useDMChannelsQuery(options?: Omit<UseQueryOptions<Channel[], Error>, "queryKey" | "queryFn">) {
@@ -93,7 +107,7 @@ export function useMessagesQuery(channelId: string) {
                 throw Error();
             }
 
-            const data = res.data!.map(m => ({...m, createdAt: new Date(m.createdAt), updatedAt: new Date(m.updatedAt)}) as Message)
+            const data = res.data!.map(m => ({ ...m, createdAt: new Date(m.createdAt), updatedAt: new Date(m.updatedAt) }) as Message)
 
             return data.sort((a, b) => a.createdAt > b.createdAt ? 1 : a.createdAt < b.createdAt ? -1 : 0);
         }

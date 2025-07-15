@@ -16,11 +16,13 @@ import { usePathname, useRouter } from "next/navigation";
 import { GuildSummary } from "@/interfaces/guild-summary";
 import { getImageURL } from "@/services/storage/storage.service";
 import { ContextMenuProvider } from "@/contexts/context-menu.context";
-import { useAppState } from "@/contexts/app-state.context";
+import AppStateProvider, { useAppState } from "@/contexts/app-state.context";
 import SocketProvider, { useSocket } from "@/contexts/socket.context";
 import { UserPresenceProvider, useUserPresence } from "@/contexts/user-presence.context";
 import { GET_USERS_STATUS_EVENT, GET_USERS_STATUS_RESPONSE_EVENT } from "@/constants/events";
 import { UserProfile } from "@/interfaces/user-profile";
+import { unique } from "next/dist/build/utils";
+import { useUserProfileStore } from "../stores/user-profiles-stores";
 
 interface HomeLayoutProps {
     children: ReactNode
@@ -157,12 +159,17 @@ function GuildListSidebar() {
     const [showModal, setShowModal] = useState(false);
     const { data: guilds } = useGuildsQuery();
     const pathname = usePathname();
+    const { userProfileMap } = useUserPresence();
 
     const dmPaths = [
         "/channels/me",
         "/store",
         "/shop"
     ];
+
+    useEffect(() => {
+        console.log("helehfhasdilfdsjlfsj")
+    }, [userProfileMap])
 
     return (
         <div className={styles["guild-list-container"]}>
@@ -186,7 +193,7 @@ function GuildListSidebar() {
                 <GuildIcon guild={{ id: 'create', name: 'Add a server' }} onClick={() => { setShowModal(true) }}>
                     <FaCirclePlus size={20} />
                 </GuildIcon>
-                <GuildIcon guild={{ id: 'discovery', name: 'Discover' }}>
+                <GuildIcon guild={{ id: 'discovery', name: 'Discover' }} onClick={() => console.log(userProfileMap)}>
                     <FaCompass size={20} />
                 </GuildIcon>
                 <GuildIcon guild={{ id: 'download', name: 'Download app' }}>
@@ -201,13 +208,13 @@ function GuildListSidebar() {
 
 
 function AppInitializer({ children }: { children: ReactNode }) {
-    const { isLoading, setIsLoading } = useAppState();
+    const { a, setA, isLoading, setIsLoading } = useAppState();
     const [isFriendsStatusLoaded, setIsFriendsStatusLoaded] = useState(false);
     const { data: user } = useCurrentUserQuery();
     const { data: relationships } = useRelationshipsQuery({ enabled: !!user });
     const { data: dmChannels } = useDMChannelsQuery({ enabled: !!user })
     const { socket, isReady } = useSocket();
-
+    const { setUserProfiles } = useUserProfileStore();
     const { setPresenceMap } = useUserPresence();
 
 
@@ -226,10 +233,20 @@ function AppInitializer({ children }: { children: ReactNode }) {
             }
         });
 
+        let map: Record<string, UserProfile> = {}
+        for (let [key, value] of uniqueUsers) {
+            map[key] = value;
+        }
+
+        console.log("unique", map);
+        setUserProfiles(map);
+        setA(10);
+
         const usersToCheck = Array.from(uniqueUsers.values());
         socket.emit(GET_USERS_STATUS_EVENT, usersToCheck.map(u => u.id));
 
         socket.on(GET_USERS_STATUS_RESPONSE_EVENT, (payload: Record<string, boolean>) => {
+
             setPresenceMap(payload);
             setIsFriendsStatusLoaded(true);
             setIsLoading(false);
@@ -261,33 +278,35 @@ export default function HomeLayout({ children, sidebar }: HomeLayoutProps) {
 
 
     return (
-        <UserPresenceProvider>
-            <SocketProvider>
-                <AppInitializer>
-                    <ContextMenuProvider>
-                        <div className={styles["page"]}>
-                            {isLoading ?
-                                // <p>Loading...</p>
-                                <div></div>
-                                :
-                                <Fragment>
-                                    <div className={`${styles["main-content"]} ${isSettingOpen ? styles["main-content-hidden"] : ""}`}>
-                                        <GuildListSidebar />
-                                        <div className="relative">
-                                            <div className="absolute bottom-px">
-                                                <UserArea openSettingsHandler={() => setIsSettingOpen(true)} user={user!} />
+        <AppStateProvider>
+            <UserPresenceProvider>
+                <SocketProvider>
+                    <AppInitializer>
+                        <ContextMenuProvider>
+                            <div className={styles["page"]}>
+                                {isLoading ?
+                                    // <p>Loading...</p>
+                                    <div></div>
+                                    :
+                                    <Fragment>
+                                        <div className={`${styles["main-content"]} ${isSettingOpen ? styles["main-content-hidden"] : ""}`}>
+                                            <GuildListSidebar />
+                                            <div className="relative">
+                                                <div className="absolute bottom-px">
+                                                    <UserArea openSettingsHandler={() => setIsSettingOpen(true)} user={user!} />
+                                                </div>
                                             </div>
+                                            {children}
                                         </div>
-                                        {children}
-                                    </div>
-                                    <SettingsPage show={isSettingOpen} closeSettingsHandler={() => setIsSettingOpen(false)} />
-                                </Fragment>
-                            }
-                        </div>
-                    </ContextMenuProvider>
-                </AppInitializer>
-            </SocketProvider>
-        </UserPresenceProvider>
+                                        <SettingsPage show={isSettingOpen} closeSettingsHandler={() => setIsSettingOpen(false)} />
+                                    </Fragment>
+                                }
+                            </div>
+                        </ContextMenuProvider>
+                    </AppInitializer>
+                </SocketProvider>
+            </UserPresenceProvider>
+        </AppStateProvider>
     );
 }
 

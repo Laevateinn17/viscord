@@ -1,5 +1,8 @@
 "use client"
 import ContentHeader from "@/app/(app)/content-header";
+import { useUserProfileStore } from "@/app/stores/user-profiles-stores";
+import { useIsUserTyping, useTypingUsersFromChannel, useUserTypingStore } from "@/app/stores/user-typing-stores";
+import { LoadingIndicator } from "@/components/loading-indicator/loading-indicator";
 import MessageItem from "@/components/message-item/message-item";
 import Tooltip from "@/components/tooltip/tooltip";
 import UserAvatar from "@/components/user-avatar/user-avatar";
@@ -11,6 +14,7 @@ import { Channel } from "@/interfaces/channel";
 import { CreateMessageDto } from "@/interfaces/dto/create-message.dto";
 import { Message } from "@/interfaces/message";
 import { UserProfile } from "@/interfaces/user-profile";
+import { sendTypingStatus } from "@/services/channels/channels.service";
 import { sendMessage } from "@/services/messages/messages.service";
 import { dateToShortDate } from "@/utils/date.utils";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -45,19 +49,15 @@ const UserProfileHeaderTextContainer = styled.div`
 function Header({ channel }: { channel: Channel }) {
     const [isHoveringName, setIsHoveringName] = useState(false);
     const { data: user } = useCurrentUserQuery();
-    const [recipient, setRecipient] = useState<UserProfile>(channel.recipients[0]);
+    const { getUserProfile } = useUserProfileStore();
+    const recipient: UserProfile = channel.recipients.find(re => re.id != user?.id) ? getUserProfile(channel.recipients.find(re => re.id != user?.id)!.id)! : channel.recipients[0];
+    const isTyping = useIsUserTyping(channel.id, recipient.id);
 
-    useEffect(() => {
-        if (!user) return;
-
-        setRecipient(channel.recipients.find(r => r.id !== user.id)!);
-    }, [user])
-    
     return (
         <ContentHeader>
             <UserProfileHeader>
                 <div className="ml-[4px] mr-[8px]">
-                    <UserAvatar user={recipient} size="24" />
+                    <UserAvatar user={recipient} size="24" isTyping={isTyping}/>
                 </div>
                 <UserProfileHeaderTextContainer onMouseEnter={() => setIsHoveringName(true)} onMouseLeave={() => setIsHoveringName(false)}>
                     <UserProfileHeaderText>
@@ -107,7 +107,7 @@ const MessagesContainer = styled.div`
 const ChatInputWrapper = styled.div`
     padding: 0 8px;
     margin-bottom: 24px;
-
+    position: relative;
     // max-height: 40vh;
 `
 
@@ -193,6 +193,7 @@ const MAX_LINE_COUNT = 20;
 function TextInputItem({ channel, onSubmit }: { channel: Channel, onSubmit: (message: CreateMessageDto) => any }) {
     const [inputHeight, setInputHeight] = useState(LINE_HEIGHT + VERTICAL_PADDING)
     const [attachments, setAttachments] = useState<File[]>([]);
+    const [isTypingStatusCooldown, setTypingStatusCooldown] = useState(false);
 
     function handleKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
         if (e.key === 'Enter' && !e.shiftKey) {
@@ -207,6 +208,16 @@ function TextInputItem({ channel, onSubmit }: { channel: Channel, onSubmit: (mes
         setText(text);
         const lineCount = 1 + (text.match(/\n/g) || []).length;
         setInputHeight((lineCount > MAX_LINE_COUNT ? MAX_LINE_COUNT : lineCount) * LINE_HEIGHT + VERTICAL_PADDING);
+        if (!isTypingStatusCooldown) {
+            sendTypingStatus(channel.id);
+            setTypingStatusCooldown(true);
+            setTimeout(() => {
+                setTypingStatusCooldown(false);
+            }, 8000)
+        }
+        else {
+            console.log("cooldown");
+        }
     }
 
     const [text, setText] = useState('');
@@ -214,6 +225,13 @@ function TextInputItem({ channel, onSubmit }: { channel: Channel, onSubmit: (mes
         <TextInput value={text} onKeyDown={handleKeyDown} style={{ height: inputHeight }} onChange={(e) => onInputChanged(e.target.value)} placeholder={`Message @${channel.recipients[0].displayName}`} />
 
     )
+}
+
+function formatTyping(names: string[]) {
+    if (names.length <= 0) return "";
+    if (names.length == 1) return names[0];
+    else return names.concat(", ");
+
 }
 
 
@@ -230,6 +248,9 @@ export default function Page() {
         onSuccess: (response) => {
         }
     });
+
+    const typingUsers = useTypingUsersFromChannel(channelId as string);
+
 
     async function handleSubmit(dto: CreateMessageDto) {
         const id = `pending-${messages!.length}`
@@ -316,13 +337,13 @@ export default function Page() {
         }, {} as Record<string, Message[]>))
     }, [messages]);
 
-    // is not handled on useEffect to achieve faster changes
 
 
     if (!channel) {
         return <p></p>
     }
 
+    const recipients = channel.recipients.filter(r => r.id != user?.id);
     return (
         <div className="h-full flex flex-col">
             <Header channel={channel} />
@@ -353,6 +374,14 @@ export default function Page() {
                         <UploadItemContainer><FaCirclePlus size={20} /></UploadItemContainer>
                         <TextInputItem channel={channel} onSubmit={handleSubmit} />
                     </InputContainer>
+                    {typingUsers.length > 0 &&
+                        <div className="ml-2 text-[12px] h-[24px] items-center flex absolute w-full">
+                            <span className="mr-2">
+                                <LoadingIndicator></LoadingIndicator>
+                            </span>
+
+                            <span className="font-bold">{formatTyping(typingUsers.map(tu => channel.recipients.find(re => re.id == tu.userId)!.displayName))}</span>&nbsp;is typing...
+                        </div>}
                 </ChatInputWrapper>
             </ChatContainer>
         </div>

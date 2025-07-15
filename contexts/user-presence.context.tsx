@@ -1,21 +1,32 @@
 "use client";
 
-import React, { createContext, useContext, useState, ReactNode } from "react";
+import { UserProfile } from "@/interfaces/user-profile";
+import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback, Dispatch, SetStateAction } from "react";
+import { useAppState } from "./app-state.context";
 
 type PresenceMap = Record<string, boolean>;
+type UserProfileMap = Record<string, UserProfile>;
 
 interface UserPresenceContextType {
+  userProfileMap: UserProfileMap;
   presenceMap: PresenceMap;
   setPresenceMap: (map: PresenceMap) => void;
   updatePresence: (userId: string, isOnline: boolean) => void;
   isUserOnline: (userId: string) => boolean;
+  setUserProfileMap: (userProfiles: UserProfileMap) => void;
+  getUserProfile: (userId: string) => UserProfile | undefined;
+  updateUserProfile: (userProfile: UserProfile) => void;
+  a: number;
+  setA: Dispatch<SetStateAction<number>>
 }
 
 const UserPresenceContext = createContext<UserPresenceContextType | undefined>(undefined);
 
 export const UserPresenceProvider = ({ children }: { children: ReactNode }) => {
   const [presenceMap, setPresenceMapState] = useState<PresenceMap>({});
-
+  const [userProfileMap, setUserProfileMapState] = useState<UserProfileMap>({});
+  const {a} = useAppState();
+  // const [a, setA] = useState(0);
   const setPresenceMap = (map: PresenceMap) => {
     setPresenceMapState(map);
   };
@@ -28,8 +39,21 @@ export const UserPresenceProvider = ({ children }: { children: ReactNode }) => {
     return !!presenceMap[userId];
   };
 
+
+  const getUserProfile = useCallback((userId: string) => {
+    return userProfileMap[userId]
+  }, [userProfileMap]);
+
+  const setUserProfileMap = (map: UserProfileMap) => {
+    setUserProfileMapState(map);
+  }
+
+  const updateUserProfile = (userProfile: UserProfile) => {
+    setUserProfileMapState(prev => ({...prev, [userProfile.id]: userProfile}));
+  };
+
   return (
-    <UserPresenceContext.Provider value={{ presenceMap, setPresenceMap, updatePresence, isUserOnline }}>
+    <UserPresenceContext.Provider value={{ presenceMap, setPresenceMap, updatePresence, isUserOnline, userProfileMap, setUserProfileMap, getUserProfile, updateUserProfile }}>
       {children}
     </UserPresenceContext.Provider>
   );

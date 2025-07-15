@@ -9,6 +9,7 @@ export const FRIEND_ADDED_EVENT = 'friend_added';
 export const CLIENT_READY_EVENT = 'client_ready';
 export const USER_ONLINE_EVENT = 'user_online';
 export const USER_OFFLINE_EVENT = 'user_offline';
+export const USER_STATUS_UPDATE_EVENT = 'user_status_update'
 
 export const MESSAGE_RECEIVED_EVENT = 'message_received';
 
@@ -18,3 +19,5 @@ export const GET_DM_CHANNELS_EVENT = 'get_dm_channels'
 
 export const GET_USERS_STATUS_EVENT = 'get_users_status';
 export const GET_USERS_STATUS_RESPONSE_EVENT = 'get_users_status_response';
+
+export const USER_TYPING_EVENT = 'user_typing'

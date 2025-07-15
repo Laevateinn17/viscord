@@ -16,6 +16,7 @@ RUN npm run build
 
 EXPOSE 80
 
-CMD ["npm", "run", "start"]
+# CMD ["npm", "run", "start"]
+CMD ["npm", "next" , "dev", "--experimental-https", "-p 3002", "--turbopack"]
 # CMD ["npx", "next", "dev", "--turbopack", "-p 80"]
 

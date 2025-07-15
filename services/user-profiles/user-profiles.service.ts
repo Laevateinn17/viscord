@@ -1,18 +1,20 @@
-import { Response } from "@/interfaces/response";
-import { UserData } from "@/interfaces/user-data";
-import axios, { AxiosError, HttpStatusCode } from "axios";
-import { api } from "../api";
 import { UserStatus } from "@/enums/user-status.enum";
+import { api } from "../api";
+import { AxiosError, HttpStatusCode } from "axios";
+import { UserData } from "@/interfaces/user-data";
+import { Response } from "@/interfaces/response";
 
-const ENDPOINT = `${process.env.NEXT_PUBLIC_API_URL}/users`
+const ENDPOINT = process.env.NEXT_PUBLIC_API_URL + '/user-profiles'
 
-export async function getCurrentUserData(): Promise<Response<UserData>> {
+export async function updateStatus(status: UserStatus) {
     try {
-        const response = await api.get(ENDPOINT + '/current', {
+        const response = await api.patch(ENDPOINT + '/status', { //TODO change to dto
+            status: status
+        }, {
             withCredentials: true
         });
         if (response.status === HttpStatusCode.Ok) {
-            return Response.Success<UserData>({
+            return Response.Success<null>({
                 data: response.data.data,
                 message: response.data.message
             });
@@ -22,12 +24,12 @@ export async function getCurrentUserData(): Promise<Response<UserData>> {
         });
     } catch (error) {
         if (error instanceof AxiosError)
-            return Response.Failed<UserData>({
+            return Response.Failed<null>({
                 message: error.response ? error.response.data.message as string : "An unknown Error occurred"
             });
     }
 
-    return Response.Failed<UserData>({
+    return Response.Failed<null>({
         message: "An unknown error occurred."
     })
 }

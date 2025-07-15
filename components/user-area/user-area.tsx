@@ -6,10 +6,13 @@ import { BsMicFill } from "react-icons/bs";
 import { LuHeadphones } from "react-icons/lu";
 import { FaGear } from "react-icons/fa6";
 import TransparentButton from "../transparent-button/transparent-button";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PiMoonFill } from "react-icons/pi";
 import UserAvatar from "../user-avatar/user-avatar";
 import { FaCircle } from "react-icons/fa";
+import { CurrentUserProfileCard } from "../user-profile-card/user-profile-card";
+import Modal from "../modal/modal";
+import { useUserProfileStore } from "@/app/stores/user-profiles-stores";
 
 interface UserAreaProps {
     user: UserData
@@ -17,21 +20,38 @@ interface UserAreaProps {
 }
 export default function UserArea({ user, openSettingsHandler }: UserAreaProps) {
     const [isHovering, setIsHovering] = useState(false);
+    const [showProfileCard, setShowProfileCard] = useState(false);
+    const profileCardRef = useRef<HTMLDivElement>(null!)
+    const { getUserProfile } = useUserProfileStore();
+
+    useEffect(() => {
+        function handleOutsideClick(e: MouseEvent) {
+            if (showProfileCard && profileCardRef.current && !profileCardRef.current.contains(e.target as Node)) {
+                setShowProfileCard(false);
+            }
+        }
+
+        document.addEventListener("click", handleOutsideClick);
+
+        return () => {
+            document.removeEventListener("click", handleOutsideClick);
+        }
+    }, [showProfileCard])
+
 
     if (!user) {
         return <div></div>;
     }
-    console.log(user.profile.status);
 
     return (
         <div className={styles["container"]} onMouseEnter={() => setIsHovering(true)} onMouseLeave={() => setIsHovering(false)}>
-            <div className={styles["user-info-container"]}>
+            <div className={styles["user-info-container"]} onClick={() => setShowProfileCard(true)}>
                 <UserAvatar user={user.profile} showStatus={true} />
                 <div className={styles["user-identifier-wrapper"]}>
                     <p className={styles["display-name-text"]}>{user!.profile.displayName}</p>
                     <div className={styles["subtext"]}>
-                        <p className={`${styles["status-text"]} ${styles["subtext"]} ${isHovering && styles["status-text-hover"]}`}>{UserStatusString[user!.profile.status]}</p>
-                        <p className={`${styles["username-text"]} ${styles["subtext"]} ${isHovering && styles["username-text-hover"]}`}>{user!.profile.username}</p>
+                        <p className={`${styles["status-text"]} ${styles["subtext"]} ${(isHovering || showProfileCard) && styles["status-text-hover"]}`}>{UserStatusString[user!.profile.status]}</p>
+                        <p className={`${styles["username-text"]} ${styles["subtext"]} ${(isHovering || showProfileCard) && styles["username-text-hover"]}`}>{user!.profile.username}</p>
 
                     </div>
                 </div>
@@ -63,6 +83,11 @@ export default function UserArea({ user, openSettingsHandler }: UserAreaProps) {
                     </div>
                 </TransparentButton>
             </div>
+            {showProfileCard &&
+                <div className="absolute bottom-full z-50" ref={profileCardRef}>
+                    <CurrentUserProfileCard user={user.profile} />
+                </div>
+            }
         </div>
     );
 }
