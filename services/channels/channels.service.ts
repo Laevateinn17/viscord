@@ -88,5 +88,4 @@ export async function sendTypingStatus(channelId: string) {
     return Response.Failed<null>({
         message: "An unknown error occurred."
     })
-
 }

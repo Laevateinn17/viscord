@@ -15,6 +15,10 @@ const Container = styled.div`
     padding: 2px 24px;
     max-width: 100%;
     width: auto;
+
+    &:hover {
+    background-color: var(--background-message-hover);
+    }
 `
 
 const DetailContainer = styled.div`
@@ -102,12 +106,9 @@ function getTimePoint(date: Date) {
 }
 
 function Time({ date, children, className }: { date: Date, children: ReactNode, className?: string }) {
-    const [hover, setHover] = useState(false);
     return (
         <div className="relative">
             <TimeText
-                onMouseEnter={() => setHover(true)}
-                onMouseLeave={() => setHover(false)}
                 className={className ?? ''}>
                 {children}
             </TimeText>
@@ -122,9 +123,8 @@ export default function MessageItem({ sender, message, isSubsequent = false }: {
     const { data: relationships } = useRelationshipsQuery();
     const { showMenu } = useContextMenu();
 
-    if (sender === undefined) console.log('sender not found')
     return (
-        <Container className={`${!isSubsequent ? 'mt-[17px]' : ''}`} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
+        <Container className={`${!isSubsequent ? 'mt-[17px]' : ''} ${hover ? 'active' : ''}`} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
             <DetailContainer>
                 {isSubsequent ?
                     <TimeText className={`text-[11px] ${hover ? 'active' : ''}`}>{time}</TimeText>

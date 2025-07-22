@@ -1,7 +1,8 @@
 "use client"
 import ContentHeader from "@/app/(app)/content-header";
-import { useUserProfileStore } from "@/app/stores/user-profiles-stores";
-import { useIsUserTyping, useTypingUsersFromChannel, useUserTypingStore } from "@/app/stores/user-typing-stores";
+import { useChannelsStore, useGetChannel } from "@/app/stores/channels-store";
+import { useUserProfileStore } from "@/app/stores/user-profiles-store";
+import { useIsUserTyping, useTypingUsersFromChannel, useUserTypingStore } from "@/app/stores/user-typing-store";
 import { LoadingIndicator } from "@/components/loading-indicator/loading-indicator";
 import MessageItem from "@/components/message-item/message-item";
 import Tooltip from "@/components/tooltip/tooltip";
@@ -15,7 +16,7 @@ import { CreateMessageDto } from "@/interfaces/dto/create-message.dto";
 import { Message } from "@/interfaces/message";
 import { UserProfile } from "@/interfaces/user-profile";
 import { sendTypingStatus } from "@/services/channels/channels.service";
-import { sendMessage } from "@/services/messages/messages.service";
+import { acknowledgeMessage, sendMessage } from "@/services/messages/messages.service";
 import { dateToShortDate } from "@/utils/date.utils";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "next/navigation"
@@ -50,14 +51,14 @@ function Header({ channel }: { channel: Channel }) {
     const [isHoveringName, setIsHoveringName] = useState(false);
     const { data: user } = useCurrentUserQuery();
     const { getUserProfile } = useUserProfileStore();
-    const recipient: UserProfile = channel.recipients.find(re => re.id != user?.id) ? getUserProfile(channel.recipients.find(re => re.id != user?.id)!.id)! : channel.recipients[0];
+    const recipient: UserProfile = getUserProfile(channel.recipients[0].id) || channel.recipients[0];
     const isTyping = useIsUserTyping(channel.id, recipient.id);
 
     return (
         <ContentHeader>
             <UserProfileHeader>
                 <div className="ml-[4px] mr-[8px]">
-                    <UserAvatar user={recipient} size="24" isTyping={isTyping}/>
+                    <UserAvatar user={recipient} size="24" isTyping={isTyping} />
                 </div>
                 <UserProfileHeaderTextContainer onMouseEnter={() => setIsHoveringName(true)} onMouseLeave={() => setIsHoveringName(false)}>
                     <UserProfileHeaderText>
@@ -184,6 +185,23 @@ const MessageDivider = styled.div`
     }
 `
 
+const LastReadDividerLine = styled.div`
+    height: 0;
+    border-top: 1px solid var(--status-danger);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 6px 16px;
+    position: relative;
+    p {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-danger);   
+        background-color: var(--background-secondary);
+        padding: 0 4px;
+    }
+`
+
 
 const VERTICAL_PADDING = 32;
 const LINE_HEIGHT = 22;
@@ -215,15 +233,22 @@ function TextInputItem({ channel, onSubmit }: { channel: Channel, onSubmit: (mes
                 setTypingStatusCooldown(false);
             }, 8000)
         }
-        else {
-            console.log("cooldown");
-        }
     }
 
     const [text, setText] = useState('');
     return (
         <TextInput value={text} onKeyDown={handleKeyDown} style={{ height: inputHeight }} onChange={(e) => onInputChanged(e.target.value)} placeholder={`Message @${channel.recipients[0].displayName}`} />
 
+    )
+}
+
+function LastReadDivider() {
+    return (
+        <LastReadDividerLine>
+            <span className="absolute flex right-0 text-[10px] leading-[13px] font-bold bg-[var(--status-danger)] rounded-sm px-[4px]">
+                NEW
+            </span>
+        </LastReadDividerLine>
     )
 }
 
@@ -237,12 +262,15 @@ function formatTyping(names: string[]) {
 
 export default function Page() {
     const { channelId } = useParams();
-    const { isPending, data: channels } = useDMChannelsQuery();
-    const [channel, setChannel] = useState<Channel>();
+    const { getChannel, updateChannel } = useChannelsStore();
+    // const [channel, setChannel] = useState<Channel>(getChannel(channelId as string)!);
+    const channel = useGetChannel(channelId as string);
     const { data: messages } = useMessagesQuery(channelId! as string);
     const [groupedMessages, setGroupedMessages] = useState<Record<string, Message[]> | undefined>();
+    const [isPageReady, setIsPageReady] = useState(false);
     const queryClient = useQueryClient();
     const { data: user } = useCurrentUserQuery();
+    const { getUserProfile } = useUserProfileStore();
     const { mutate: sendMessageMutation } = useMutation({
         mutationFn: (dto: CreateMessageDto) => sendMessage(dto),
         onSuccess: (response) => {
@@ -250,7 +278,14 @@ export default function Page() {
     });
 
     const typingUsers = useTypingUsersFromChannel(channelId as string);
+    // const [lastMessage, setLastMessage] = useState<Message | null>(null);
 
+    async function handleAcknowledgeMessage(channelId: string, messageId: string) {
+        if (!channel) return;
+
+        updateChannel({ ...channel, lastReadId: messageId })
+        acknowledgeMessage(channelId, messageId);
+    }
 
     async function handleSubmit(dto: CreateMessageDto) {
         const id = `pending-${messages!.length}`
@@ -267,6 +302,11 @@ export default function Page() {
             mentions: dto.mentions,
             is_pinned: false
         };
+
+        if (channel) {
+            updateChannel({ ...channel!, lastReadId: message.id });
+        }
+
 
         queryClient.setQueryData<Message[]>([MESSAGES_CACHE, channelId], (old) => {
             if (!old) {
@@ -310,18 +350,21 @@ export default function Page() {
                 return m;
             });
             return newMessages;
-        })
+        });
+        if (!channel) return;
+        updateChannel({ ...channel, lastReadId: response.data!.id });
     }
 
     useEffect(() => {
-        if (!channels) return;
+        if (!channel) return;
 
-        const ch = channels.find(ch => ch.id === channelId)
-        if (!ch) return;
+        // const ch = channels.get(channel.id)
+        // if (!ch) return;
 
-        setChannel(ch)
-        document.title = `Viscord | @${(ch?.recipients.find(r => r.id !== user?.id) ?? ch?.recipients[0]!).displayName}`
-    }, [channels])
+        // setChannel(ch)
+        document.title = `Viscord | @${channel.recipients[0].displayName}`
+    }, [channel]);
+
 
     useEffect(() => {
         setGroupedMessages(messages?.reduce((groups, message) => {
@@ -337,13 +380,27 @@ export default function Page() {
         }, {} as Record<string, Message[]>))
     }, [messages]);
 
+    useEffect(() => {
+        if (channel && messages && user) {
+            setIsPageReady(true);
+        }
 
+    }, [channel, messages, user])
+
+    useEffect(() => {
+        if (!isPageReady) return;
+
+
+        const lastMessageId = messages![messages!.length - 1].id;
+
+        handleAcknowledgeMessage(channel!.id, lastMessageId);
+
+    }, [isPageReady])
 
     if (!channel) {
         return <p></p>
     }
 
-    const recipients = channel.recipients.filter(r => r.id != user?.id);
     return (
         <div className="h-full flex flex-col">
             <Header channel={channel} />
@@ -358,11 +415,13 @@ export default function Page() {
                                     const prev = messages.at(index - 1);
                                     const isSubsequent = index !== 0 && (message.createdAt.getMinutes() - prev!.createdAt.getMinutes()) < 5 && message.senderId === prev!.senderId;
                                     return (
-                                        <MessageItem
-                                            key={message.id}
-                                            message={message}
-                                            isSubsequent={isSubsequent}
-                                            sender={channel.recipients.find(r => r.id === message.senderId)!} />
+                                        <Fragment key={message.id}>
+                                            {message.id === channel.lastReadId && index !== messages.length - 1 && <LastReadDivider />}
+                                            <MessageItem
+                                                message={{ ...message }}
+                                                isSubsequent={isSubsequent}
+                                                sender={getUserProfile(message.senderId)!} />
+                                        </Fragment>
                                     )
                                 }).reverse()}
                                 <MessageDivider><p>{dateToShortDate(messages[0].createdAt)}</p></MessageDivider>
@@ -380,7 +439,7 @@ export default function Page() {
                                 <LoadingIndicator></LoadingIndicator>
                             </span>
 
-                            <span className="font-bold">{formatTyping(typingUsers.map(tu => channel.recipients.find(re => re.id == tu.userId)!.displayName))}</span>&nbsp;is typing...
+                            <span className="font-bold">{formatTyping(typingUsers.map(tu => getUserProfile(tu.userId)!.displayName))}</span>&nbsp;is typing...
                         </div>}
                 </ChatInputWrapper>
             </ChatContainer>

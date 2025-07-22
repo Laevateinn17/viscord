@@ -27,7 +27,6 @@ export const useUserTypingStore = create<UserTypingStoreState>((set, get) => ({
 
     isUserTyping: (channelId: string, userId: string) => {
         const key = toMapKey(channelId, userId);
-        console.log(key);
         return get().typingUsers.has(key);
     },
 
@@ -48,8 +47,6 @@ export const useUserTypingStore = create<UserTypingStoreState>((set, get) => ({
             }, TYPING_TIMEOUT);
 
             newTypingUsers.set(key, { channelId: channelId, userId: userId, timeoutId: id });
-            console.log(typingUser ? "user is still typing...." : "user is typing");
-
             return { typingUsers: newTypingUsers };
         });
     },
@@ -64,8 +61,6 @@ export const useUserTypingStore = create<UserTypingStoreState>((set, get) => ({
             if (typingUser) {
                 clearTimeout(typingUser.timeoutId);
                 newTypingUsers.delete(key);
-                console.log("user has stopped typing");
-                console.log(newTypingUsers);
             }
 
             return { typingUsers: newTypingUsers };

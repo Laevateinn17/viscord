@@ -23,7 +23,6 @@ const ModalBackground = styled.div`
 export default function Modal({children, show, setShow}: {children: ReactNode, show: boolean, setShow: Dispatch<SetStateAction<boolean>>}) {
     
     function hideModal(e: MouseEvent<HTMLDivElement>) {
-        console.log(e.target === e.currentTarget)
         if (e.target === e.currentTarget) {
             setShow(false);
         }

@@ -12,4 +12,5 @@ export interface Channel {
     parent?: Channel;
     guild?: Guild;
     recipients: UserProfile[]
+    lastReadId?: string
 }

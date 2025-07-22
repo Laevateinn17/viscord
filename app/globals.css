@@ -30,6 +30,7 @@
   --input-border: #3d3d43;
   --input-focused: #7bb0f5;
   --chat-background-default: oklab(0.323409 0.00288205 -0.0101295);
+  --background-message-hover: oklab(0.678888 0.00325716 -0.011175 / 0.0784314);
 
   --primary: #5865f2;
 

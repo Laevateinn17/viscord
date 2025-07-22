@@ -10,7 +10,6 @@ export async function getMessages(channelId: string): Promise<Response<Message[]
         const response = await api.get(`${ENDPOINT}/channels/${channelId}/messages`, {
             withCredentials: true
         });
-        console.log(response)
         if (response.status === HttpStatusCode.Ok) {
             return Response.Success<Message[]>({
                 data: response.data.data,
@@ -50,7 +49,6 @@ export async function sendMessage(dto: CreateMessageDto): Promise<Response<Messa
         const response = await api.post(`${ENDPOINT}/messages`, formData, {
             withCredentials: true
         });
-        console.log(response)
         if (response.status === HttpStatusCode.Created) {
             return Response.Success<Message>({
                 data: response.data.data,
@@ -70,4 +68,31 @@ export async function sendMessage(dto: CreateMessageDto): Promise<Response<Messa
     return Response.Failed<Message>({
         message: "An unknown error occurred."
     })
+}
+
+export async function acknowledgeMessage(channelId: string, messageId: string) {
+    try {
+        const response = await api.post(`${ENDPOINT}/channels/${channelId}/messages/${messageId}/ack`, null, {
+            withCredentials: true
+        });
+        if (response.status === HttpStatusCode.NoContent) {
+            return Response.Success<null>({
+                data: response.data.data,
+                message: response.data.message
+            });
+        }
+        return Response.Failed<null>({
+            message: response.data.message
+        });
+    } catch (error) {
+        if (error instanceof AxiosError)
+            return Response.Failed<null>({
+                message: error.response ? error.response.data.message as string : "An unknown Error occurred"
+            });
+    }
+
+    return Response.Failed<null>({
+        message: "An unknown error occurred."
+    });
+
 }

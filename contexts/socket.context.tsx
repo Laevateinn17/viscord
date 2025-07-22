@@ -12,8 +12,8 @@ import { useCurrentUserQuery } from "@/hooks/queries";
 import { useUserPresence } from "./user-presence.context";
 import { UserStatus } from "@/enums/user-status.enum";
 import { useAppState } from "./app-state.context";
-import { useUserProfileStore } from "@/app/stores/user-profiles-stores";
-import { useUserTypingStore } from "@/app/stores/user-typing-stores";
+import { useUserProfileStore } from "@/app/stores/user-profiles-store";
+import { useUserTypingStore } from "@/app/stores/user-typing-store";
 
 export interface SocketContextType {
     socket: Socket;
@@ -37,7 +37,6 @@ export default function SocketProvider({ children }: { children: ReactNode }) {
 
 
     function handleFriendReceived(payload: Relationship) {
-        console.log("received friend request", payload);
         queryClient.setQueryData<Relationship[]>([RELATIONSHIPS_CACHE], (old) => {
             if (!old) {
                 return [payload];
@@ -47,7 +46,6 @@ export default function SocketProvider({ children }: { children: ReactNode }) {
     }
 
     function handleFriendAdded(payload: Relationship) {
-        console.log("friend added", payload);
         queryClient.setQueryData<Relationship[]>([RELATIONSHIPS_CACHE], (old) => {
             if (!old) {
                 return [payload];
@@ -57,7 +55,6 @@ export default function SocketProvider({ children }: { children: ReactNode }) {
     }
 
     function handleFriendRemoved(payload: Relationship) {
-        console.log("received relationship removal", payload);
         queryClient.setQueryData<Relationship[]>([RELATIONSHIPS_CACHE], (old) => {
             if (!old) {
                 return [];

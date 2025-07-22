@@ -12,7 +12,7 @@ import UserAvatar from "../user-avatar/user-avatar";
 import { FaCircle } from "react-icons/fa";
 import { CurrentUserProfileCard } from "../user-profile-card/user-profile-card";
 import Modal from "../modal/modal";
-import { useUserProfileStore } from "@/app/stores/user-profiles-stores";
+import { useUserProfileStore } from "@/app/stores/user-profiles-store";
 
 interface UserAreaProps {
     user: UserData

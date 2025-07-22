@@ -50,3 +50,8 @@ export const useUserProfileStore = create<UserProfileStoreState>((set, get) => (
         return get().userProfiles[userId];
     }
 }));
+
+
+export function useGetUserProfile(userId: string) {
+    return useUserProfileStore(state => state.getUserProfile(userId));
+}

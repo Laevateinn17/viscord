@@ -1,6 +1,6 @@
 "use client"
-import { useUserProfileStore } from "@/app/stores/user-profiles-stores";
-import { useUserTypingStore } from "@/app/stores/user-typing-stores";
+import { useUserProfileStore } from "@/app/stores/user-profiles-store";
+import { useUserTypingStore } from "@/app/stores/user-typing-store";
 import SidebarContentContainer from "@/components/guild-sidebar/sidebar-content-container";
 import SidebarHeader from "@/components/guild-sidebar/sidebar-header";
 import UserAvatar from "@/components/user-avatar/user-avatar";
@@ -182,9 +182,6 @@ export default function MeSidebarContent() {
         }
     ]
 
-    useEffect(() => {
-        console.log("user profiles is changed");
-    }, [userProfileMap])
 
     return (
         // <div className={styles["container"]}>
@@ -212,7 +209,7 @@ export default function MeSidebarContent() {
                         </DMListHeader>
                         <DMListWrapper>
                             {dmChannels?.map((channel) => {
-                                const recipient = userProfiles[channel.recipients.find(rep => rep.id != user!.id)!.id];
+                                const recipient = userProfiles[channel.recipients[0].id];
 
                                 return (
                                     <DMItemContainer className={`${pathname === `/channels/me/${channel.id}` ? "active" : ""}`} key={channel.id} onClick={() => router.push(`/channels/me/${channel.id}`)}>

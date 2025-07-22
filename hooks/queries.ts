@@ -61,7 +61,6 @@ export function useGuildsQuery() {
         queryKey: [GUILDS_CACHE],
         queryFn: async () => {
             const res = await getGuilds();
-            console.log(res)
             if (res.success) {
                 return res.data!;
             }
@@ -77,7 +76,6 @@ export function useGuildDetailQuery(guildId: string) {
         staleTime: Infinity,
         queryKey: [GUILDS_CACHE, guildId],
         queryFn: async () => {
-            console.log(`Guild ${guildId} data is stale, refecthing...`);
             const res = await getGuildDetail(guildId);
 
             if (!res.success) {
@@ -101,7 +99,6 @@ export function useMessagesQuery(channelId: string) {
         staleTime: Infinity,
         queryKey: [MESSAGES_CACHE, channelId],
         queryFn: async () => {
-            console.log(`Channel ${channelId} messages is stale, refecthing...`);
             const res = await getMessages(channelId);
             if (!res.success) {
                 throw Error();

@@ -134,7 +134,6 @@ export default function ContextMenu() {
         return null;
     }
 
-    console.log(menuState.data)
     return (
         <ContextMenuContainer className="absolute" style={{ top: position.y, left: position.x }} ref={menuRef}>
             {menuState.type === ContextMenuType.USER && <UserContextMenu relationship={menuState.data} />}

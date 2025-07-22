@@ -15,9 +15,6 @@ export function useTest() {
 export function TestProvider({children} : {children: ReactNode}) {
     const [num, setNum] = useState(0);
 
-    useEffect(() => {
-        console.log(num);
-    }, [num]);
     return <TestContext.Provider value={{num ,setNum}}>
         {children}
     </TestContext.Provider>

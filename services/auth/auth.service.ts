@@ -39,7 +39,6 @@ export async function register(dto: RegisterDTO): Promise<Response<null>> {
         const response = await api.post(ENDPOINT + '/register', dto, {
             withCredentials: true
         });
-        console.log(response)
         if (response.status === HttpStatusCode.Created) {
             return Response.Success<null>({
                 data: null,

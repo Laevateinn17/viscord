@@ -21,7 +21,6 @@ export async function createGuild(dto: CreateGuildDto): Promise<Response<Guild>>
             },
             withCredentials: true
         });
-        console.log(response.data)
         if (response.status === HttpStatusCode.Created) {
             return Response.Success<Guild>({
                 data: response.data.data,
@@ -48,7 +47,6 @@ export async function getGuilds() {
         const response = await api.get(`${ENDPOINT}`, {
             withCredentials: true
         });
-        console.log(response)
         if (response.status === HttpStatusCode.Ok) {
             return Response.Success<Guild[]>({
                 data: response.data.data,
@@ -75,7 +73,6 @@ export async function getGuildDetail(guildId: string): Promise<Response<Guild>> 
         const response = await api.get(`${ENDPOINT}/${guildId}`, {
             withCredentials: true
         });
-        console.log(response)
         if (response.status === HttpStatusCode.Ok) {
             return Response.Success<Guild>({
                 data: response.data.data,

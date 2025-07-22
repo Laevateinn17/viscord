@@ -37,7 +37,6 @@ export async function addFriend(username: string): Promise<Response<Relationship
         const response = await api.post(ENDPOINT, { username }, {
             withCredentials: true
         });
-        console.log(response.data)
         if (response.status === HttpStatusCode.Ok) {
             return Response.Success<Relationship>({
                 data: response.data.data,

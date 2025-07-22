@@ -18,7 +18,6 @@ export default function AppStateProvider({ children }: { children: ReactNode }) 
     const [isLoading, setIsLoading] = useState(true);
     const [a, setA] = useState(0);
     useEffect(() => {
-        console.log("rerendering app state");
     })
     return (
         <AppStateContext.Provider value={{ isLoading, setIsLoading, a, setA }}>

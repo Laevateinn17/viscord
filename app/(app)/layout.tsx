@@ -6,7 +6,7 @@ import { createContext, Dispatch, Fragment, ReactNode, SetStateAction, useContex
 import UserArea from "@/components/user-area/user-area";
 import SettingsPage from "@/components/settings-page/settings-page";
 import { isSet } from "util/types";
-import { useCurrentUserQuery, useDMChannelsQuery, useGuildsQuery, useRelationshipsQuery } from "@/hooks/queries";
+import { useCurrentUserQuery, useDMChannelsQuery, useGuildsQuery, useMessagesQuery, useRelationshipsQuery } from "@/hooks/queries";
 import { FaCirclePlus, FaCompass } from "react-icons/fa6";
 import { HiDownload } from "react-icons/hi";
 import { CreateGuildModal } from "@/components/guild-list-sidebar/create-guild-modal";
@@ -22,7 +22,10 @@ import { UserPresenceProvider, useUserPresence } from "@/contexts/user-presence.
 import { GET_USERS_STATUS_EVENT, GET_USERS_STATUS_RESPONSE_EVENT } from "@/constants/events";
 import { UserProfile } from "@/interfaces/user-profile";
 import { unique } from "next/dist/build/utils";
-import { useUserProfileStore } from "../stores/user-profiles-stores";
+import { useGetUserProfile, useUserProfileStore } from "../stores/user-profiles-store";
+import { useChannelsStore, useGetDMChannels } from "../stores/channels-store";
+import { Channel } from "@/interfaces/channel";
+import UserAvatar from "@/components/user-avatar/user-avatar";
 
 interface HomeLayoutProps {
     children: ReactNode
@@ -155,11 +158,93 @@ function DMButton({ active }: { active: boolean }) {
     );
 }
 
+
+const useAllDMsMessages = (channels: Channel[]) => {
+    return channels.map(channel => ({
+        channelId: channel.id,
+        messages: useMessagesQuery(channel.id).data
+    }));
+};
+
+const UnreadMessageCount = styled.div`
+    background-color: var(--status-danger);
+    font-size: 12px;
+    font-weight: bold;
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border-radius: 100%;
+    // text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    right: 0;
+    bottom: 0;
+    box-sizing: content-box;
+    border: 3px solid var(--background-tertiary);
+`
+
+const UnreadDMWrapper = styled.div`
+    position: relative;
+    transform: scale(0);
+    animation: scaleBounceIn 300ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+
+    @keyframes scaleBounceIn {
+        0% {
+            transform: scale(0);
+        }
+        80% {
+            transform: scale(1.05);
+        }
+        100% {
+            transform: scale(1);
+        }
+    }
+`
+
+function UnreadDMChannel({ channel, unreadCount }: { channel: Channel, unreadCount: number }) {
+    const recipient = useGetUserProfile(channel.recipients[0].id);
+
+    if (!recipient) {
+        return;
+    }
+
+    return (
+        <UnreadDMWrapper>
+            <UserAvatar user={recipient} showStatus={false} size="48" />
+            <UnreadMessageCount className="absolute">{unreadCount}</UnreadMessageCount>
+        </UnreadDMWrapper>
+    );
+}
+
+
 function GuildListSidebar() {
     const [showModal, setShowModal] = useState(false);
     const { data: guilds } = useGuildsQuery();
     const pathname = usePathname();
     const { userProfileMap } = useUserPresence();
+    const dmChannels = useGetDMChannels();
+    const messagesPerChannel = useAllDMsMessages(dmChannels);
+    const { data: user } = useCurrentUserQuery();
+
+    const unreadDMs = dmChannels.filter(channel => {
+        const messages = messagesPerChannel.find(m => m.channelId === channel.id)?.messages;
+        if (!messages) return false;
+
+        const unreadCount = getUnreadCount(channel);
+        return unreadCount > 0;
+    });
+
+    function getUnreadCount(channel: Channel) {
+        const messages = messagesPerChannel.find(m => m.channelId === channel.id)?.messages;
+        if (!messages) return 0;
+
+        let lastReadIndex = messages.findIndex(m => m.id === channel.lastReadId);
+
+        const unreadCount = messages.length - 1 - lastReadIndex;
+        console.log(unreadCount);
+        return unreadCount;
+    }
 
     const dmPaths = [
         "/channels/me",
@@ -167,13 +252,10 @@ function GuildListSidebar() {
         "/shop"
     ];
 
-    useEffect(() => {
-        console.log("helehfhasdilfdsjlfsj")
-    }, [userProfileMap])
-
     return (
         <div className={styles["guild-list-container"]}>
             <DMButton active={dmPaths.find(path => pathname.startsWith(path)) ? true : false} />
+            {unreadDMs.length > 0 && unreadDMs.map((ch) => <UnreadDMChannel key={ch.id} channel={ch} unreadCount={getUnreadCount(ch)} />)}
             <div className={styles["horizontal-divider"]}></div>
             {guilds && guilds.map(guild => {
                 const initials = guild.name.split(' ').map(s => s[0]).join(' ');
@@ -193,7 +275,7 @@ function GuildListSidebar() {
                 <GuildIcon guild={{ id: 'create', name: 'Add a server' }} onClick={() => { setShowModal(true) }}>
                     <FaCirclePlus size={20} />
                 </GuildIcon>
-                <GuildIcon guild={{ id: 'discovery', name: 'Discover' }} onClick={() => console.log(userProfileMap)}>
+                <GuildIcon guild={{ id: 'discovery', name: 'Discover' }}>
                     <FaCompass size={20} />
                 </GuildIcon>
                 <GuildIcon guild={{ id: 'download', name: 'Download app' }}>
@@ -208,7 +290,7 @@ function GuildListSidebar() {
 
 
 function AppInitializer({ children }: { children: ReactNode }) {
-    const { a, setA, isLoading, setIsLoading } = useAppState();
+    const { isLoading, setIsLoading } = useAppState();
     const [isFriendsStatusLoaded, setIsFriendsStatusLoaded] = useState(false);
     const { data: user } = useCurrentUserQuery();
     const { data: relationships } = useRelationshipsQuery({ enabled: !!user });
@@ -216,6 +298,7 @@ function AppInitializer({ children }: { children: ReactNode }) {
     const { socket, isReady } = useSocket();
     const { setUserProfiles } = useUserProfileStore();
     const { setPresenceMap } = useUserPresence();
+    const { setChannels } = useChannelsStore();
 
 
     useEffect(() => {
@@ -238,9 +321,14 @@ function AppInitializer({ children }: { children: ReactNode }) {
             map[key] = value;
         }
 
-        console.log("unique", map);
+        let channelMap: Record<string, Channel> = {};
+
+        for (const channel of dmChannels) {
+            channelMap[channel.id] = channel;
+        }
+
+        setChannels(channelMap);
         setUserProfiles(map);
-        setA(10);
 
         const usersToCheck = Array.from(uniqueUsers.values());
         socket.emit(GET_USERS_STATUS_EVENT, usersToCheck.map(u => u.id));
