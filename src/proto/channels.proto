@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package channels;
+
+service ChannelsService {
+    rpc AcknowledgeMessage (AcknowledgeMessageRequest) returns (AcknowledgeMessageResponse);
+}
+
+message AcknowledgeMessageRequest {
+  string userId = 1;
+  string channelId = 2;
+  string messageId = 3;
+}
+
+message AcknowledgeMessageResponse {
+  int32 status = 1;
+  string message = 2; 
+}

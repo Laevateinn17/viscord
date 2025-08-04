@@ -3,6 +3,7 @@ import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, OneToMany, One
 import { ChannelType } from "../enums/channel-type.enum";
 import { ChannelRecipient } from "./channel-recipient.entity";
 import { AutoMap } from "@automapper/classes";
+import { UserReadState } from "./user-read-state.entity";
 
 @Entity()
 export class Channel {
@@ -13,6 +14,9 @@ export class Channel {
     @AutoMap()
     @Column({ nullable: true })
     name?: string;
+
+    // @Column({name: 'owner_id'})
+    ownerId: string
 
     @AutoMap()
     @Column({
@@ -56,4 +60,7 @@ export class Channel {
 
     @OneToMany(() => ChannelRecipient, (recipient) => recipient.channel)
     recipients: ChannelRecipient[]
+
+    @OneToMany(() => UserReadState, (userReadState) => userReadState.channel)
+    userReadState: UserReadState[]
 }

@@ -73,13 +73,13 @@ export class GuildsService {
         guild.iconURL = response.data;
       }
 
-      const response = await this.channelsService.create({ guildId: guild.id, name: 'Text Channels', type: ChannelType.Category });
+      const response = await this.channelsService.create(userId, { guildId: guild.id, name: 'Text Channels', type: ChannelType.Category });
       if (response.status !== HttpStatus.CREATED) throw new Error(response.message);
-      await this.channelsService.create({ guildId: guild.id, name: 'general', type: ChannelType.Text, parentId: response.data.id });
+      await this.channelsService.create(userId, { guildId: guild.id, name: 'general', type: ChannelType.Text, parentId: response.data.id });
 
-      const voiceCategoryResponse = await this.channelsService.create({ guildId: guild.id, name: 'Voice Channels', type: ChannelType.Category });
+      const voiceCategoryResponse = await this.channelsService.create(userId, { guildId: guild.id, name: 'Voice Channels', type: ChannelType.Category });
       if (voiceCategoryResponse.status !== HttpStatus.CREATED) throw new Error(voiceCategoryResponse.message);
-      await this.channelsService.create({ guildId: guild.id, name: 'General', type: ChannelType.Voice, parentId: voiceCategoryResponse.data.id });
+      await this.channelsService.create(userId, { guildId: guild.id, name: 'General', type: ChannelType.Voice, parentId: voiceCategoryResponse.data.id });
 
       await this.guildsRepository.save(guild);
 

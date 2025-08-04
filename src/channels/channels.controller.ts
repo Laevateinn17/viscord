@@ -4,14 +4,26 @@ import { CreateChannelDTO } from './dto/create-channel.dto';
 import { UpdateChannelDto } from './dto/update-channel.dto';
 import { CreateDMChannelDTO } from "./dto/create-dm-channel.dto";
 import { Response } from "express";
+import { GrpcMethod, MessagePattern } from "@nestjs/microservices";
+import { AcknowledgeMessageDTO } from "./dto/acknowledge-message.dto";
+import { CREATE_PRODUCER, CREATE_RTC_ANSWER, CREATE_RTC_OFFER, CREATE_TRANSPORT, GET_VOICE_RINGS_EVENT, GET_VOICE_STATES_EVENT, PRODUCER_CREATED, VOICE_UPDATE_EVENT } from "src/constants/events";
+import { VoiceEventDTO } from "./dto/voice-event.dto";
+import { RedisService } from "src/redis/redis.service";
+import { VoiceEventType } from "./enums/voice-event-type";
+import { RTCOfferDTO } from "./dto/rtc-offer.dto";
+import { ProducerCreatedDTO } from "./dto/producer-created.dto";
 
 @Controller('guilds/:guildId/channels')
 export class GuildChannelsController {
-  constructor(private readonly channelsService: ChannelsService) { }
+  constructor(
+    private readonly channelsService: ChannelsService) { }
 
   @Post()
-  create(@Body() createChannelDto: CreateChannelDTO) {
-    return this.channelsService.create(createChannelDto);
+  async create(@Headers('X-User-Id') userId: string, @Body() createChannelDto: CreateChannelDTO, @Res() res: Response) {
+    const result = await this.channelsService.create(userId, createChannelDto);
+    const { status } = result;
+
+    return res.status(status).json(result);
   }
 
   @Get()
@@ -38,6 +50,10 @@ export class DMChannelsController {
 
   @Post()
   async create(@Headers('X-User-Id') userId: string, @Body(new ValidationPipe({ transform: true })) dto: CreateDMChannelDTO, @Res() res: Response) {
+    if (!userId || userId.length === 0) {
+      return res.status(HttpStatus.UNAUTHORIZED).send();
+    }
+
     const result = await this.channelsService.createDMChannel(userId, dto);
     const { status } = result;
 
@@ -81,7 +97,7 @@ export class ChannelsController {
   }
 
   @Post(':channelId/typing')
-  async broadcastUserTyping(@Headers('X-User-Id') userId: string, @Param('channelId') channelId: string, @Res() res: Response){
+  async broadcastUserTyping(@Headers('X-User-Id') userId: string, @Param('channelId') channelId: string, @Res() res: Response) {
     if (!userId || userId.length === 0) {
       return res.status(HttpStatus.UNAUTHORIZED).send();
     }
@@ -89,8 +105,61 @@ export class ChannelsController {
     const result = await this.channelsService.broadcastUserTyping(userId, channelId);
     const { status } = result;
     return res.status(status).json(result);
-
   }
 
+  @GrpcMethod('ChannelsService', 'AcknowledgeMessage')
+  async acknowledgeMessage(dto: AcknowledgeMessageDTO) {
+    return this.channelsService.acknowledgeMessage(dto);
+  }
+
+  @Post(':channelId/call/ring')
+  async ringChannelRecipients(@Headers('X-User-Id') userId: string, @Param('channelId') channelId: string, @Res() res: Response) {
+    if (!userId || userId.length === 0) {
+      return res.status(HttpStatus.UNAUTHORIZED).send();
+    }
+
+    const result = await this.channelsService.ringChannelRecipients(userId, channelId);
+    const { status } = result;
+
+    return res.status(status).json(result);
+  }
+
+  @MessagePattern(VOICE_UPDATE_EVENT)
+  async voiceChannelLeave(@Body(new ValidationPipe({ transform: true })) dto: VoiceEventDTO) {
+    switch (dto.type) {
+      case VoiceEventType.VOICE_JOIN: await this.channelsService.handleVoiceJoin(dto); break;
+      case VoiceEventType.VOICE_LEAVE: await this.channelsService.handleVoiceLeave(dto); break;
+    }
+  }
+
+  @MessagePattern(GET_VOICE_STATES_EVENT)
+  async getVoiceStates(@Body(new ValidationPipe({ transform: true })) userId: string) {
+    await this.channelsService.handleGetVoiceStates(userId);
+  }
+
+  @MessagePattern(GET_VOICE_RINGS_EVENT)
+  async getVoiceRingStates(@Body(new ValidationPipe({ transform: true })) userId: string) {
+    await this.channelsService.handleGetVoiceRings(userId);
+  }
+
+  @MessagePattern(CREATE_RTC_OFFER)
+  async rtcOfferCreated(@Body(new ValidationPipe({ transform: true })) dto: RTCOfferDTO) {
+    await this.channelsService.handleRTCOfferCreated(dto);
+  }
+  
+  @MessagePattern(CREATE_TRANSPORT)
+  async createTransport(@Body(new ValidationPipe({ transform: true })) dto: RTCOfferDTO) {
+    await this.channelsService.handleCreateTransport(dto);
+  }
+
+  @MessagePattern(CREATE_RTC_ANSWER)
+  async rtcAnswerCreated(@Body(new ValidationPipe({ transform: true })) dto: RTCOfferDTO) {
+    await this.channelsService.handleRTCAnswerCreated(dto);
+  }
+
+  @MessagePattern(PRODUCER_CREATED)
+  async onProducerCreated(@Body(new ValidationPipe({ transform: true })) dto: ProducerCreatedDTO) {
+      await this.channelsService.handleCreateProducer(dto);
+  }
 
 }

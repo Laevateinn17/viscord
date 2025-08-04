@@ -5,11 +5,14 @@ import { HttpModule } from "@nestjs/axios";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { Channel } from "./entities/channel.entity";
 import { ChannelRecipient } from "./entities/channel-recipient.entity";
+import { UserReadState } from "./entities/user-read-state.entity";
+import { RedisModule } from "src/redis/redis.module";
+import { SfuModule } from "src/sfu/sfu.module";
 
 @Module({
   controllers: [GuildChannelsController, DMChannelsController, ChannelsController],
   providers: [ChannelsService],
-  imports: [HttpModule, TypeOrmModule.forFeature([Channel, ChannelRecipient])],
+  imports: [HttpModule, RedisModule, TypeOrmModule.forFeature([Channel, ChannelRecipient, UserReadState]), SfuModule],
   exports: [ChannelsService]
 })
 export class ChannelsModule {}
