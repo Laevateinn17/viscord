@@ -14,6 +14,10 @@ import { UserProfilesController } from './user-profiles/user-profiles.controller
 import { UserProfilesModule } from './user-profiles/user-profiles.module';
 import { GuildsController } from './guilds/guilds.controller';
 import { GuildsModule } from './guilds/guilds.module';
+import { ChannelsController } from './channels/channels.controller';
+import { SfuService } from './sfu/sfu.service';
+import { SfuModule } from './sfu/sfu.module';
+import { HttpModule } from "@nestjs/axios";
 
 export const mapper = createMapper({
   strategyInitializer: classes(),
@@ -23,9 +27,9 @@ export const mapper = createMapper({
   imports: [ConfigModule.forRoot({
     isGlobal: true,
     envFilePath: '.env'
-  }), WsModule, RelationshipsModule, MessagesModule, UserProfilesModule, GuildsModule],
-  controllers: [AppController, UserProfilesController, GuildsController],
-  providers: [AppService]
+  }), WsModule, RelationshipsModule, MessagesModule, UserProfilesModule, GuildsModule, SfuModule, HttpModule],
+  controllers: [AppController, UserProfilesController, GuildsController, ChannelsController],
+  providers: [AppService, SfuService]
 })
 export class AppModule {
 }
