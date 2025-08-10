@@ -7,7 +7,6 @@ import { Channel } from "./entities/channel.entity";
 import { ChannelRecipient } from "./entities/channel-recipient.entity";
 import { UserReadState } from "./entities/user-read-state.entity";
 import { RedisModule } from "src/redis/redis.module";
-import { SfuModule } from "src/sfu/sfu.module";
 
 @Module({
   controllers: [GuildChannelsController, DMChannelsController, ChannelsController],
