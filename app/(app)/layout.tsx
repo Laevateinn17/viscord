@@ -6,7 +6,7 @@ import { createContext, Dispatch, Fragment, ReactNode, SetStateAction, useContex
 import UserArea from "@/components/user-area/user-area";
 import SettingsPage from "@/components/settings-page/settings-page";
 import { isSet } from "util/types";
-import { useCurrentUserQuery, useDMChannelsQuery, useGuildsQuery, useMessagesQuery, useRelationshipsQuery } from "@/hooks/queries";
+import { useGuildsQuery, useMessagesQuery, useRelationshipsQuery } from "@/hooks/queries";
 import { FaCirclePlus, FaCompass } from "react-icons/fa6";
 import { HiDownload } from "react-icons/hi";
 import { CreateGuildModal } from "@/components/guild-list-sidebar/create-guild-modal";
@@ -19,7 +19,7 @@ import { ContextMenuProvider } from "@/contexts/context-menu.context";
 import AppStateProvider, { useAppState } from "@/contexts/app-state.context";
 import SocketProvider, { useSocket } from "@/contexts/socket.context";
 import { UserPresenceProvider, useUserPresence } from "@/contexts/user-presence.context";
-import { GET_USERS_STATUS_EVENT, GET_USERS_STATUS_RESPONSE_EVENT } from "@/constants/events";
+import { CLIENT_READY_EVENT, GET_USERS_STATUS_EVENT, GET_USERS_STATUS_RESPONSE_EVENT } from "@/constants/events";
 import { UserProfile } from "@/interfaces/user-profile";
 import { unique } from "next/dist/build/utils";
 import { useGetUserProfile, useUserProfileStore } from "../stores/user-profiles-store";
@@ -28,6 +28,11 @@ import { Channel } from "@/interfaces/channel";
 import UserAvatar from "@/components/user-avatar/user-avatar";
 import { PeerConnectionManager } from "@/components/peer-connection-manager/peer-connection-manager";
 import { VoiceRingManager } from "@/components/voice-ring-manager/voice-ring-manager";
+import { ClientReadyResponseDTO } from "@/interfaces/dto/client-ready-response.dto";
+import { useAuth } from "@/contexts/auth.context";
+import { refreshToken } from "@/services/auth/auth.service";
+import { useCurrentUserStore } from "../stores/current-user-store";
+import { useUserPresenceStore } from "../stores/user-presence-store";
 
 interface HomeLayoutProps {
     children: ReactNode
@@ -244,7 +249,6 @@ function GuildListSidebar() {
     const pathname = usePathname();
     const dmChannels = useGetDMChannels();
     const messagesPerChannel = useAllDMsMessages(dmChannels);
-    const { data: user } = useCurrentUserQuery();
 
     const unreadDMs = dmChannels.filter(channel => {
         const messages = messagesPerChannel.find(m => m.channelId === channel.id)?.messages;
@@ -308,58 +312,69 @@ function GuildListSidebar() {
 
 
 function AppInitializer({ children }: { children: ReactNode }) {
-    const { isLoading, setIsLoading } = useAppState();
+    const [isLoading, setIsLoading] = useState(false);
     const [isFriendsStatusLoaded, setIsFriendsStatusLoaded] = useState(false);
-    const { data: user } = useCurrentUserQuery();
-    const { data: relationships } = useRelationshipsQuery({ enabled: !!user });
-    const { data: dmChannels } = useDMChannelsQuery({ enabled: !!user })
     const { socket, isReady } = useSocket();
+    // const { data: relationships } = useRelationshipsQuery({ enabled: !!user });
+    // const { data: dmChannels } = useDMChannelsQuery({ enabled: !!user })
     const { setUserProfiles } = useUserProfileStore();
-    const { setPresenceMap } = useUserPresence();
+    const { setPresenceMap } = useUserPresenceStore();
     const { setChannels } = useChannelsStore();
+    const { setCurrentUser } = useCurrentUserStore();
 
 
     useEffect(() => {
-        if (!user || !relationships || !dmChannels || !isReady) return;
+        if (!isReady) return;
 
-        const userProfiles: UserProfile[] = relationships.map(rel => rel.user).concat([user.profile]);
-        const dmRecipients = dmChannels
-            .map(channel => channel.recipients.find(rep => rep.id !== user.id)!)
-            .filter(Boolean);
+        socket?.emit(CLIENT_READY_EVENT, (data: ClientReadyResponseDTO) => {
+            const currentUser = data.user;
+            const userProfiles: UserProfile[] = data.relationships.map(rel => rel.user).concat([currentUser.profile]);
+            const dmRecipients = data.dmChannels
+                .map(channel => channel.recipients.find(rep => rep.id !== currentUser.id)!)
+                .filter(Boolean);
 
-        const uniqueUsers = new Map<string, UserProfile>();
-        [...userProfiles, ...dmRecipients].forEach(user => {
-            if (!uniqueUsers.has(user.id)) {
-                uniqueUsers.set(user.id, user);
+            const uniqueUsers = new Map<string, UserProfile>();
+            [...userProfiles, ...dmRecipients].forEach(user => {
+                if (!uniqueUsers.has(user.id)) {
+                    uniqueUsers.set(user.id, user);
+                }
+            });
+
+            let map: Record<string, UserProfile> = {}
+            for (let [key, value] of uniqueUsers) {
+                map[key] = value;
             }
-        });
 
-        let map: Record<string, UserProfile> = {}
-        for (let [key, value] of uniqueUsers) {
-            map[key] = value;
-        }
+            const channelMap: Map<string, Channel> = new Map();
 
-        let channelMap: Record<string, Channel> = {};
+            for (const channel of data.dmChannels) {
+                channelMap.set(channel.id, channel);
+            }
 
-        for (const channel of dmChannels) {
-            channelMap[channel.id] = channel;
-        }
+            setChannels(channelMap);
+            setUserProfiles(map);
+            setCurrentUser(currentUser);
 
-        setChannels(channelMap);
-        setUserProfiles(map);
+            const usersToCheck = Array.from(uniqueUsers.values());
+            socket.emit(GET_USERS_STATUS_EVENT, usersToCheck.map(u => u.id));
 
-        const usersToCheck = Array.from(uniqueUsers.values());
-        socket.emit(GET_USERS_STATUS_EVENT, usersToCheck.map(u => u.id));
+            socket.on(GET_USERS_STATUS_RESPONSE_EVENT, (payload: Record<string, boolean>) => {
 
-        socket.on(GET_USERS_STATUS_RESPONSE_EVENT, (payload: Record<string, boolean>) => {
+                setPresenceMap(payload);
+                setIsFriendsStatusLoaded(true);
+                setIsLoading(false);
+            });
 
-            setPresenceMap(payload);
-            setIsFriendsStatusLoaded(true);
             setIsLoading(false);
         });
 
+    }, [isReady])
 
-    }, [user, isReady, relationships, dmChannels]);
+    // useEffect(() => {
+    //     if (!user || /*!relationships || !dmChannels*/ || !isReady) return;
+
+
+    // }, [user, isReady, relationships, dmChannels]);
 
     if (isLoading) {
         return <p>App is loading...</p>;
@@ -370,52 +385,48 @@ function AppInitializer({ children }: { children: ReactNode }) {
 
 
 export default function HomeLayout({ children, sidebar }: HomeLayoutProps) {
-    const { data: user } = useCurrentUserQuery();
-    const [isLoading, setIsLoading] = useState(true);
+    const { isAuthorized } = useAuth();
     const [isSettingOpen, setIsSettingOpen] = useState(false);
-    const { data: relationships } = useRelationshipsQuery();
     useEffect(() => {
-        if (user) {
-            setIsLoading(false);
-        }
-        else {
-            setIsLoading(true);
-        }
-    }, [user])
+        console.log("app layout mounts");
 
+        return () => {
+            console.log("app layout dismount");
+        }
+    }, []);
+
+
+    if (!isAuthorized) {
+        return <div></div>;
+    }
 
     return (
-        <AppStateProvider>
-            <UserPresenceProvider>
-                <SocketProvider>
-                    <AppInitializer>
-                        <ContextMenuProvider>
-                            <div className={styles["page"]}>
-                                {isLoading ?
-                                    // <p>Loading...</p>
-                                    <div></div>
-                                    :
-                                    <Fragment>
-                                        <div className={`${styles["main-content"]} ${isSettingOpen ? styles["main-content-hidden"] : ""}`}>
-                                            <GuildListSidebar />
-                                            <div className="relative">
-                                                <div className="absolute bottom-px">
-                                                    <UserArea openSettingsHandler={() => setIsSettingOpen(true)} user={user!} />
-                                                </div>
-                                            </div>
-                                            {children}
+        // <AppStateProvider>
+        // {/* <UserPresenceProvider> */ }
+        < SocketProvider >
+                <AppInitializer>
+                    <ContextMenuProvider>
+                        <div className={styles["page"]}>
+                            <Fragment>
+                                <div className={`${styles["main-content"]} ${isSettingOpen ? styles["main-content-hidden"] : ""}`}>
+                                    <GuildListSidebar />
+                                    <div className="relative">
+                                        <div className="absolute bottom-px">
+                                            <UserArea openSettingsHandler={() => setIsSettingOpen(true)} />
                                         </div>
-                                        <SettingsPage show={isSettingOpen} closeSettingsHandler={() => setIsSettingOpen(false)} />
-                                    </Fragment>
-                                }
-                            </div>
-                        </ContextMenuProvider>
-                        <PeerConnectionManager />
-                        <VoiceRingManager/>
-                    </AppInitializer>
-                </SocketProvider>
-            </UserPresenceProvider>
-        </AppStateProvider>
+                                    </div>
+                                    {children}
+                                </div>
+                                <SettingsPage show={isSettingOpen} closeSettingsHandler={() => setIsSettingOpen(false)} />
+                            </Fragment>
+                        </div>
+                    </ContextMenuProvider>
+                    <VoiceRingManager />
+                </AppInitializer>
+                <PeerConnectionManager />
+            </SocketProvider >
+        // {/* </UserPresenceProvider> */ }
+        // </AppStateProvider>
     );
 }
 

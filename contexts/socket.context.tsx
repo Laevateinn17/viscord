@@ -8,10 +8,8 @@ import { MESSAGES_CACHE, RELATIONSHIPS_CACHE } from "@/constants/cache";
 import { Message } from "@/interfaces/message";
 import { HttpStatusCode } from "axios";
 import { refreshToken } from "@/services/auth/auth.service";
-import { useCurrentUserQuery } from "@/hooks/queries";
 import { useUserPresence } from "./user-presence.context";
 import { UserStatus } from "@/enums/user-status.enum";
-import { useAppState } from "./app-state.context";
 import { useUserProfileStore } from "@/app/stores/user-profiles-store";
 import { useUserTypingStore } from "@/app/stores/user-typing-store";
 import { VoiceState } from "@/interfaces/voice-state";
@@ -22,9 +20,12 @@ import { VoiceRingState } from "@/interfaces/voice-ring-state";
 import { getVoiceRingKey, useVoiceRingStateStore } from "@/app/stores/voice-ring-state-store";
 import { useAudioStore } from "@/app/stores/audio-store";
 import { useAppSettingsStore } from "@/app/stores/app-settings-store";
+import { useMediasoupStore } from "@/app/stores/mediasoup-store";
+import { useSocketStore } from "@/app/stores/socket-store";
+import { useUserPresenceStore } from "@/app/stores/user-presence-store";
 
 export interface SocketContextType {
-    socket: Socket;
+    socket: Socket | undefined;
     isReady: boolean;
 }
 
@@ -35,17 +36,18 @@ export function useSocket() {
 }
 
 export default function SocketProvider({ children }: { children: ReactNode }) {
-    const [socket, setSocket] = useState<Socket>(null!)
+    const { socket, initializeSocket } = useSocketStore();
+    const [isConnected, setIsConnected] = useState(false);
     const [isReady, setIsReady] = useState(false);
-    const { data: user } = useCurrentUserQuery();
+
     const queryClient = useQueryClient();
-    const { presenceMap, updatePresence, } = useUserPresence();
+    const { presenceMap, updatePresence } = useUserPresenceStore();
     const { userProfiles, updateStatus } = useUserProfileStore();
     const { handleTypingStart, handleTypingStop } = useUserTypingStore();
     const { updateVoiceState, removeVoiceState, setVoiceStates } = useVoiceStateStore();
-    const { setVoiceRingStates, batchUpdateVoiceRingState, removeVoiceRingState } = useVoiceRingStateStore();
-    const { playSound, stopSound } = useAudioStore();
-    const { mediaSettings } = useAppSettingsStore();
+    const { ready } = useMediasoupStore();
+
+
     function handleFriendReceived(payload: Relationship) {
         queryClient.setQueryData<Relationship[]>([RELATIONSHIPS_CACHE], (old) => {
             if (!old) {
@@ -95,82 +97,98 @@ export default function SocketProvider({ children }: { children: ReactNode }) {
         })
     }
 
-    const handleUserStatusUpdate = (payload: { userId: string, status: UserStatus }) => {
+    const handleUserStatusUpdate = useCallback((payload: { userId: string, status: UserStatus }) => {
         updateStatus(payload.userId, payload.status);
-    };
+    }, [updateStatus]);
 
-    const handleUserTyping = (payload: { userId: string, channelId: string }) => {
+    const handleUserTyping = useCallback((payload: { userId: string, channelId: string }) => {
         handleTypingStart(payload.channelId, payload.userId);
-    }
+    }, [handleTypingStart]);
 
-
-    const handleVoiceStateUpdate = async (event: VoiceEventDTO) => {
-        const voiceStates = useGetChannelVoiceStates(event.channelId);
-        if (event.type == VoiceEventType.VOICE_LEAVE) {
+    const handleVoiceStateUpdate = useCallback(async (event: VoiceEventDTO) => {
+        if (event.type === VoiceEventType.VOICE_LEAVE) {
             removeVoiceState(event.channelId, event.userId);
+        } else {
+            updateVoiceState(event.data);
         }
-        else {
-            updateVoiceState(event.data)
-        }
-    };
+    }, [removeVoiceState, updateVoiceState]);
 
-    const handleGetVoiceStates = (payload: VoiceState[]) => {
+    const handleGetVoiceStates = useCallback((payload: VoiceState[]) => {
+        console.log('received voice statesa');
         const map: Map<string, VoiceState> = new Map();
-
         for (const vs of payload) {
             map.set(getVoiceStateKey(vs.channelId, vs.userId), vs);
         }
-
         setVoiceStates(map);
-    }
-
-
-    
-    useEffect(() => {
-        if (!socket) return;
-        socket.on(USER_STATUS_UPDATE_EVENT, handleUserStatusUpdate);
-    }, [userProfiles, socket])
+    }, [setVoiceStates]);
 
     useEffect(() => {
-        if (!socket) return;
-        socket.on(FRIEND_REQUEST_RECEIVED_EVENT, handleFriendReceived);
-        socket.on(FRIEND_REMOVED_EVENT, handleFriendRemoved);
-        socket.on(FRIEND_ADDED_EVENT, handleFriendAdded);
-        socket.on(USER_ONLINE_EVENT, handleFriendOnline);
-        socket.on(USER_OFFLINE_EVENT, handleFriendOffline);
-        socket.on(MESSAGE_RECEIVED_EVENT, handleMessageReceived);
-        socket.on(USER_TYPING_EVENT, handleUserTyping)
-        socket.on(VOICE_UPDATE_EVENT, handleVoiceStateUpdate);
-        socket.on(GET_VOICE_STATES_EVENT, handleGetVoiceStates);
-        socket.on("connect", () => {
-            setIsReady(true);
-        });
-        socket.on('connect_error', (error: any) => {
+        // const socket = io(process.env.NEXT_PUBLIC_WS_GATEWAY!, {
+        //     withCredentials: true,
+        //     reconnection: true,
+        //     reconnectionDelay: 5000,
+        // })
+        const socket = initializeSocket();
+
+        const handleConnect = () => {
+            console.log('Socket connected');
+            setIsConnected(true);
+        };
+
+        const handleDisconnect = () => {
+            console.log('Socket disconnected');
+            setIsConnected(false);
+            setIsReady(false);
+        };
+
+        const handleConnectError = (error: any) => {
+            console.log('Socket connection error:', error.description);
             if (error.description === HttpStatusCode.Unauthorized) {
                 refreshToken();
             }
-        });
+        };
 
+        socket!.on('connect', handleConnect);
+        socket!.on('disconnect', handleDisconnect);
+        socket!.on('connect_error', handleConnectError);
+        socket!.on(FRIEND_REQUEST_RECEIVED_EVENT, handleFriendReceived);
+        socket!.on(FRIEND_REMOVED_EVENT, handleFriendRemoved);
+        socket!.on(FRIEND_ADDED_EVENT, handleFriendAdded);
+        socket!.on(USER_ONLINE_EVENT, handleFriendOnline);
+        socket!.on(USER_OFFLINE_EVENT, handleFriendOffline);
+        socket!.on(MESSAGE_RECEIVED_EVENT, handleMessageReceived);
+        socket!.on(USER_TYPING_EVENT, handleUserTyping);
+        socket!.on(USER_STATUS_UPDATE_EVENT, handleUserStatusUpdate);
+        socket!.on(VOICE_UPDATE_EVENT, handleVoiceStateUpdate);
+        socket!.on(GET_VOICE_STATES_EVENT, handleGetVoiceStates);
+
+        const handleBeforeUnload = () => {
+            console.log('disconnecting socket', socket);
+            socket?.disconnect();
+        };
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        console.log('adding socket listener', socket);
+        // setSocket(socket);
         return () => {
             socket.removeAllListeners();
-            socket.disconnect();
-            setIsReady(false);
-        }
-
-    }, [socket])
+            console.log('removing socket listener', socket);
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+        };
+    }, []);
 
     useEffect(() => {
-        if (!user || isReady) return;
+        const socketAndMediasoupReady = isConnected && ready;
 
-        const sock = io(process.env.NEXT_PUBLIC_WS_GATEWAY, {
-            withCredentials: true
-        });
-        setSocket(sock);
-        sock.emit(CLIENT_READY_EVENT);
-    }, [user]);
+        if (socketAndMediasoupReady !== isReady) {
+            console.log('mediasoup & socket is ready', socketAndMediasoupReady)
+            setIsReady(socketAndMediasoupReady);
+        }
+    }, [isConnected, ready]);
 
-
-    return <SocketContext.Provider value={{ socket, isReady }}>
-        {children}
-    </SocketContext.Provider>
+    return (
+        <SocketContext.Provider value={{ socket, isReady }}>
+            {children}
+        </SocketContext.Provider>
+    );
 }

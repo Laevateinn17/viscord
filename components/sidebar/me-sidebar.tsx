@@ -1,13 +1,12 @@
 "use client"
+import { useChannelsStore } from "@/app/stores/channels-store";
 import { useUserProfileStore } from "@/app/stores/user-profiles-store";
 import { useUserTypingStore } from "@/app/stores/user-typing-store";
 import SidebarContentContainer from "@/components/guild-sidebar/sidebar-content-container";
 import SidebarHeader from "@/components/guild-sidebar/sidebar-header";
 import UserAvatar from "@/components/user-avatar/user-avatar";
 import { DM_CHANNELS_CACHE } from "@/constants/cache";
-import { useUserPresence } from "@/contexts/user-presence.context";
-import { useCurrentUserQuery } from "@/hooks/queries";
-import Relationship from "@/interfaces/relationship";
+import { ChannelType } from "@/enums/channel-type.enum";
 import { getDMChannels } from "@/services/channels/channels.service";
 import { getRelationships } from "@/services/relationships/relationships.service";
 import { getImageURL } from "@/services/storage/storage.service";
@@ -129,22 +128,11 @@ const DMRecipientName = styled.p`
 export default function MeSidebarContent() {
     const pathname = usePathname();
     const router = useRouter();
-    const { data: user } = useCurrentUserQuery();
-    const { userProfileMap, presenceMap, getUserProfile } = useUserPresence();
     const { userProfiles } = useUserProfileStore();
     const { isUserTyping } = useUserTypingStore();
-    const { data: dmChannels } = useQuery({
-        staleTime: Infinity,
-        queryKey: [DM_CHANNELS_CACHE],
-        queryFn: async () => {
-            const res = await getDMChannels();
-            if (res.success) {
-                return res.data!;
-            }
+    const {channels} = useChannelsStore();
+    const dmChannels = Array.from(channels.values()).filter(c => c.type === ChannelType.DM);
 
-            return [];
-        }
-    })
 
     const menuItems = [
         {

@@ -16,8 +16,6 @@ interface UserPresenceContextType {
   setUserProfileMap: (userProfiles: UserProfileMap) => void;
   getUserProfile: (userId: string) => UserProfile | undefined;
   updateUserProfile: (userProfile: UserProfile) => void;
-  a: number;
-  setA: Dispatch<SetStateAction<number>>
 }
 
 const UserPresenceContext = createContext<UserPresenceContextType | undefined>(undefined);
@@ -25,7 +23,6 @@ const UserPresenceContext = createContext<UserPresenceContextType | undefined>(u
 export const UserPresenceProvider = ({ children }: { children: ReactNode }) => {
   const [presenceMap, setPresenceMapState] = useState<PresenceMap>({});
   const [userProfileMap, setUserProfileMapState] = useState<UserProfileMap>({});
-  const {a} = useAppState();
   // const [a, setA] = useState(0);
   const setPresenceMap = (map: PresenceMap) => {
     setPresenceMapState(map);

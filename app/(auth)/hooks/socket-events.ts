@@ -10,7 +10,7 @@ export function useVoiceEvents(): VoiceEventsState {
     const { socket } = useSocket();
 
     const emitVoiceEvent = (channelId: string, type: VoiceEventType) => {
-        socket.emit(VOICE_UPDATE_EVENT, { channelId, type });
+        socket?.emit(VOICE_UPDATE_EVENT, { channelId, type });
     }
 
     return {
@@ -25,7 +25,7 @@ interface VoiceRingEventsState {
 export function useVoiceRingEvents(): VoiceRingEventsState {
     const { socket } = useSocket();
     const emitDismissVoiceRing = (channelId: string, userId: string) => {
-        socket.emit(VOICE_RING_DISMISS_EVENT, { channelId , userId});
+        socket?.emit(VOICE_RING_DISMISS_EVENT, { channelId , userId});
     }
 
     return {

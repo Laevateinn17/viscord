@@ -8,7 +8,7 @@ import { createDMChannel } from "@/services/channels/channels.service";
 import RelationshipListItem from "../relationship-list-item";
 import { RelationshipType } from "@/enums/relationship-type.enum";
 import { MdCheck, MdClose } from "react-icons/md";
-import { useCurrentUserQuery, useDMChannelsQuery } from "@/hooks/queries";
+import { useDMChannelsQuery } from "@/hooks/queries";
 import { IoMdMore } from "react-icons/io";
 import { useAuth } from "@/contexts/auth.context";
 import { acceptFriendRequest, declineFriendRequest } from "@/services/relationships/relationships.service";
@@ -16,6 +16,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { RELATIONSHIPS_CACHE } from "@/constants/cache";
 import { useRouter } from "next/navigation";
 import { useAcceptFriendRequestMutation, useDeleteRelationshipMutation } from "@/hooks/mutations";
+import { useChannelsStore } from "@/app/stores/channels-store";
+import { useCurrentUserStore } from "@/app/stores/current-user-store";
 
 const FilterTypeContainer = styled.div`
     padding: 16px 0;
@@ -46,7 +48,7 @@ function MessageActionButton({ channel, relationship }: { channel?: Channel, rel
 }
 
 export function OnlineFriendsTab({ relationships }: { relationships: Relationship[] }) {
-    const { data: channels } = useDMChannelsQuery();
+    const { getFriendChannel} = useChannelsStore();
 
     return (
         <Fragment>
@@ -55,7 +57,7 @@ export function OnlineFriendsTab({ relationships }: { relationships: Relationshi
                 return (
                     <RelationshipListItem relationship={rel} key={rel.id}>
                         <ActionContainer>
-                            <MessageActionButton relationship={rel} channel={channels ? channels.find(ch => ch.recipients[0].id === rel.user.id) : undefined} />
+                            <MessageActionButton relationship={rel} channel={getFriendChannel(rel.user.id)} />
                             <ActionButton tooltipText="More">
                                 <IoMdMore size={20} />
                             </ActionButton>
@@ -67,19 +69,18 @@ export function OnlineFriendsTab({ relationships }: { relationships: Relationshi
 }
 
 export function AllFriendsTab({ relationships }: { relationships: Relationship[] }) {
-    const { data: channels } = useDMChannelsQuery();
-    const { data: user } = useCurrentUserQuery();
+    const { getFriendChannel } = useChannelsStore();
+    const { user } = useCurrentUserStore();
 
     return (
         <Fragment>
             <FilterTypeContainer>{`All friends — ${relationships.length}`}</FilterTypeContainer>
             {relationships.map((rel, index) => {
-                const channel = channels?.find(ch => ch.recipients.find(r => r.id !== user!.id)!.id === rel.user.id)!;
                 return (
                     <RelationshipListItem relationship={rel} key={rel.id}>
                         {rel.type === RelationshipType.Friends &&
                             <ActionContainer>
-                                <MessageActionButton relationship={rel} channel={channel} />
+                                <MessageActionButton relationship={rel} channel={getFriendChannel(rel.user.id)} />
                                 <ActionButton tooltipText="More">
                                     <IoMdMore size={20} />
                                 </ActionButton>
@@ -93,8 +94,7 @@ export function AllFriendsTab({ relationships }: { relationships: Relationship[]
 }
 
 export function PendingRequestsTab({ relationships }: { relationships: Relationship[] }) {
-    const { data: channels } = useDMChannelsQuery();
-    const { data: user } = useCurrentUserQuery();
+    const { getFriendChannel} = useChannelsStore();
     const {mutate: declineFriendRequest} = useDeleteRelationshipMutation();
     const {mutate: acceptFriendRequest} = useAcceptFriendRequestMutation();
 
@@ -103,7 +103,6 @@ export function PendingRequestsTab({ relationships }: { relationships: Relations
             {relationships.filter(rel => rel.type === RelationshipType.Pending).length > 0 &&
                 <FilterTypeContainer>{`Sent — ${relationships.length}`}</FilterTypeContainer>}
             {relationships.filter(rel => rel.type === RelationshipType.Pending).map((rel) => {
-                const channel = channels?.find(ch => ch.recipients.find(r => r.id !== user!.id)!.id === rel.user.id)!;
                 return (
                     <RelationshipListItem relationship={rel} key={rel.id}>
                         {rel.type === RelationshipType.Pending &&
@@ -115,7 +114,7 @@ export function PendingRequestsTab({ relationships }: { relationships: Relations
                         }
                         {rel.type === RelationshipType.Friends &&
                             <ActionContainer>
-                                <MessageActionButton relationship={rel} channel={channel} />
+                                <MessageActionButton relationship={rel} channel={getFriendChannel(rel.user.id)} />
                                 <ActionButton tooltipText="More">
                                     <IoMdMore size={20} />
                                 </ActionButton>
@@ -141,7 +140,7 @@ export function PendingRequestsTab({ relationships }: { relationships: Relations
                         }
                         {rel.type === RelationshipType.Friends &&
                             <ActionContainer>
-                                <MessageActionButton relationship={rel} channel={channels ? channels.find(ch => ch.recipients[0].id === rel.user.id) : undefined} />
+                                <MessageActionButton relationship={rel} channel={getFriendChannel(rel.user.id)} />
                                 <ActionButton tooltipText="More">
                                     <IoMdMore size={20} />
                                 </ActionButton>

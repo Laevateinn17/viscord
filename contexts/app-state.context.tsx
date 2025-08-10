@@ -3,8 +3,6 @@ import { createContext, Dispatch, ReactNode, SetStateAction, useCallback, useCon
 interface AppStateContextType {
     isLoading: boolean
     setIsLoading: Dispatch<SetStateAction<boolean>>
-    a: number
-    setA: Dispatch<SetStateAction<number>>
 }
 
 const AppStateContext = createContext<AppStateContextType>(null!);
@@ -16,10 +14,13 @@ export function useAppState() {
 
 export default function AppStateProvider({ children }: { children: ReactNode }) {
     const [isLoading, setIsLoading] = useState(true);
-    const [a, setA] = useState(0);
-    
+
+
+    useEffect(() => {
+        console.log('rerender');
+    })
     return (
-        <AppStateContext.Provider value={{ isLoading, setIsLoading, a, setA }}>
+        <AppStateContext.Provider value={{ isLoading, setIsLoading }}>
             {children}
         </AppStateContext.Provider>
     )

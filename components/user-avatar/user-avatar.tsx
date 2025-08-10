@@ -12,6 +12,7 @@ import { useContextMenu } from "@/contexts/context-menu.context";
 import { ContextMenuType } from "@/enums/context-menu-type.enum";
 import { useUserPresence } from "@/contexts/user-presence.context";
 import { LoadingIndicator } from "../loading-indicator/loading-indicator";
+import { useUserPresenceStore } from "@/app/stores/user-presence-store";
 
 export function UserStatusIcon({ status, size = 12, isTyping }: { status: UserStatus, size?: number, isTyping?: boolean }) {
     return (
@@ -57,7 +58,7 @@ export function UserStatusIcon({ status, size = 12, isTyping }: { status: UserSt
 }
 
 export default function UserAvatar({ user, showStatus = true, size, isTyping }: { user: UserProfile, showStatus?: boolean, size?: string, isTyping?: boolean }) {
-    const { isUserOnline } = useUserPresence();
+    const { isUserOnline } = useUserPresenceStore();
     const iconSize = size ? parseInt(size) / 2.6 > 16 ? 16 : parseInt(size) / 2.6 : 12;
     return (
         <div className={styles["pfp-wrapper"]} >

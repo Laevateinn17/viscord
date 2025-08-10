@@ -3,6 +3,8 @@ import ContentHeader from "@/app/(app)/content-header";
 import { useVoiceEvents } from "@/app/(auth)/hooks/socket-events";
 import { useAudioStore } from "@/app/stores/audio-store";
 import { useChannelsStore, useGetChannel } from "@/app/stores/channels-store";
+import { useCurrentUserStore } from "@/app/stores/current-user-store";
+import { useMediasoupStore } from "@/app/stores/mediasoup-store";
 import { useUserProfileStore } from "@/app/stores/user-profiles-store";
 import { useIsUserTyping, useTypingUsersFromChannel, useUserTypingStore } from "@/app/stores/user-typing-store";
 import { useGetChannelVoiceRing } from "@/app/stores/voice-ring-state-store";
@@ -14,7 +16,7 @@ import UserAvatar from "@/components/user-avatar/user-avatar";
 import { MESSAGES_CACHE } from "@/constants/cache";
 import { MessageStatus } from "@/enums/message-status.enum";
 import { VoiceEventType } from "@/enums/voice-event-type";
-import { useCurrentUserQuery, useDMChannelsQuery, useMessagesQuery } from "@/hooks/queries";
+import { useMessagesQuery } from "@/hooks/queries";
 import { Channel } from "@/interfaces/channel";
 import { CreateMessageDto } from "@/interfaces/dto/create-message.dto";
 import { Message } from "@/interfaces/message";
@@ -114,11 +116,11 @@ function Header({ channel }: { channel: Channel }) {
     const { getUserProfile } = useUserProfileStore();
     const recipient: UserProfile = getUserProfile(channel.recipients[0].id) || channel.recipients[0];
     const isTyping = useIsUserTyping(channel.id, recipient.id);
-    const { updateVoiceState } = useVoiceStateStore()
     const voiceStates = useGetChannelVoiceStates(channel.id);
     const voiceRings = useGetChannelVoiceRing(channel.id);
-    const { data: user } = useCurrentUserQuery();
+    const { user } = useCurrentUserStore();
     const { emitVoiceEvent } = useVoiceEvents();
+    const { activeSpeakers } = useMediasoupStore();
 
     async function handleJoinVoiceCall() {
         if (voiceStates.length === 0) await ringChannelRecipients(channel.id);
@@ -175,7 +177,8 @@ function Header({ channel }: { channel: Channel }) {
                             );
                         })}
                         {voiceStates.map((vs) => {
-                            const user = getUserProfile(vs.userId);
+                            const participant = getUserProfile(vs.userId);
+                            const isSpeaking = voiceStates.find(vs => vs.userId === user.id) && activeSpeakers.has(vs.userId);
                             return (
                                 <motion.div
                                     key={vs.userId}
@@ -184,7 +187,7 @@ function Header({ channel }: { channel: Channel }) {
                                     exit={{ opacity: 0, scale: 0.8 }}
                                     transition={{ duration: 0.3 }}
                                 >
-                                    {user && <AvatarImage className="" src={user.avatarURL ? getImageURL('avatars', user.avatarURL) : getImageURL('assets', user.defaultAvatarURL)} />}
+                                    {participant && <AvatarImage className={`${isSpeaking ? 'ring-2 ring-green-500 p-[1px]' : ''}`} src={participant.avatarURL ? getImageURL('avatars', participant.avatarURL) : getImageURL('assets', participant.defaultAvatarURL)} />}
                                 </motion.div>
                             );
                         })}
@@ -432,7 +435,7 @@ export default function Page() {
     const [groupedMessages, setGroupedMessages] = useState<Record<string, Message[]> | undefined>();
     const [isPageReady, setIsPageReady] = useState(false);
     const queryClient = useQueryClient();
-    const { data: user } = useCurrentUserQuery();
+    const { user } = useCurrentUserStore();
     const { getUserProfile } = useUserProfileStore();
     const { mutate: sendMessageMutation } = useMutation({
         mutationFn: (dto: CreateMessageDto) => sendMessage(dto),

@@ -1,5 +1,5 @@
 import { useAppSettingsStore } from "@/app/stores/app-settings-store";
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import { SettingsSectionHeader } from "./settings-page";
 import { MAX_VOLUME, MIN_VOLUME } from "@/constants/app-config";
@@ -137,6 +137,133 @@ function Slider({ min, max, value, onChange }: { min: number, max: number, value
     )
 }
 
+function MicTestButton() {
+    const [isRecording, setIsRecording] = useState(false);
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [audioURL, setAudioURL] = useState<string | null>(null);
+
+    const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+    const chunksRef = useRef<Blob[]>([]);
+    const streamRef = useRef<MediaStream | null>(null);
+
+    const cleanup = () => {
+        if (streamRef.current) {
+            streamRef.current.getTracks().forEach(track => track.stop());
+            streamRef.current = null;
+        }
+        if (audioURL) {
+            URL.revokeObjectURL(audioURL);
+        }
+    };
+
+    // Cleanup on unmount
+    useEffect(() => {
+        return cleanup;
+    }, [audioURL]);
+
+    const startRecording = async () => {
+        try {
+            cleanup();
+            const inputId = useAppSettingsStore.getState().mediaSettings.audioInputDeviceId;
+            const stream = await navigator.mediaDevices.getUserMedia({
+                audio: {
+                    deviceId: inputId ? { exact: inputId } : undefined
+                }
+            });
+
+            streamRef.current = stream;
+
+            chunksRef.current = [];
+
+            const recorder = new MediaRecorder(stream);
+            mediaRecorderRef.current = recorder;
+
+            recorder.ondataavailable = (e) => {
+                if (e.data.size > 0) {
+                    chunksRef.current.push(e.data);
+                }
+            };
+
+            recorder.onstop = () => {
+                // Use the correct MIME type from the recorder
+                const mimeType = recorder.mimeType || 'audio/webm';
+                const blob = new Blob(chunksRef.current, { type: mimeType });
+                const url = URL.createObjectURL(blob);
+                console.log('Recording blob created:', url);
+                setAudioURL(url);
+
+                if (streamRef.current) {
+                    streamRef.current.getTracks().forEach(track => track.stop());
+                    streamRef.current = null;
+                }
+            };
+
+            recorder.start();
+            setIsRecording(true);
+
+            setTimeout(() => {
+                if (recorder.state === 'recording') {
+                    recorder.stop();
+                    setIsRecording(false);
+                }
+            }, 3000);
+
+        } catch (err) {
+            console.error("Mic access error:", err);
+            setIsRecording(false);
+        }
+    };
+
+    const playRecording = () => {
+        if (!audioURL) return;
+
+        const audio = new Audio(audioURL);
+        setIsPlaying(true);
+
+        audio.onended = () => setIsPlaying(false);
+        audio.onerror = () => {
+            console.error('Audio playback error');
+            setIsPlaying(false);
+        };
+
+        audio.play().catch(err => {
+            console.error('Play error:', err);
+            setIsPlaying(false);
+        });
+    };
+
+    return (
+        <div className="flex gap-4 items-center p-4">
+            <button
+                onClick={startRecording}
+                disabled={isRecording}
+                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 transition"
+            >
+                {isRecording ? "Recording..." : "Let's Check"}
+            </button>
+
+            {audioURL && (
+                <button
+                    onClick={playRecording}
+                    disabled={isPlaying}
+                    className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50 transition"
+                >
+                    {isPlaying ? "Playing..." : "Replay"}
+                </button>
+            )}
+
+            {isRecording && (
+                <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                    <span className="text-sm text-gray-600">Recording for 3 seconds...</span>
+                </div>
+            )}
+        </div>
+    );
+}
+
+export default MicTestButton;
+
 function VoiceSettingsTab() {
     const { mediaSettings, setAudioInputDevice, setAudioOutputDevice, setInputVolume, setOutputVolume } = useAppSettingsStore();
     const [devices, setDevices] = useState<MediaDeviceInfo[] | null>(null);
@@ -205,7 +332,10 @@ function VoiceSettingsTab() {
                         <SubHeader>Output Volume</SubHeader>
                         <Slider min={MIN_VOLUME} max={MAX_VOLUME} value={mediaSettings.outputVolume} onChange={(value) => setOutputVolume(Number(value))} />
                     </div>
-
+                </div>
+                <div className="mt-6">
+                    <SubHeader>Mic Test</SubHeader>
+                    <MicTestButton />
                 </div>
             </div>
         </div>

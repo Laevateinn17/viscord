@@ -13,12 +13,14 @@ import { FaCircle } from "react-icons/fa";
 import { CurrentUserProfileCard } from "../user-profile-card/user-profile-card";
 import Modal from "../modal/modal";
 import { useUserProfileStore } from "@/app/stores/user-profiles-store";
+import { useCurrentUserQuery } from "@/hooks/queries";
+import { useCurrentUserStore } from "@/app/stores/current-user-store";
 
 interface UserAreaProps {
-    user: UserData
     openSettingsHandler: () => any
 }
-export default function UserArea({ user, openSettingsHandler }: UserAreaProps) {
+export default function UserArea({ openSettingsHandler }: UserAreaProps) {
+    const {user} = useCurrentUserStore();
     const [isHovering, setIsHovering] = useState(false);
     const [showProfileCard, setShowProfileCard] = useState(false);
     const profileCardRef = useRef<HTMLDivElement>(null!)

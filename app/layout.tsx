@@ -37,7 +37,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     const devices = await navigator.mediaDevices.enumerateDevices();
     const outputDevices = devices.filter(d => d.kind == 'audiooutput');
     const inputDevices = devices.filter(d => d.kind == 'audioinput');
-    console.log(outputDevices);
     if (!inputDevices.some(d => d.deviceId === mediaSettings.audioInputDeviceId)) {
       const fallback = inputDevices.find(d => d.deviceId !== 'communications') ?? inputDevices[0];
       if (fallback) useAppSettingsStore.getState().setAudioInputDevice(fallback.deviceId);

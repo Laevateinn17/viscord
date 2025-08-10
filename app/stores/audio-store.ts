@@ -16,3 +16,7 @@ export const useAudioStore = create<AudioStore>(() => ({
 export const usePlaySound = (type: SoundType) => {
   useAudioStore.getState().playSound(type);
 }
+
+export const useStopSound = (type: SoundType) => {
+  useAudioStore.getState().stopSound(type);
+}

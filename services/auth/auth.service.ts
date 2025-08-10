@@ -61,30 +61,30 @@ export async function register(dto: RegisterDTO): Promise<Response<null>> {
     }
 }
 
-export async function refreshToken(): Promise<Response<null>> {
+export async function refreshToken(): Promise<Response<string>> {
     try {
         const response = await axios.post(ENDPOINT + '/refresh-token', null, {
             withCredentials: true,
             timeout: 10000
         });
         if (response.status === HttpStatusCode.Ok) {
-            return Response.Success<null>({
-                data: null,
+            return Response.Success<string>({
+                data: response.data.data,
                 message: response.data.message
             });
         }
-        return Response.Failed<null>({
+        return Response.Failed<string>({
             message: response.data.message
         });
     } catch (error) {
         console.log(error)
         if (error instanceof AxiosError) {
-            return Response.Failed<null>({
+            return Response.Failed<string>({
                 message: error.response ? error.response.data.message as string : "An unknown Error occurred"
             });
         }
 
-        return Response.Failed<null>({
+        return Response.Failed<string>({
             message: "An unknown error occurred."
         })
     }

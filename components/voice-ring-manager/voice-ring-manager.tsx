@@ -1,12 +1,10 @@
 import { useGetUserProfile, useUserProfileStore } from "@/app/stores/user-profiles-store";
 import { getVoiceRingKey, useVoiceRingStateStore } from "@/app/stores/voice-ring-state-store";
-import { useCurrentUserQuery } from "@/hooks/queries";
 import { UserProfile } from "@/interfaces/user-profile";
 import { VoiceRingState } from "@/interfaces/voice-ring-state";
 import { getImageURL } from "@/services/storage/storage.service";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ImPhoneHangUp } from "react-icons/im";
 import { IoMdClose } from "react-icons/io";
 import { PiPhoneCallFill } from "react-icons/pi";
 import styled from "styled-components";
@@ -14,6 +12,8 @@ import Tooltip from "../tooltip/tooltip";
 import { useVoiceRingEvents } from "@/app/(auth)/hooks/socket-events";
 import { useSocket } from "@/contexts/socket.context";
 import { GET_VOICE_RINGS_EVENT, VOICE_RING_DISMISS_EVENT, VOICE_RING_EVENT } from "@/constants/events";
+import { usePlaySound, useStopSound } from "@/app/stores/audio-store";
+import { useCurrentUserStore } from "@/app/stores/current-user-store";
 
 const PopupContainer = styled.div`
     background-color: var(--modal-background);
@@ -65,7 +65,8 @@ function PopupActionButton({ onClick, tooltipText, type }: { onClick: () => void
 }
 
 
-function VoiceRingPopupCard({ user, onAccept, onDismiss, initPos }: { user: UserProfile, onAccept: () => void, onDismiss: () => void, initPos: Pos }) { const [pos, setPos] = useState<Pos>(initPos);
+function VoiceRingPopupCard({ user, onAccept, onDismiss, initPos }: { user: UserProfile, onAccept: () => void, onDismiss: () => void, initPos: Pos }) {
+    const [pos, setPos] = useState<Pos>(initPos);
     const [dragging, setDragging] = useState(false);
     const [offset, setOffset] = useState<{ x: number, y: number }>({ x: 0, y: 0 });
 
@@ -116,7 +117,7 @@ function VoiceRingPopupCard({ user, onAccept, onDismiss, initPos }: { user: User
                 <p>Incoming Call...</p>
             </div>
             <div className="flex gap-[8px]">
-                <PopupActionButton  onClick={() => !dragging && onDismiss()} tooltipText="Dismiss" type="danger" />
+                <PopupActionButton onClick={() => !dragging && onDismiss()} tooltipText="Dismiss" type="danger" />
                 <PopupActionButton onClick={() => !dragging && onAccept} tooltipText="Join Call" type="positive" />
             </div>
         </PopupContainer>
@@ -126,7 +127,7 @@ function VoiceRingPopupCard({ user, onAccept, onDismiss, initPos }: { user: User
 export function VoiceRingManager() {
     const { voiceRingStates } = useVoiceRingStateStore();
     const { getUserProfile } = useUserProfileStore();
-    const { data: user } = useCurrentUserQuery();
+    const { user } = useCurrentUserStore();
     const pathname = usePathname();
     const { socket } = useSocket();
     const { emitDismissVoiceRing } = useVoiceRingEvents();
@@ -149,31 +150,49 @@ export function VoiceRingManager() {
         setVoiceRingStates(map);
     }
 
-    const handleVoiceRing = (payload: VoiceRingState[]) => {
+    const onVoiceRing = (payload: VoiceRingState[]) => {
+        const { user } = useCurrentUserStore.getState();
         batchUpdateVoiceRingState(payload);
+        console.log('newjierowriowjoijw', payload);
+        if (payload.find(vr => vr.initiatorId === user?.id)) {
+            console.log('riniggingin')
+            usePlaySound('ring');
+        }
+        if (payload.find(vr => vr.recipientId === user?.id)) {
+            console.log('calilingi')
+            usePlaySound('call');
+        }
     }
 
     const onVoiceRingDismiss = (payload: VoiceRingState) => {
+        const { user } = useCurrentUserStore.getState();
         removeVoiceRingState(payload.channelId, payload.recipientId);
+        if (payload.initiatorId === user?.id) {
+            useStopSound('ring')
+        }
+        if (payload.recipientId === user?.id) {
+            useStopSound('call')
+        }
     }
 
 
     useEffect(() => {
-        socket.on(GET_VOICE_RINGS_EVENT, handleGetVoiceRingStates);
-        socket.on(VOICE_RING_EVENT, handleVoiceRing);
-        socket.on(VOICE_RING_DISMISS_EVENT, onVoiceRingDismiss);
-
+        socket?.on(GET_VOICE_RINGS_EVENT, handleGetVoiceRingStates);
+        socket?.on(VOICE_RING_EVENT, onVoiceRing);
+        socket?.on(VOICE_RING_DISMISS_EVENT, onVoiceRingDismiss);
+        console.log('adding ring listener');
         return () => {
-            socket.removeListener(GET_VOICE_RINGS_EVENT, handleGetVoiceRingStates);
-            socket.removeListener(VOICE_RING_EVENT, handleVoiceRing);
-            socket.removeListener(VOICE_RING_DISMISS_EVENT, handleVoiceRingDismiss);
+            socket?.removeListener(GET_VOICE_RINGS_EVENT, handleGetVoiceRingStates);
+            socket?.removeListener(VOICE_RING_EVENT, onVoiceRing);
+            socket?.removeListener(VOICE_RING_DISMISS_EVENT, handleVoiceRingDismiss);
+            console.log('removing ring listener');
         }
     }, [socket])
 
     return (
         <div>
             {Array.from(voiceRingStates.entries()).map(([k, v], i) => {
-                let pos: Pos = {x: window.innerWidth / 2 + (i * 10), y: window.innerHeight / 2};
+                let pos: Pos = { x: window.innerWidth / 2 + (i * 10), y: window.innerHeight / 2 };
 
                 const initiator = getUserProfile(v.initiatorId);
                 if (v.recipientId !== user?.id || pathname.endsWith(v.channelId) || !initiator) {

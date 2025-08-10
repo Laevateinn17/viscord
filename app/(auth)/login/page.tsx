@@ -7,11 +7,9 @@ import PrimaryButton from "@/components/primary-button/primary-button"
 import { FormEvent, FormEventHandler, useEffect, useReducer, useRef, useState } from "react"
 import { login, refreshToken } from "@/services/auth/auth.service"
 import { Response } from "@/interfaces/response"
-import { AuthResponse } from "@/interfaces/auth-response"
 import { LoginDTO } from "@/interfaces/dto/login.dto"
 import { redirect, useRouter } from "next/navigation"
-import Link from "next/link"
-import { useCurrentUserQuery } from "@/hooks/queries"
+import { useAuth } from "@/contexts/auth.context"
 
 export default function Login() {
     const containerRef = useRef<HTMLDivElement>(null!);
@@ -21,7 +19,7 @@ export default function Login() {
     const [identifierError, setIdentifierError] = useState<string | null>(null);
     const [passwordError, setPasswordError] = useState<string | null>(null);
 
-    const { data: user } = useCurrentUserQuery();
+    const { isAuthorized } = useAuth();
 
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -29,11 +27,11 @@ export default function Login() {
     const router = useRouter();
 
     useEffect(() => {
-        if (user !== undefined) {
+        if (isAuthorized) {
             router.push("/channels/me");
         }
         setIsLoading(false);
-    }, [user])
+    }, [isAuthorized])
 
     function validateIdentifier(): boolean {
         if (identifier.length == 0) {
@@ -69,7 +67,7 @@ export default function Login() {
         const dto: LoginDTO = { identifier: identifier, password: password };
 
         setIsSubmitting(true);
-        const response: Response<AuthResponse | null> = await login(dto);
+        const response: Response<null> = await login(dto);
         setIsSubmitting(false);
 
         if (!response.success) {

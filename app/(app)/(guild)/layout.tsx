@@ -3,7 +3,7 @@
 import SidebarContentContainer from "@/components/guild-sidebar/sidebar-content-container";
 import SidebarHeader from "@/components/guild-sidebar/sidebar-header";
 import { ChannelType } from "@/enums/channel-type.enum";
-import { useCurrentUserQuery, useGuildDetailQuery, useRelationshipsQuery } from "@/hooks/queries";
+import { useGuildDetailQuery, useRelationshipsQuery } from "@/hooks/queries";
 import { Channel } from "@/interfaces/channel";
 import { useParams, useRouter } from "next/navigation";
 import { Fragment, ReactNode, useEffect, useState } from "react";
@@ -16,6 +16,7 @@ import GuildListSidebar from "@/components/guild-list-sidebar/guild-list-sidebar
 import UserArea from "@/components/user-area/user-area";
 import GuildSidebar from "@/components/guild-sidebar/guild-sidebar";
 import SettingsPage from "@/components/settings-page/settings-page";
+import { useCurrentUserStore } from "@/app/stores/current-user-store";
 
 const HeaderContainer = styled.div`
     padding: 12px 8px 12px 16px;
@@ -49,20 +50,11 @@ export default function Page({ children }: { children: ReactNode }) {
     const { isPending, data: guild, isError } = useGuildDetailQuery(guildId ? guildId.toString() : '');
     const [categories, setCategories] = useState<Channel[]>([]);
     const router = useRouter();
-    const { data: user } = useCurrentUserQuery();
+    const { user } = useCurrentUserStore();
     const [isLoading, setIsLoading] = useState(true);
     const [isSettingOpen, setIsSettingOpen] = useState(false);
     // const [prevTitle, setPrevTitle] = useState(document.title);
     const { data: relationships } = useRelationshipsQuery();
-    useEffect(() => {
-        if (user) {
-            setIsLoading(false);
-        }
-        else {
-            setIsLoading(true);
-        }
-    }, [user])
-
     useEffect(() => {
         if (!guild) return;
 
