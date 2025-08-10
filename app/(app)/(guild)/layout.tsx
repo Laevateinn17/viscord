@@ -13,7 +13,6 @@ import { Router } from "next/router";
 import { ChannelCategory } from "./channel-category";
 import styles from "./styles.module.css"
 import GuildListSidebar from "@/components/guild-list-sidebar/guild-list-sidebar";
-import UserArea from "@/components/user-area/user-area";
 import GuildSidebar from "@/components/guild-sidebar/guild-sidebar";
 import SettingsPage from "@/components/settings-page/settings-page";
 import { useCurrentUserStore } from "@/app/stores/current-user-store";

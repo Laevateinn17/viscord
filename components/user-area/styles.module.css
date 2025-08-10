@@ -1,18 +1,22 @@
 .container {
-  height: 52px;
+  height: 56px;
   width: 100%;
   padding: 0px 8px;
-  background-color: var(--background-tertiary);
+  background-color: oklab(0.338524 0.00199042 -0.0121031);
   display: flex;
   align-items: center;
-  position:relative;
+  position: relative;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
 }
 
 .user-info-container {
   display: flex;
   align-items: center;
   background-color: inherit;
-  border-radius: 4px;
+  border-radius: 8px;
+  border-top-left-radius: 24px;
+  border-bottom-left-radius: 24px;
   padding: 4px 0;
   cursor: pointer;
   flex-grow: 1;

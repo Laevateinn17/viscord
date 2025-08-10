@@ -8,7 +8,6 @@ import { MESSAGES_CACHE, RELATIONSHIPS_CACHE } from "@/constants/cache";
 import { Message } from "@/interfaces/message";
 import { HttpStatusCode } from "axios";
 import { refreshToken } from "@/services/auth/auth.service";
-import { useUserPresence } from "./user-presence.context";
 import { UserStatus } from "@/enums/user-status.enum";
 import { useUserProfileStore } from "@/app/stores/user-profiles-store";
 import { useUserTypingStore } from "@/app/stores/user-typing-store";

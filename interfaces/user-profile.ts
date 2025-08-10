@@ -9,7 +9,6 @@ export interface UserProfile {
     status: UserStatus;
     avatarURL?: string;
     defaultAvatarURL: string;
-    isOnline: boolean;
     createdAt: Date;
     updatedAt: Date;
 }

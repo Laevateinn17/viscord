@@ -1,8 +1,8 @@
 "use client"
+import { useUserPresenceStore } from "@/app/stores/user-presence-store";
 import Tooltip from "@/components/tooltip/tooltip";
 import UserAvatar from "@/components/user-avatar/user-avatar";
 import { useContextMenu } from "@/contexts/context-menu.context";
-import { useUserPresence } from "@/contexts/user-presence.context";
 import { ContextMenuType } from "@/enums/context-menu-type.enum";
 import { RelationshipType, RelationshipTypeString } from "@/enums/relationship-type.enum";
 import { UserStatus, UserStatusString } from "@/enums/user-status.enum";
@@ -52,7 +52,7 @@ const UsernameText = styled.div`
 
 export default function RelationshipListItem({ relationship, children }: { relationship: Relationship, children: ReactNode }) {
     const { showMenu, hideMenu } = useContextMenu();
-    const { isUserOnline } = useUserPresence();
+    const { isUserOnline } = useUserPresenceStore();
     return (
         <UserListItemContainer onContextMenu={(e) => showMenu(e, ContextMenuType.USER, relationship)}>
             <UserListItemWrapper>

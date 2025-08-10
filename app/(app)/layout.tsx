@@ -33,6 +33,8 @@ import { useAuth } from "@/contexts/auth.context";
 import { refreshToken } from "@/services/auth/auth.service";
 import { useCurrentUserStore } from "../stores/current-user-store";
 import { useUserPresenceStore } from "../stores/user-presence-store";
+import { PiGithubLogoBold } from "react-icons/pi";
+import { BsGithub } from "react-icons/bs";
 
 interface HomeLayoutProps {
     children: ReactNode
@@ -312,7 +314,7 @@ function GuildListSidebar() {
 
 
 function AppInitializer({ children }: { children: ReactNode }) {
-    const [isLoading, setIsLoading] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
     const [isFriendsStatusLoaded, setIsFriendsStatusLoaded] = useState(false);
     const { socket, isReady } = useSocket();
     // const { data: relationships } = useRelationshipsQuery({ enabled: !!user });
@@ -377,7 +379,24 @@ function AppInitializer({ children }: { children: ReactNode }) {
     // }, [user, isReady, relationships, dmChannels]);
 
     if (isLoading) {
-        return <p>App is loading...</p>;
+        return (
+            <div className="w-full h-dvh flex justify-center items-center">
+                <div className="flex flex-col ">
+                    <video autoPlay loop playsInline muted width={200} height={200}>
+                        <source src="/assets/app-loading-spinner2.webm" type="video/webm" />
+                        <img alt="true" src="/assets/app-loading.png" />
+                    </video>
+                    <div className="text-center top-[-20px] relative">
+                        <p className="text-[12px] leading-[16px] mb-[8px] uppercase font-semibold">Did you know</p>
+                        <p>I hate nig</p>
+                    </div>
+                    <div className="absolute bottom-0 pb-[32px] text-center ">
+                        <p className="text-[14px] mb-[8px]">Connection problems? Let us know!</p>
+                        <p className="flex items-center justify-center gap-[8px] text-[var(--text-link)] font-[500]"><BsGithub />Check out my Github</p>
+                    </div>
+                </div>
+            </div>
+        );
     }
 
     return children;
@@ -404,27 +423,25 @@ export default function HomeLayout({ children, sidebar }: HomeLayoutProps) {
         // <AppStateProvider>
         // {/* <UserPresenceProvider> */ }
         < SocketProvider >
-                <AppInitializer>
-                    <ContextMenuProvider>
-                        <div className={styles["page"]}>
-                            <Fragment>
-                                <div className={`${styles["main-content"]} ${isSettingOpen ? styles["main-content-hidden"] : ""}`}>
-                                    <GuildListSidebar />
-                                    <div className="relative">
-                                        <div className="absolute bottom-px">
-                                            <UserArea openSettingsHandler={() => setIsSettingOpen(true)} />
-                                        </div>
-                                    </div>
-                                    {children}
+            <AppInitializer>
+                <ContextMenuProvider>
+                    <div className={styles["page"]}>
+                        <Fragment>
+                            <div className={`${styles["main-content"]} ${isSettingOpen ? styles["main-content-hidden"] : ""}`}>
+                                <GuildListSidebar />
+                                <div className="absolute bottom-[8px] left-[8px] w-[358px]">
+                                    <UserArea openSettingsHandler={() => setIsSettingOpen(true)} />
                                 </div>
-                                <SettingsPage show={isSettingOpen} closeSettingsHandler={() => setIsSettingOpen(false)} />
-                            </Fragment>
-                        </div>
-                    </ContextMenuProvider>
-                    <VoiceRingManager />
-                </AppInitializer>
-                <PeerConnectionManager />
-            </SocketProvider >
+                                {children}
+                            </div>
+                            <SettingsPage show={isSettingOpen} closeSettingsHandler={() => setIsSettingOpen(false)} />
+                        </Fragment>
+                    </div>
+                </ContextMenuProvider>
+                <VoiceRingManager />
+            </AppInitializer>
+            <PeerConnectionManager />
+        </SocketProvider >
         // {/* </UserPresenceProvider> */ }
         // </AppStateProvider>
     );

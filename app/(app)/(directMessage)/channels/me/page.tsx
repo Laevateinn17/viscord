@@ -14,6 +14,8 @@ import { useRouter } from "next/navigation";
 import { AddFriendTab } from "./add-friend-tab";
 import { AllFriendsTab, OnlineFriendsTab, PendingRequestsTab } from "./relationships-tab";
 import ContentHeader from "@/app/(app)/content-header";
+import { useUserPresence } from "@/contexts/user-presence.context";
+import { useUserPresenceStore } from "@/app/stores/user-presence-store";
 
 const HeaderMain = styled.div`
     display: flex;
@@ -106,14 +108,14 @@ interface TabItem<T> {
 export default function FriendListPage() {
     const [searchText, setSearchText] = useState('');
     const [filteredRelationships, setFilteredRelationships] = useState<Relationship[]>([]);
-
+    const {isUserOnline} = useUserPresenceStore();
     const { data: relationships } = useRelationshipsQuery();
 
 
     const filterButtons: TabItem<any>[] = [
         {
             id: "online",
-            filter: (rel: Relationship) => rel.user.isOnline && rel.type === RelationshipType.Friends,
+            filter: (rel: Relationship) => isUserOnline(rel.user.id) && rel.type === RelationshipType.Friends,
             show: () => true,
             type: FriendsFilterButton,
             button:

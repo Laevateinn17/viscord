@@ -10,7 +10,6 @@ import { HiDownload } from "react-icons/hi";
 import { CreateGuildModal } from "./create-guild-modal";
 import { useGuildsQuery } from "@/hooks/queries";
 import { getImageURL } from "@/services/storage/storage.service";
-import { useUserPresence } from "@/contexts/user-presence.context";
 
 const GuildIconContainer = styled.div`
     width: 72px;
@@ -143,7 +142,6 @@ function DMButton({ active }: { active: boolean }) {
 export default function GuildListSidebar({ isDM }: { isDM: boolean }) {
     const [showModal, setShowModal] = useState(false);
     const { data: guilds } = useGuildsQuery();
-    const { userProfiles } = useUserPresence();
     return (
         <div className={styles["guild-list-container"]}>
             <DMButton active={isDM} />
@@ -166,7 +164,7 @@ export default function GuildListSidebar({ isDM }: { isDM: boolean }) {
                 <GuildIcon guild={{ id: 'create', name: 'Add a server' }} onClick={() => { setShowModal(true) }}>
                     <FaCirclePlus size={20} />
                 </GuildIcon>
-                <GuildIcon guild={{ id: 'discovery', name: 'Discover' }} onClick={() => console.log(userProfiles)}>
+                <GuildIcon guild={{ id: 'discovery', name: 'Discover' }}>
                     <FaCompass size={20} />
                 </GuildIcon>
                 <GuildIcon guild={{ id: 'download', name: 'Download app' }}>
