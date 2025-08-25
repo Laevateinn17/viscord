@@ -1,6 +1,7 @@
 "use client"
 import ContentHeader from "@/app/(app)/content-header";
 import { useVoiceEvents } from "@/app/(auth)/hooks/socket-events";
+import { useAppSettingsStore } from "@/app/stores/app-settings-store";
 import { useAudioStore } from "@/app/stores/audio-store";
 import { useChannelsStore, useGetChannel } from "@/app/stores/channels-store";
 import { useCurrentUserStore } from "@/app/stores/current-user-store";
@@ -21,6 +22,7 @@ import { Channel } from "@/interfaces/channel";
 import { CreateMessageDto } from "@/interfaces/dto/create-message.dto";
 import { Message } from "@/interfaces/message";
 import { UserProfile } from "@/interfaces/user-profile";
+import { VoiceState } from "@/interfaces/voice-state";
 import { ringChannelRecipients, sendTypingStatus } from "@/services/channels/channels.service";
 import { acknowledgeMessage, sendMessage } from "@/services/messages/messages.service";
 import { getImageURL } from "@/services/storage/storage.service";
@@ -29,9 +31,10 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import { useParams } from "next/navigation"
 import { ChangeEvent, Fragment, KeyboardEvent, ReactNode, useEffect, useState } from "react";
-import { BsPinAngleFill } from "react-icons/bs";
+import { BsMicMuteFill, BsPinAngleFill } from "react-icons/bs";
 import { FaCirclePlus } from "react-icons/fa6";
 import { ImPhoneHangUp } from "react-icons/im";
+import { LuHeadphoneOff } from "react-icons/lu";
 import { MdGroupAdd } from "react-icons/md";
 import { PiPhoneCall, PiPhoneCallFill, PiVideoCamera, PiVideoCameraFill } from "react-icons/pi";
 import styled from "styled-components";
@@ -100,7 +103,7 @@ function HeaderActionButton({ children, onClick, tooltipText }: { children: Reac
 }
 
 function SearchBar({ channel }: { channel: Channel }) {
-    return <input />
+    return <input />;
 }
 
 const AvatarImage = styled.img`
@@ -109,6 +112,22 @@ const AvatarImage = styled.img`
     cursor: pointer;
     border-radius: 50%;
 `
+
+function MutedIcon() {
+    return (
+        <div className="absolute bottom-0 right-0 rounded-full bg-[var(--status-danger)] p-1 border-[4px] border-black border-solid translate-y-1/4">
+            <BsMicMuteFill size={12}/>
+        </div>
+    )
+}
+
+function DeafenedIcon() {
+    return (
+        <div className="absolute bottom-0 right-0 rounded-full bg-[var(--status-danger)] p-1 border-[4px] border-black border-solid translate-y-1/4">
+            <LuHeadphoneOff size={12}/>
+        </div>
+    )
+}
 
 function Header({ channel }: { channel: Channel }) {
     const [isHovering, setIsHovering] = useState(false);
@@ -121,10 +140,14 @@ function Header({ channel }: { channel: Channel }) {
     const { user } = useCurrentUserStore();
     const { emitVoiceEvent } = useVoiceEvents();
     const { activeSpeakers } = useMediasoupStore();
+    const { mediaSettings } = useAppSettingsStore();
 
     async function handleJoinVoiceCall() {
         if (voiceStates.length === 0) await ringChannelRecipients(channel.id);
-        emitVoiceEvent(channel.id, VoiceEventType.VOICE_JOIN)
+        emitVoiceEvent(channel.id, VoiceEventType.VOICE_JOIN, {
+            isMuted: mediaSettings.isMuted,
+            isDeafened: mediaSettings.isDeafened
+        } as VoiceState)
     }
 
     async function handleLeaveVoiceCall() {
@@ -186,8 +209,14 @@ function Header({ channel }: { channel: Channel }) {
                                     animate={{ opacity: 1, scale: 1 }}
                                     exit={{ opacity: 0, scale: 0.8 }}
                                     transition={{ duration: 0.3 }}
+                                    className="relative"
                                 >
-                                    {participant && <AvatarImage className={`${isSpeaking ? 'ring-2 ring-green-500 p-[1px]' : ''}`} src={participant.avatarURL ? getImageURL('avatars', participant.avatarURL) : getImageURL('assets', participant.defaultAvatarURL)} />}
+                                    {participant &&
+                                        <>
+                                            <AvatarImage className={`${isSpeaking ? 'ring-2 ring-green-500 p-[1px]' : ''}`} src={participant.avatarURL ? getImageURL('avatars', participant.avatarURL) : getImageURL('assets', participant.defaultAvatarURL)} />
+                                            {vs.isDeafened ? <DeafenedIcon/> : vs.isMuted && <MutedIcon/>}
+                                        </>
+                                    }
                                 </motion.div>
                             );
                         })}
@@ -556,10 +585,9 @@ export default function Page() {
     useEffect(() => {
         if (!isPageReady) return;
 
+        const lastMessageId = messages && messages.length > 0 ? messages.length > 1 ? messages[messages!.length - 1].id : messages[0].id : null;
 
-        const lastMessageId = messages![messages!.length - 1].id;
-
-        if (lastMessageId !== channel?.lastReadId) handleAcknowledgeMessage(channel!.id, lastMessageId);
+        if (lastMessageId && lastMessageId !== channel?.lastReadId) handleAcknowledgeMessage(channel!.id, lastMessageId);
 
     }, [isPageReady])
 

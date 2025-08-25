@@ -2,8 +2,11 @@ import { MAX_VOLUME, MIN_VOLUME } from "@/constants/app-config"
 import { create } from "zustand"
 import { usePlaySound } from "./audio-store"
 import { output } from "framer-motion/client"
+import { setItem } from "@/services/local-storage/local-storage.service"
 
 interface MediaSettings {
+    isMuted: boolean
+    isDeafened: boolean
     audioInputDeviceId: string
     audioOutputDeviceId: string
     inputVolume: number
@@ -15,10 +18,14 @@ interface AppSettings {
     setAudioOutputDevice: (deviceId: string) => void,
     setAudioInputDevice: (deviceId: string) => void,
     setInputVolume: (volume: number) => void,
-    setOutputVolume: (volume: number) => void
+    setOutputVolume: (volume: number) => void,
+    setMuted: (muted: boolean) => void,
+    setDeafened: (deafened: boolean) => void
 }
 
 const defaultMediaSettings: MediaSettings = {
+    isMuted: false,
+    isDeafened: false,
     audioInputDeviceId: "",
     audioOutputDeviceId: "",
     inputVolume: MAX_VOLUME,
@@ -61,6 +68,22 @@ export const useAppSettingsStore = create<AppSettings>((set) => {
                 localStorage.setItem('media_settings', JSON.stringify(newMediaSettings))
                 return { mediaSettings: newMediaSettings }
             });
+        },
+        setMuted: (muted: boolean) => {
+            set(state => {
+                const newMediaSettings: MediaSettings = {...state.mediaSettings, isMuted: muted}
+                if (!muted) newMediaSettings.isDeafened = false;
+                localStorage.setItem('media_settings', JSON.stringify(newMediaSettings))
+                return {mediaSettings: newMediaSettings}
+            })
+        },
+        setDeafened: (deafened: boolean) => {
+            set(state => {
+                const newMediaSettings: MediaSettings = {...state.mediaSettings, isDeafened: deafened}
+
+                localStorage.setItem('media_settings', JSON.stringify(newMediaSettings))
+                return {mediaSettings: newMediaSettings}
+            })
         }
     };
 });

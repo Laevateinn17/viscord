@@ -2,8 +2,8 @@ import styles from "./styles.module.css"
 import { UserData } from "@/interfaces/user-data";
 import { UserStatus, UserStatusString } from "@/enums/user-status.enum";
 import { MdCircle, MdDoNotDisturbOn, MdOutlineCircle } from "react-icons/md";
-import { BsMicFill } from "react-icons/bs";
-import { LuHeadphones } from "react-icons/lu";
+import { BsMicFill, BsMicMuteFill } from "react-icons/bs";
+import { LuHeadphoneOff, LuHeadphones } from "react-icons/lu";
 import { FaGear } from "react-icons/fa6";
 import TransparentButton from "../transparent-button/transparent-button";
 import { useEffect, useRef, useState } from "react";
@@ -15,16 +15,18 @@ import Modal from "../modal/modal";
 import { useUserProfileStore } from "@/app/stores/user-profiles-store";
 import { useCurrentUserQuery } from "@/hooks/queries";
 import { useCurrentUserStore } from "@/app/stores/current-user-store";
+import { useAppSettingsStore } from "@/app/stores/app-settings-store";
 
 interface UserAreaProps {
     openSettingsHandler: () => any
 }
 export default function UserArea({ openSettingsHandler }: UserAreaProps) {
-    const {user} = useCurrentUserStore();
+    const { user } = useCurrentUserStore();
     const [isHovering, setIsHovering] = useState(false);
     const [showProfileCard, setShowProfileCard] = useState(false);
     const profileCardRef = useRef<HTMLDivElement>(null!)
     const { getUserProfile } = useUserProfileStore();
+    const { mediaSettings, setMuted, setDeafened } = useAppSettingsStore();
 
     useEffect(() => {
         function handleOutsideClick(e: MouseEvent) {
@@ -61,18 +63,22 @@ export default function UserArea({ openSettingsHandler }: UserAreaProps) {
             <div className={styles["setting-wrapper"]}>
                 <TransparentButton
                     tooltipSize="14px"
-                    tooltip="Turn Off Microphone"
-                    tooltipPosition="top">
-                    <div className={styles["icon-container"]}>
-                        <BsMicFill size={18} />
+                    tooltip={mediaSettings.isMuted || mediaSettings.isDeafened ? "Turn On Microphone" : "Turn Off Microphone"}
+                    tooltipPosition="top"
+                    onClick={() => setMuted(!mediaSettings.isMuted)}
+                >
+                    <div className={`${styles["icon-container"]} ${mediaSettings.isMuted || mediaSettings.isDeafened ? 'text-[var(--text-danger)]' : ''}`}>
+                       {mediaSettings.isMuted || mediaSettings.isDeafened ? <BsMicMuteFill size={18}/> : <BsMicFill size={18} />}
                     </div>
                 </TransparentButton>
                 <TransparentButton
                     tooltipSize="14px"
-                    tooltip="Deafen"
-                    tooltipPosition="top">
-                    <div className={styles["icon-container"]}>
-                        <LuHeadphones size={18} />
+                    tooltip={mediaSettings.isDeafened ? "Undeafen" : "Deafen"}
+                    tooltipPosition="top"
+                    onClick={() => setDeafened(!mediaSettings.isDeafened)}
+                >
+                    <div className={`${styles["icon-container"]} ${mediaSettings.isDeafened ? 'text-[var(--text-danger)]' : ''}`}>
+                        {mediaSettings.isDeafened ? <LuHeadphoneOff size={18}/> : <LuHeadphones size={18} />}
                     </div>
                 </TransparentButton>
                 <TransparentButton

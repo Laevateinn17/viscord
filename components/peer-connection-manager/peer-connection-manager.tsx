@@ -4,8 +4,8 @@ import { usePlaySound } from "@/app/stores/audio-store";
 import { useCurrentUserStore } from "@/app/stores/current-user-store";
 import { useMediasoupStore } from "@/app/stores/mediasoup-store";
 import { useSocketStore } from "@/app/stores/socket-store";
-import { useGetChannelVoiceStates } from "@/app/stores/voice-state-store";
-import { CONNECT_TRANSPORT, CREATE_CONSUMER, CREATE_PRODUCER, CREATE_RTC_ANSWER, CREATE_RTC_OFFER, CREATE_SEND_TRANSPORT, CREATE_RECV_TRANSPORT, VOICE_UPDATE_EVENT, RESUME_CONSUMER, CLOSE_SFU_CLIENT, JOIN_ROOM, CREATE_TRANSPORT, GET_PRODUCERS, PRODUCER_JOINED, ACTIVE_SPEAKER_STATE } from "@/constants/events";
+import { useGetChannelVoiceStates, useVoiceStateStore } from "@/app/stores/voice-state-store";
+import { CONNECT_TRANSPORT, CREATE_CONSUMER, CREATE_PRODUCER, CREATE_RTC_ANSWER, CREATE_RTC_OFFER, CREATE_SEND_TRANSPORT, CREATE_RECV_TRANSPORT, VOICE_UPDATE_EVENT, RESUME_CONSUMER, CLOSE_SFU_CLIENT, JOIN_ROOM, CREATE_TRANSPORT, GET_PRODUCERS, PRODUCER_JOINED, ACTIVE_SPEAKER_STATE, PAUSE_PRODUCER, RESUME_PRODUCER, PAUSE_CONSUMER } from "@/constants/events";
 import { useSocket } from "@/contexts/socket.context";
 import { VoiceEventType } from "@/enums/voice-event-type";
 import { ActiveSpeakerState } from "@/interfaces/active-speaker-state";
@@ -15,6 +15,7 @@ import { CreateConsumerDTO } from "@/interfaces/dto/create-consumer.dto";
 import { CreateProducerDTO } from "@/interfaces/dto/create-producer.dto";
 import { ProducerCreatedDTO } from "@/interfaces/dto/producer-created.dto";
 import { VoiceEventDTO } from "@/interfaces/dto/voice-event.dto";
+import { VoiceState } from "@/interfaces/voice-state";
 import { Device } from "mediasoup-client";
 import { ConsumerOptions, RtpCapabilities, Transport } from "mediasoup-client/types";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -25,30 +26,100 @@ export function PeerConnectionManager() {
     const { socket } = useSocket();
     const audioRef = useRef<HTMLAudioElement>(null);
     const { mediaSettings } = useAppSettingsStore();
+    let silenceTimer: NodeJS.Timeout | null = null;
     const { socket: peerSocket, updateActiveSpeakers, setSocket, setDevice, setSendTransport, setRecvTransport, setReady } = useMediasoupStore()
+    const { user } = useCurrentUserStore();
     useEffect(() => {
         if (audioRef.current) audioRef.current.volume = mediaSettings.outputVolume / 100;
     }, [mediaSettings.outputVolume])
 
     useEffect(() => {
-        // let pc = usePeerConnectionStore.getState().peerConnection;
-        // if (!pc) return;
+        let producer = Array.from(useMediasoupStore.getState().producers.values()).find(p => p.kind === 'audio');
+        if (!producer) return;
 
-        // navigator.mediaDevices.getUserMedia({
-        //     audio: { deviceId: { exact: mediaSettings.audioInputDeviceId } }
-        // }).then(stream => {
-        //     const newAudioTrack = stream.getAudioTracks()[0];
-        //     const sender = pc.getSenders().find(s => s.track?.kind === 'audio');
-        //     if (sender) {
-        //         sender.replaceTrack(newAudioTrack);
-        //     }
-        // });
+        navigator.mediaDevices.getUserMedia({
+            audio: { deviceId: { exact: mediaSettings.audioInputDeviceId } }
+        }).then(stream => {
+            const newAudioTrack = stream.getAudioTracks()[0];
+            producer.replaceTrack(newAudioTrack);
+        });
     }, [mediaSettings.audioInputDeviceId]);
 
+    useEffect(() => {
+        const { socket: peerSocket, producers, channelId } = useMediasoupStore.getState();
+        for (const producer of Array.from(producers.values())) {
+            if (producer.kind == 'audio') {
+                if (mediaSettings.isMuted) {
+                    producer.pause();
+                    peerSocket?.emit(PAUSE_PRODUCER, { producerId: producer.id }, () => {
+                    })
+                }
+                else {
+                    producer.resume();
+                    peerSocket?.emit(RESUME_PRODUCER, { producerId: producer.id }, () => {
+                    })
+                }
+            }
+        }
+
+        if (mediaSettings.isMuted) {
+            if (user) updateActiveSpeakers(user.id, false);
+            peerSocket?.emit(ACTIVE_SPEAKER_STATE, { speaking: false } as ActiveSpeakerState)
+            socket?.emit(VOICE_UPDATE_EVENT, {
+                channelId, type: VoiceEventType.STATE_UPDATE, data: {
+                    isMuted: true
+                } as VoiceState
+            } as VoiceEventDTO);
+        }
+        else {
+            socket?.emit(VOICE_UPDATE_EVENT, {
+                channelId, type: VoiceEventType.STATE_UPDATE, data: {
+                    isMuted: false
+                } as VoiceState
+            } as VoiceEventDTO);
+
+        }
+
+    }, [mediaSettings.isMuted]);
+
+    useEffect(() => {
+        const { socket: peerSocket, consumers, channelId } = useMediasoupStore.getState();
+        for (const consumer of Array.from(consumers.values())) {
+            if (consumer.kind == 'audio') {
+                if (mediaSettings.isDeafened) {
+                    consumer.pause();
+                }
+                else {
+                    consumer.resume();
+                }
+            }
+        }
+
+        if (mediaSettings.isDeafened) {
+            if (user) updateActiveSpeakers(user.id, false);
+            peerSocket?.emit(ACTIVE_SPEAKER_STATE, { speaking: false } as ActiveSpeakerState)
+            peerSocket?.emit(PAUSE_CONSUMER);
+            socket?.emit(VOICE_UPDATE_EVENT, {
+                channelId, type: VoiceEventType.STATE_UPDATE, data: {
+                    isDeafened: true
+                } as VoiceState
+            } as VoiceEventDTO);
+        }
+        else {
+            peerSocket?.emit(RESUME_CONSUMER);
+            socket?.emit(VOICE_UPDATE_EVENT, {
+                channelId, type: VoiceEventType.STATE_UPDATE, data: {
+                    isDeafened: false
+                } as VoiceState
+            } as VoiceEventDTO);
+        }
+    }, [mediaSettings.isDeafened])
+
+
     async function startVAD() {
+        const { user } = useCurrentUserStore.getState();
         const { mediaSettings } = useAppSettingsStore.getState();
         const { socket } = useMediasoupStore.getState();
-        const {user} = useCurrentUserStore.getState();
         const stream = await navigator.mediaDevices.getUserMedia({
             audio: { deviceId: { exact: mediaSettings.audioInputDeviceId } }
         })
@@ -66,6 +137,11 @@ export function PeerConnectionManager() {
         const STOP_DELAY = 300;
 
         function checkVolume() {
+            const {isMuted, isDeafened} = useAppSettingsStore.getState().mediaSettings;
+            if (isMuted || isDeafened) {
+                requestAnimationFrame(checkVolume);
+                return;
+            }
             analyser.getFloatTimeDomainData(dataArray);
 
             let sum = 0;
@@ -76,15 +152,27 @@ export function PeerConnectionManager() {
 
             const now = Date.now();
             if (rms > SPEAK_THRESHOLD) {
+                console.log('rms > threasholsdlsfsjdf', speaking);
                 lastSpokeTime = now;
                 if (!speaking) {
                     speaking = true;
-                    console.log(user.id, updateActiveSpeakers);
+
+                    // if (silenceTimer) clearTimeout(silenceTimer);
+                    // silenceTimer = setTimeout(() => {
+                    //     console.log('speaking timed out')
+                    //     updateActiveSpeakers(user.id, false);
+                    //     socket?.emit(ACTIVE_SPEAKER_STATE, {
+                    //         speaking: false,
+                    //     } as ActiveSpeakerState);
+                    // }, 3000);
+
+                    console.log('user is speaking')
                     updateActiveSpeakers(user.id, true);
                     socket?.emit(ACTIVE_SPEAKER_STATE, { speaking: true } as ActiveSpeakerState);
                 }
             } else {
                 if (speaking && now - lastSpokeTime > STOP_DELAY) {
+                    console.log('user is not speaking')
                     speaking = false;
                     updateActiveSpeakers(user.id, false);
                     socket?.emit(ACTIVE_SPEAKER_STATE, { speaking: false } as ActiveSpeakerState);
@@ -224,6 +312,7 @@ export function PeerConnectionManager() {
             }
         });
         setRecvTransport(transport);
+        transport.on('connectionstatechange', (e) => console.log('recv transport', e));
 
         if (channelId) {
             socket?.emit(GET_PRODUCERS, onGetChannelProducers);

@@ -49,3 +49,5 @@ export const CLOSE_SFU_CLIENT = 'close_sfu_client';
 export const GET_PRODUCERS = 'get_producers';
 export const PRODUCER_JOINED = 'producer_joined';
 export const ACTIVE_SPEAKER_STATE = 'active_speaker_state';
+export const VOICE_MUTE = 'voice_mute';
+export const VOICE_DEAFEN = 'voice_deafened';

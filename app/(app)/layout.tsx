@@ -331,9 +331,9 @@ function AppInitializer({ children }: { children: ReactNode }) {
         socket?.emit(CLIENT_READY_EVENT, (data: ClientReadyResponseDTO) => {
             const currentUser = data.user;
             const userProfiles: UserProfile[] = data.relationships.map(rel => rel.user).concat([currentUser.profile]);
-            const dmRecipients = data.dmChannels
+            const dmRecipients = data.dmChannels ? data.dmChannels
                 .map(channel => channel.recipients.find(rep => rep.id !== currentUser.id)!)
-                .filter(Boolean);
+                .filter(Boolean) : [];
 
             const uniqueUsers = new Map<string, UserProfile>();
             [...userProfiles, ...dmRecipients].forEach(user => {
@@ -349,8 +349,10 @@ function AppInitializer({ children }: { children: ReactNode }) {
 
             const channelMap: Map<string, Channel> = new Map();
 
-            for (const channel of data.dmChannels) {
-                channelMap.set(channel.id, channel);
+            if (data.dmChannels) {
+                for (const channel of data.dmChannels) {
+                    channelMap.set(channel.id, channel);
+                }
             }
 
             setChannels(channelMap);

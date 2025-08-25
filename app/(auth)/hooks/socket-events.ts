@@ -3,14 +3,14 @@ import { useSocket } from "@/contexts/socket.context";
 import { VoiceEventType } from "@/enums/voice-event-type";
 
 interface VoiceEventsState {
-    emitVoiceEvent: (channelId: string, type: VoiceEventType) => void
+    emitVoiceEvent: (channelId: string, type: VoiceEventType, data?: any) => void
 }
 
 export function useVoiceEvents(): VoiceEventsState {
     const { socket } = useSocket();
 
-    const emitVoiceEvent = (channelId: string, type: VoiceEventType) => {
-        socket?.emit(VOICE_UPDATE_EVENT, { channelId, type });
+    const emitVoiceEvent = (channelId: string, type: VoiceEventType, data?: any) => {
+        socket?.emit(VOICE_UPDATE_EVENT, { channelId, type, data});
     }
 
     return {

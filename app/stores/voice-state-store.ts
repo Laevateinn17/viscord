@@ -10,6 +10,7 @@ interface VoiceStateStoreState {
     setVoiceStates: (voiceStates: VoiceStateMap) => void;
     updateVoiceState: (voiceState: VoiceState) => void;
     removeVoiceState: (channelId: string, userId: string) => void;
+    getVoiceState: (channelId: string, userId: string) => void;
 }
 
 export const useVoiceStateStore = create<VoiceStateStoreState>((set, get) => ({
@@ -18,7 +19,12 @@ export const useVoiceStateStore = create<VoiceStateStoreState>((set, get) => ({
     updateVoiceState: (voiceState: VoiceState) => {
         set(state => {
             const newVoiceStates = new Map(state.voiceStates);
-            newVoiceStates.set(getVoiceStateKey(voiceState.channelId, voiceState.userId), voiceState);
+            const oldVoiceState = newVoiceStates.get(getVoiceStateKey(voiceState.channelId, voiceState.userId));
+
+            newVoiceStates.set(getVoiceStateKey(voiceState.channelId, voiceState.userId), {
+                ...oldVoiceState,
+                ...voiceState
+            });
             return { voiceStates: newVoiceStates };
         });
 
@@ -33,7 +39,10 @@ export const useVoiceStateStore = create<VoiceStateStoreState>((set, get) => ({
 
             return { voiceStates: newVoiceStates };
         })
-    }
+    }, 
+    getVoiceState: (channelId: string, userId: string) => {
+        return get().voiceStates.get(getVoiceStateKey(channelId, userId));
+    },
 }));
 
 export function getVoiceStateKey(channelId: string, userId: string) {

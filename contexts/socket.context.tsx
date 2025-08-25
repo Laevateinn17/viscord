@@ -3,7 +3,7 @@ import { createContext, ReactNode, useCallback, useContext, useEffect, useRef, u
 import { io, Socket } from "socket.io-client";
 import { useQueryClient } from "@tanstack/react-query";
 import Relationship from "@/interfaces/relationship";
-import { CLIENT_READY_EVENT, FRIEND_ADDED_EVENT, FRIEND_REMOVED_EVENT, FRIEND_REQUEST_RECEIVED_EVENT, GET_USERS_STATUS_EVENT, GET_VOICE_RINGS_EVENT, GET_VOICE_STATES_EVENT, MESSAGE_RECEIVED_EVENT, USER_OFFLINE_EVENT, USER_ONLINE_EVENT, USER_STATUS_UPDATE_EVENT, USER_TYPING_EVENT, VOICE_RING_CANCEL, VOICE_RING_DISMISS_EVENT, VOICE_RING_EVENT, VOICE_UPDATE_EVENT } from "@/constants/events";
+import { FRIEND_ADDED_EVENT, FRIEND_REMOVED_EVENT, FRIEND_REQUEST_RECEIVED_EVENT, GET_USERS_STATUS_EVENT, GET_VOICE_RINGS_EVENT, GET_VOICE_STATES_EVENT, MESSAGE_RECEIVED_EVENT, USER_OFFLINE_EVENT, USER_ONLINE_EVENT, USER_STATUS_UPDATE_EVENT, USER_TYPING_EVENT, VOICE_RING_CANCEL, VOICE_RING_DISMISS_EVENT, VOICE_RING_EVENT, VOICE_UPDATE_EVENT } from "@/constants/events";
 import { MESSAGES_CACHE, RELATIONSHIPS_CACHE } from "@/constants/cache";
 import { Message } from "@/interfaces/message";
 import { HttpStatusCode } from "axios";
@@ -107,7 +107,8 @@ export default function SocketProvider({ children }: { children: ReactNode }) {
     const handleVoiceStateUpdate = useCallback(async (event: VoiceEventDTO) => {
         if (event.type === VoiceEventType.VOICE_LEAVE) {
             removeVoiceState(event.channelId, event.userId);
-        } else {
+        }
+        else {
             updateVoiceState(event.data);
         }
     }, [removeVoiceState, updateVoiceState]);
