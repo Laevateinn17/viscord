@@ -5,4 +5,6 @@ export interface CreateProducerDTO {
     channelId: string;
     kind: MediaKind;
     rtpParameters: RtpParameters;
+    paused: boolean;
+    appData: any;
 }

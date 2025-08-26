@@ -84,7 +84,6 @@ export async function produce(req: Request, res: Response) {
 export async function consume(req: Request, res: Response) {
     const { transportId, producerId, rtpCapabilities } = req.body;
 
-    console.log(producerId, router.canConsume({ producerId, rtpCapabilities }));
     const transport = transports.get(transportId);
     if (!transport) return res.status(400).send();
 
@@ -143,7 +142,6 @@ export async function closeClient(req: Request, res: Response) {
     transports.delete(dto.sendTransportId);
     transports.delete(dto.recvTransportId);
 
-    console.log(transports.size, consumers.size, producers.size);
 }
 
 export async function getChannelProducers(req: Request, res: Response) {
