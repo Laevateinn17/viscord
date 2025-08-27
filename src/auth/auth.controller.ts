@@ -20,7 +20,7 @@ export class AuthController {
       res.cookie('refreshToken', result.data.refreshToken, {
         httpOnly: true,
         sameSite: "lax",
-        path: '/api/auth/refresh-token,/api/auth/logout',
+        path: '/api/auth',
         maxAge: 365 * 24 * 60 * 60 * 1000
       });
       res.cookie('accessToken', result.data.accessToken, {
@@ -45,7 +45,7 @@ export class AuthController {
       res.cookie('refreshToken', result.data.refreshToken, {
         httpOnly: true,
         sameSite: "lax",
-        path: '/api/auth/refresh-token,/api/auth/logout',
+        path: '/api/auth',
         maxAge: 365 * 24 * 60 * 60 * 1000 // 1 year
       });
       res.cookie('accessToken', result.data.accessToken, {
