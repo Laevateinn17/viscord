@@ -6,18 +6,33 @@ import { Relationship } from "./entities/relationship.entity";
 import { Repository } from "typeorm";
 import { UserProfilesService } from "src/user-profiles/user-profiles.service";
 import { Result } from "src/interfaces/result.interface";
-import { UsersService } from "src/users/users.service";
 import { RelationshipType } from "./enums/relationship-type.enum";
 import { RelationshipResponseDTO } from "./dto/relationship-response.dto";
+import { ClientProxy, ClientProxyFactory, MessagePattern, Transport } from "@nestjs/microservices";
+import { mapper } from "src/mappings/mappers";
+import { createMap } from "@automapper/core";
+import { Payload } from "src/interfaces/payload.dto";
+import { FRIEND_ADDED_EVENT, FRIEND_REMOVED_EVENT, FRIEND_REQUEST_RECEIVED_EVENT, GATEWAY_QUEUE,  GET_USERS_STATUS_RESPONSE_EVENT, USER_OFFLINE_EVENT, USER_ONLINE_EVENT } from "src/constants/events";
+import { UserStatus } from "src/user-profiles/enums/user-status.enum";
 
 @Injectable()
 export class RelationshipsService {
+  private gatewayMQ: ClientProxy;
+
   constructor(
     private readonly userProfilesService: UserProfilesService,
     @InjectRepository(Relationship) private readonly relationshipRepository: Repository<Relationship>,
-
-  ) { }
-  async create(senderId: string, dto: CreateRelationshipDto): Promise<Result<null>> {
+  ) {
+    this.gatewayMQ = ClientProxyFactory.create({
+      transport: Transport.RMQ,
+      options: {
+        urls: [`amqp://${process.env.RMQ_HOST}:${process.env.RMQ_PORT}`],
+        queue: GATEWAY_QUEUE,
+        queueOptions: { durable: true }
+      }
+    });
+  }
+  async create(senderId: string, dto: CreateRelationshipDto): Promise<Result<RelationshipResponseDTO>> {
     const userProfileResponse = await this.userProfilesService.getProfileByUsername(dto.username);
 
     if (userProfileResponse.status != HttpStatus.OK) {
@@ -49,6 +64,7 @@ export class RelationshipsService {
       try {
         await this.relationshipRepository.save(relationship);
       } catch (error) {
+        console.log(error);
         return {
           status: HttpStatus.INTERNAL_SERVER_ERROR,
           message: "An unknown error occurred",
@@ -56,10 +72,24 @@ export class RelationshipsService {
         };
       }
 
+      try {
+        const sender = await this.userProfilesService.getById(senderId);
+        const payload: RelationshipResponseDTO = mapper.map(relationship, Relationship, RelationshipResponseDTO);
+
+        payload.user = sender.data;
+        payload.type = RelationshipType.PendingReceived;
+        this.gatewayMQ.emit(FRIEND_REQUEST_RECEIVED_EVENT, { recipients: [relationship.recipientId], data: payload } as Payload<RelationshipResponseDTO>);
+      } catch (error) {
+        console.log(error)
+      }
+
+
+      const dto: RelationshipResponseDTO = mapper.map(relationship, Relationship, RelationshipResponseDTO);
+      dto.user = recipient;
       return {
-        status: HttpStatus.NO_CONTENT,
+        status: HttpStatus.OK,
         message: "Request sent successfully",
-        data: null
+        data: dto
       };
     }
 
@@ -82,14 +112,14 @@ export class RelationshipsService {
         }
 
         return {
-          status: HttpStatus.NO_CONTENT,
+          status: HttpStatus.OK,
           message: "Request accepted successfully",
           data: null
         };
       }
       else {
         return {
-          status: HttpStatus.NO_CONTENT,
+          status: HttpStatus.OK,
           message: "Request sent successfully",
           data: null
         };
@@ -136,9 +166,6 @@ export class RelationshipsService {
     }
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} relationship`;
-  }
 
   async update(userId: string, id: string, dto: UpdateRelationshipDto): Promise<Result<null>> {
     if (!id || id.length === 0) {
@@ -236,6 +263,25 @@ export class RelationshipsService {
     relationship.type = RelationshipType.Friends;
     await this.relationshipRepository.save(relationship);
 
+    const recipientResponse = await this.userProfilesService.getById(relationship.recipientId);
+
+    if (recipientResponse.status !== HttpStatus.OK) {
+      return {
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: "An unknown error occurred",
+        data: null
+      };
+    }
+
+    const payload = mapper.map(relationship, Relationship, RelationshipResponseDTO);
+    payload.user = recipientResponse.data;
+
+    try {
+      this.gatewayMQ.emit(FRIEND_ADDED_EVENT, { recipients: [relationship.senderId], data: payload } as Payload<RelationshipResponseDTO>);
+    } catch (error) {
+      console.log(error)
+    }
+
     return {
       status: HttpStatus.NO_CONTENT,
       message: "Friend request accepted successfully",
@@ -254,7 +300,6 @@ export class RelationshipsService {
     }
     let relationship: Relationship;
     try {
-      console.log("id: ", id);
       relationship = await this.relationshipRepository.findOneBy({ id: id });
 
       if (!relationship || (relationship.senderId != userId && relationship.recipientId != userId)) {
@@ -280,7 +325,7 @@ export class RelationshipsService {
     }
 
     try {
-      await this.relationshipRepository.remove(relationship);
+      await this.relationshipRepository.delete({ id: relationship.id });
     } catch (error) {
       return {
         status: HttpStatus.BAD_REQUEST,
@@ -289,10 +334,98 @@ export class RelationshipsService {
       };
     }
 
+    const senderResponse = await this.userProfilesService.getById(userId);
+
+    if (senderResponse.status !== HttpStatus.OK) {
+      return {
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: "An unknown error occurred",
+        data: null
+      };
+    }
+
+    const payload = mapper.map(relationship, Relationship, RelationshipResponseDTO);
+    payload.user = senderResponse.data;
+    try {
+      const p = {
+        recipients: [relationship.senderId !== userId ? relationship.senderId : relationship.recipientId],
+        data: payload
+      } as Payload<RelationshipResponseDTO>;
+      this.gatewayMQ.emit(FRIEND_REMOVED_EVENT, p);
+    } catch (error) {
+      console.log(error)
+    }
+
     return {
       status: HttpStatus.NO_CONTENT,
       message: "Relationship deleted",
       data: null
     }
+  }
+
+  async onUserOnline(userId: string) {
+    if (!userId || userId.length === 0) return;
+
+    const userResponse = await this.userProfilesService.getById(userId);
+    if (userResponse.status !== HttpStatus.OK || userResponse.data.status === UserStatus.Invisible) return;
+
+    const friends: Relationship[] = await this.relationshipRepository.findBy([{ senderId: userId, type: RelationshipType.Friends }, { recipientId: userId, type: RelationshipType.Friends }]);
+
+    const p = {
+      recipients: friends.map(rel => rel.senderId === userId ? rel.recipientId : rel.senderId),
+      data: userId
+    } as Payload<string>;
+
+    try {
+      this.gatewayMQ.emit(USER_ONLINE_EVENT, p);
+    } catch (error) {
+      console.log(error)
+    }
+  }
+
+  async onUserOffline(userId: string) {
+    if (!userId || userId.length === 0) return;
+
+    const userResponse = await this.userProfilesService.getById(userId);
+
+    if (userResponse.status !== HttpStatus.OK || userResponse.data.status === UserStatus.Invisible) return;
+
+    const friends: Relationship[] = await this.relationshipRepository.findBy([{ senderId: userId, type: RelationshipType.Friends }, { recipientId: userId, type: RelationshipType.Friends }]);
+
+    const p = {
+      recipients: friends.map(rel => rel.senderId === userId ? rel.recipientId : rel.senderId),
+      data: userId
+    } as Payload<string>;
+
+    try {
+      this.gatewayMQ.emit(USER_OFFLINE_EVENT, p);
+    } catch (error) {
+      console.log(error)
+    }
+  }
+
+  async onGetFriendsStatus(userId: string) {
+    if (!userId || userId.length === 0) return;
+
+    const userResponse = await this.userProfilesService.getById(userId);
+
+    if (userResponse.status !== HttpStatus.OK || userResponse.data.status === UserStatus.Invisible) return;
+
+    const friends: Relationship[] = await this.relationshipRepository.findBy([{ senderId: userId, type: RelationshipType.Friends }, { recipientId: userId, type: RelationshipType.Friends }]);
+
+    const p = {
+      recipients: [userId],
+      data: friends.map(rel => rel.senderId === userId ? rel.recipientId : rel.senderId)
+    } as Payload<string[]>;
+
+    try {
+      this.gatewayMQ.emit(GET_USERS_STATUS_RESPONSE_EVENT, p);
+    } catch (error) {
+      console.log(error)
+    }
+  }
+
+  onModuleInit() {
+    createMap(mapper, Relationship, RelationshipResponseDTO);
   }
 }

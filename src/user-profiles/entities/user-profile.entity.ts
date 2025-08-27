@@ -47,17 +47,4 @@ export class UserProfile {
     @AutoMap()
     @UpdateDateColumn({ name: 'updated_at' })
     updatedAt: Date;
-
-    // static create(profile: Partial<UserProfile>) {
-    //     const ret = new UserProfile();
-    //     ret.displayName = profile.displayName || '';
-    //     ret.pronouns = profile.pronouns || undefined;
-    //     ret.bio = profile.bio || undefined;
-    //     ret.status = profile.status || UserStatus.Offline;  // Default to Offline if not provided
-    //     ret.profilePictureURL = profile.profilePictureURL || undefined;
-    //     ret.createdAt = profile.createdAt || new Date();  // You can provide default values if needed
-    //     ret.updatedAt = profile.updatedAt || new Date();
-
-    //     return ret;
-    // }
 }

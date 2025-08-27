@@ -6,7 +6,6 @@ export class RelationshipResponseDTO {
     @AutoMap()
     id: string
 
-    @AutoMap()
     user: UserProfileResponseDTO
 
     @AutoMap()

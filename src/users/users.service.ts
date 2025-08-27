@@ -9,6 +9,8 @@ import { UserResponseDTO } from "./dto/user-response.dto";
 import { UserProfileResponseDTO } from "src/user-profiles/dto/user-profile-response.dto";
 import { mapper } from "src/mappings/mappers";
 import { AxiosResponse } from "axios";
+import { MessagePattern } from "@nestjs/microservices";
+import { UserIdentityResponseDTO } from "./dto/user-identity-response.dto";
 
 @Injectable()
 export class UsersService {
@@ -62,6 +64,7 @@ export class UsersService {
       data: { ...userIdentityResponse.data.data, profile: userProfileResponse.data }
     };
   }
+
 
   create(createUserDto: CreateUserDto) {
     return 'This action adds a new user';

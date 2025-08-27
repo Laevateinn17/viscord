@@ -2,6 +2,8 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { hostname } from 'os';
+import { USER_QUEUE } from "./constants/events";
+import { join } from "path";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -11,14 +13,14 @@ async function bootstrap() {
     // credentials: true
   });
 
+  console.log(process.env.GRPC_PORT)
+
   app.connectMicroservice<MicroserviceOptions>({
-    transport: Transport.RMQ,
+    transport: Transport.GRPC,
     options: {
-      urls: [`amqp://${process.env.RMQ_HOST}:${process.env.RMQ_PORT}`],
-      queue: 'user-queue',
-      queueOptions: {
-        durable: true
-      }
+      package: ['relationships', 'users'],
+      protoPath: [join(__dirname, 'proto/relationships.proto'), join(__dirname, 'proto/users.proto')],
+      url: `0.0.0.0:${process.env.GRPC_PORT}`
     }
   });
 
@@ -26,16 +28,27 @@ async function bootstrap() {
     transport: Transport.RMQ,
     options: {
       urls: [`amqp://${process.env.RMQ_HOST}:${process.env.RMQ_PORT}`],
-      queue: 'user-status-queue',
+      queue: USER_QUEUE,
       queueOptions: {
         durable: true
       }
     }
   });
 
+  // app.connectMicroservice<MicroserviceOptions>({
+  //   transport: Transport.RMQ,
+  //   options: {
+  //     urls: [`amqp://${process.env.RMQ_HOST}:${process.env.RMQ_PORT}`],
+  //     queue: 'user-status-queue',
+  //     queueOptions: {
+  //       durable: true
+  //     }
+  //   }
+  // });
+
+  await app.startAllMicroservices();
   await app.listen(process.env.APP_PORT);
   //  try {
-  await app.startAllMicroservices();
   // } catch (err) {
   //   console.error('Failed to connect to RabbitMQ, will retry...');
   //   // Optionally retry logic here, or circuit breaker pattern

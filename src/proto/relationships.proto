@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package relationships;
+
+service RelationshipsService {
+    rpc GetRelationships(GetRelationshipsRequest) returns (GetRelationshipsResponse);
+}
+
+message GetRelationshipsRequest {
+    string userId = 1;
+}
+
+message GetRelationshipsResponse {
+    string status = 1;
+    string message = 2;
+    repeated Relationship data = 3;
+}
+
+message Relationship {
+    string id = 1;
+    string user = 2;
+    RelationshipType type = 3;
+    string createdAt = 4;
+    string updatedAt = 5;
+}
+
+enum RelationshipType {
+    NONE = 0;
+    PENDING = 1;
+    FRIENDS = 2;
+    BLOCKED = 3;
+    PENDING_RECEIVED = 4;
+}

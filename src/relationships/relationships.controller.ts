@@ -3,10 +3,13 @@ import { RelationshipsService } from './relationships.service';
 import { CreateRelationshipDto } from './dto/create-relationship.dto';
 import { UpdateRelationshipDto } from './dto/update-relationship.dto';
 import { Response } from "express";
+import { GrpcMethod, MessagePattern } from "@nestjs/microservices";
+import { GET_USERS_STATUS_EVENT, USER_OFFLINE_EVENT, USER_ONLINE_EVENT } from "src/constants/events";
 
 @Controller('relationships')
 export class RelationshipsController {
-  constructor(private readonly relationshipsService: RelationshipsService) { }
+  constructor(private readonly relationshipsService: RelationshipsService) {
+  }
 
   @Post()
   async create(@Headers('X-User-Id') senderId: string, @Body(new ValidationPipe({ transform: true })) createDTO: CreateRelationshipDto, @Res() res: Response) {
@@ -22,6 +25,11 @@ export class RelationshipsController {
     const { status } = result;
 
     return res.status(status).json(result);
+  }
+
+  @GrpcMethod('RelationshipsService', 'GetRelationships')
+  async findAllGRPC({userId}: {userId: string}) {
+    return await this.relationshipsService.findAll(userId)
   }
 
   @Post('block/:userId')
@@ -47,4 +55,21 @@ export class RelationshipsController {
 
     return res.status(status).json(result);
   }
+
+
+  @MessagePattern(USER_ONLINE_EVENT)
+  async handleUserOnline(@Body() userId: string) {
+    this.relationshipsService.onUserOnline(userId);
+  }
+
+  @MessagePattern(USER_OFFLINE_EVENT)
+  async handleUserOffline(@Body() userId: string) {
+    this.relationshipsService.onUserOffline(userId);
+  }
+
+  @MessagePattern(GET_USERS_STATUS_EVENT)
+  async handleGetFriendsStatus(@Body() userId: string) {
+    this.relationshipsService.onGetFriendsStatus(userId);
+  }
+
 }

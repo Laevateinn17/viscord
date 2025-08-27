@@ -1,0 +1,21 @@
+
+export const USER_QUEUE = 'user_queue';
+export const GATEWAY_QUEUE = 'gateway_queue';
+
+export const FRIEND_REQUEST_RECEIVED_EVENT = 'friend_request_received';
+export const FRIEND_REMOVED_EVENT = 'friend_removed';
+export const FRIEND_ADDED_EVENT = 'friend_added';
+
+export const CLIENT_READY_EVENT = 'client_ready';
+export const USER_ONLINE_EVENT = 'user_online';
+export const USER_OFFLINE_EVENT = 'user_offline';
+export const USER_STATUS_UPDATE_EVENT = 'user_status_update'
+
+export const MESSAGE_RECEIVED_EVENT = 'message_received';
+
+export const GET_RELATIONSHIPS_EVENT = 'get_relationships';
+export const GET_GUILDS_EVENT = 'get_guilds';
+export const GET_DM_CHANNELS_EVENT = 'get_dm_channels'
+
+export const GET_USERS_STATUS_EVENT = 'get_users_status';
+export const GET_USERS_STATUS_RESPONSE_EVENT = 'get_users_status_response';

@@ -1,4 +1,4 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { Body, HttpStatus, Injectable, ValidationPipe } from '@nestjs/common';
 import { CreateUserProfileDto } from './dto/create-user-profile.dto';
 import { UserProfile } from './entities/user-profile.entity';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -10,13 +10,32 @@ import { UserProfileResponseDTO } from './dto/user-profile-response.dto';
 import { UpdateStatusDTO } from "src/users/dto/update-status.dto";
 import { StorageService } from "src/storage/storage.service";
 import { UpdateUsernameDTO } from "src/users/dto/update-username.dto";
+import { ClientProxy, ClientProxyFactory, Transport } from "@nestjs/microservices";
+import { GATEWAY_QUEUE, USER_STATUS_UPDATE_EVENT } from "src/constants/events";
+import { UserStatusUpdateDTO } from "src/user-profiles/dto/user-status-update.dto";
+import { Payload } from "src/interfaces/payload.dto";
+import { HttpService } from "@nestjs/axios";
+import axios from "axios";
+import { firstValueFrom } from "rxjs";
 
 @Injectable()
 export class UserProfilesService {
+  private gatewayMQ: ClientProxy
   constructor(
     private readonly storageService: StorageService,
-    @InjectRepository(UserProfile) private userProfileRepository: Repository<UserProfile>
-  ) { }
+    @InjectRepository(UserProfile) private readonly userProfileRepository: Repository<UserProfile>,
+    private readonly guildsService: HttpService
+  ) {
+    this.gatewayMQ = ClientProxyFactory.create({
+      transport: Transport.RMQ,
+      options: {
+        urls: [`amqp://${process.env.RMQ_HOST}:${process.env.RMQ_PORT}`],
+        queue: GATEWAY_QUEUE,
+        queueOptions: { durable: true }
+      }
+    })
+  }
+
 
   async create(dto: CreateUserProfileDto): Promise<Result<UserProfileResponseDTO>> {
     const validationMessage = dto.validate();
@@ -64,7 +83,7 @@ export class UserProfilesService {
     }
 
     try {
-      const userProfile: UserProfile = await this.userProfileRepository.findOneBy({id: id});
+      const userProfile: UserProfile = await this.userProfileRepository.findOneBy({ id: id });
 
       if (!userProfile) {
         return {
@@ -90,7 +109,7 @@ export class UserProfilesService {
     }
   }
 
-  async updateStatus(dto: UpdateStatusDTO): Promise<Result<null>> {
+  async updateStatus(@Body(new ValidationPipe({ transform: true })) dto: UpdateStatusDTO): Promise<Result<null>> {
     const userResponse = await this.getById(dto.id);
 
     if (userResponse.status != HttpStatus.OK) {
@@ -105,6 +124,26 @@ export class UserProfilesService {
       const userProfile = mapper.map(userResponse.data, UserProfileResponseDTO, UserProfile);
       userProfile.status = dto.status;
       await this.userProfileRepository.save(userProfile);
+
+
+      const recipients = [];
+
+      const dmChannelsResponse = await firstValueFrom(this.guildsService.get(`http://${process.env.GUILDS_SERVICE_HOST}:${process.env.GUILDS_SERVICE_PORT}/users/me/channels`, {
+        headers: {
+          "X-User-Id": dto.id
+        }
+      }));
+
+      if (dmChannelsResponse.status === HttpStatus.OK) {
+        const channels = dmChannelsResponse.data.data;
+        recipients.concat(channels.map(ch => {
+          return ch.recipients.find(recipient => recipient.id != dto.id)!;
+        }));
+      }
+
+      const payload: Payload<UserStatusUpdateDTO> = { recipients: recipients, data: { status: dto.status, userId: dto.id } };
+      this.gatewayMQ.emit(USER_STATUS_UPDATE_EVENT, payload);
+
 
       return {
         status: HttpStatus.OK,
