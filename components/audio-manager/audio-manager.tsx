@@ -28,7 +28,6 @@ export default function AudioManager() {
       playSound: async (type: SoundType) => {
         const audio = audioRefs.current[type];
         const mediaSettings = useAppSettingsStore.getState().mediaSettings;
-        // await audio.setSinkId(mediaSettings.audioOutputDeviceId);
         if (!audio) return;
         audio.volume = mediaSettings.outputVolume / 100;
         audio.currentTime = 0;

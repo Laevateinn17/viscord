@@ -1,4 +1,5 @@
 "use client"
+import { ContentFooter } from "@/app/(app)/content-footer";
 import ContentHeader from "@/app/(app)/content-header";
 import { useVoiceEvents } from "@/app/(auth)/hooks/socket-events";
 import { useAppSettingsStore } from "@/app/stores/app-settings-store";
@@ -34,7 +35,7 @@ import { ChangeEvent, Fragment, KeyboardEvent, ReactNode, useEffect, useRef, use
 import { BsMicFill, BsMicMuteFill, BsPinAngleFill } from "react-icons/bs";
 import { FaCirclePlus } from "react-icons/fa6";
 import { ImPhoneHangUp } from "react-icons/im";
-import { LuHeadphoneOff, LuScreenShare } from "react-icons/lu";
+import { LuHeadphoneOff, LuScreenShare, LuScreenShareOff } from "react-icons/lu";
 import { MdGroupAdd } from "react-icons/md";
 import { PiPhoneCall, PiPhoneCallFill, PiVideoCamera, PiVideoCameraFill } from "react-icons/pi";
 import styled from "styled-components";
@@ -84,7 +85,7 @@ const CallHeader = styled.div`
     width: 100%;
     background: black;
     flex-direction: column;
-    padding-bottom: 16px;
+    overflow: hidden;
 `
 
 function HeaderActionButton({ children, onClick, tooltipText }: { children: ReactNode, onClick?: () => any, tooltipText: string }) {
@@ -146,6 +147,40 @@ const CallActionButton = styled.button`
     }
 `
 
+const HeaderBottomGradient = styled.div`
+    background: linear-gradient(
+        180deg,
+        rgba(0, 0, 0, 0) 0%,
+        rgba(0, 0, 0, 0) 20%,
+        rgba(0, 0, 0, 0.03) 40%,
+        rgba(0, 0, 0, 0.08) 55%,
+        rgba(0, 0, 0, 0.18) 70%,
+        rgba(0, 0, 0, 0.35) 85%,
+        rgba(0, 0, 0, 0.6) 100%
+    );
+    position: absolute;
+    height: 160px;
+    width: 100%;
+    bottom: 0;
+    display: flex;
+    justify-content: center;
+    align-items: end;
+    pointer-events: none;
+    
+    opacity: 0;
+    transform: translateY(20%);
+    transition: all 200ms ease-in-out;
+    
+    & * {
+        pointer-events: auto;
+    }
+    
+    &.active {
+        opacity: 1;
+        transform: translateY(0);
+    }
+`
+
 function Header({ channel }: { channel: Channel }) {
     const [isHovering, setIsHovering] = useState(false);
     const [isHoveringName, setIsHoveringName] = useState(false);
@@ -159,6 +194,8 @@ function Header({ channel }: { channel: Channel }) {
     const { activeSpeakers, startScreenShare, stopScreenShare, producers, consumers } = useMediasoupStore();
     const { mediaSettings, setMuted } = useAppSettingsStore();
     const screenShareConsumer = Array.from(consumers.values()).find(c => c.appData.mediaTag === 'screen');
+    const screenShareProducer = Array.from(producers.values()).find(c => c.appData.mediaTag === 'screen');
+
     const videoRef = useRef<HTMLVideoElement>(null!);
     async function handleJoinVoiceCall() {
         if (voiceStates.length === 0) await ringChannelRecipients(channel.id);
@@ -173,15 +210,24 @@ function Header({ channel }: { channel: Channel }) {
     }
 
     useEffect(() => {
-        if (screenShareConsumer && !videoRef.current.srcObject) {
+        if (screenShareConsumer) {
             const stream = new MediaStream([screenShareConsumer.track]);
             videoRef.current.srcObject = stream
         }
-    }, [screenShareConsumer])
+    }, [screenShareConsumer]);
+
+    useEffect(() => {
+        if (screenShareProducer) {
+            const stream = new MediaStream([screenShareProducer.track!]);
+            videoRef.current.srcObject = stream;
+        }
+    }, [screenShareProducer])
+
 
     if (voiceStates.length > 0) {
         return (
             <CallHeader
+                className="relative"
                 onMouseEnter={() => setIsHovering(true)}
                 onMouseLeave={() => setIsHovering(false)}>
                 <ContentHeader hide={!isHovering}>
@@ -208,13 +254,23 @@ function Header({ channel }: { channel: Channel }) {
                         <SearchBar channel={channel} />
                     </div>
                 </ContentHeader>
-                {screenShareConsumer ?
-                    <div className="">
-                        <video
-                            key={screenShareConsumer.id}
-                            ref={videoRef}
-                            autoPlay
-                        />
+                {screenShareProducer || screenShareConsumer ?
+                    <div className="flex items-center justify-center relative">
+                        {screenShareProducer ?
+                            <video
+                                key={screenShareProducer.id}
+                                ref={videoRef}
+                                className="w-1/2 bg-black"
+                                autoPlay
+                            />
+                            :
+                            <video
+                                key={screenShareConsumer!.id}
+                                ref={videoRef}
+                                className="w-1/2 bg-black"
+                                autoPlay
+                            />
+                        }
                     </div>
                     :
                     <div className="flex justify-center items-center gap-3 my-[16px]">
@@ -257,41 +313,86 @@ function Header({ channel }: { channel: Channel }) {
                         </AnimatePresence>
                     </div>
                 }
-                <div className="flex justify-center items-center gap-[12px]">
-                    {voiceStates.find(vs => vs.userId === user.id) &&
-                        <CallActionsGroup>
-                            <CallActionButton className={`${mediaSettings.isMuted ? 'bg-[var(--opacity-red-12)]' : ''}`}
-                                onClick={() => setMuted(!mediaSettings.isMuted)}>
-                                <div className="h-[20px] w-[20px] flex items-center justify-center">
-                                    {mediaSettings.isMuted ? <BsMicMuteFill className="text-[var(--red-400)]" size={18} /> : <BsMicFill size={18} />}
-                                </div>
-                            </CallActionButton>
-                            <CallActionButton>
-                                <div className="h-[20px] w-[20px] flex items-center justify-center">
-                                    <LuScreenShare size={18} onClick={startScreenShare} />
-                                </div>
-                            </CallActionButton>
+                {(screenShareConsumer || screenShareProducer) ?
+                    <HeaderBottomGradient className={`${isHovering ? 'active' : ''}`}>
+                        <ContentFooter hide={false}>
+                            {voiceStates.find(vs => vs.userId === user.id) &&
+                                <CallActionsGroup>
+                                    <CallActionButton className={`${mediaSettings.isMuted ? 'bg-[var(--opacity-red-12)]' : ''}`}
+                                        onClick={() => setMuted(!mediaSettings.isMuted)}>
+                                        <div className="h-[20px] w-[20px] flex items-center justify-center">
+                                            {mediaSettings.isMuted ? <BsMicMuteFill className="text-[var(--red-400)]" size={18} /> : <BsMicFill size={18} />}
+                                        </div>
+                                    </CallActionButton >
+                                    {screenShareProducer ?
+                                        <CallActionButton onClick={stopScreenShare} className="bg-[var(--opacity-green-12)]">
+                                            <div className="h-[20px] w-[20px] flex items-center justify-center">
+                                                <LuScreenShareOff className="text-[var(--green-300)]" size={18} />
+                                            </div >
+                                        </CallActionButton >
+                                        :
+                                        <CallActionButton onClick={startScreenShare}>
+                                            <div className="h-[20px] w-[20px] flex items-center justify-center">
+                                                <LuScreenShare size={18} />
+                                            </div >
+                                        </CallActionButton >
+                                    }
 
-                        </CallActionsGroup>
-                    }
-                    <div className="">
-                        {voiceStates.find(vs => vs.userId === user?.id) ?
-                            (<button className="p-[10px] bg-[var(--status-danger)] rounded-lg" onClick={handleLeaveVoiceCall}>
-                                <div className="px-[12px] py-[4px]">
-                                    <ImPhoneHangUp className="" size={18} />
-                                </div>
-                            </button>)
-                            :
-                            (<button className="p-[10px] bg-[var(--status-positive)] rounded-lg" onClick={handleJoinVoiceCall}>
-                                <div className="px-[12px] py-[4px]">
-                                    <PiPhoneCallFill className="" size={18} />
-                                </div>
-                            </button>)
+                                </CallActionsGroup >
+                            }
+                            <div className="">
+                                {voiceStates.find(vs => vs.userId === user?.id) ?
+                                    (<button className="p-[10px] bg-[var(--status-danger)] rounded-lg" onClick={handleLeaveVoiceCall}>
+                                        <div className="px-[12px] py-[4px]">
+                                            <ImPhoneHangUp className="" size={18} />
+                                        </div>
+                                    </button>)
+                                    :
+                                    (<button className="p-[10px] bg-[var(--status-positive)] rounded-lg" onClick={handleJoinVoiceCall}>
+                                        <div className="px-[12px] py-[4px]">
+                                            <PiPhoneCallFill className="" size={18} />
+                                        </div>
+                                    </button>)
+                                }
+                            </div>
+                        </ContentFooter >
+                    </HeaderBottomGradient >
+                    :
+                    <ContentFooter hide={false}>
+                        {voiceStates.find(vs => vs.userId === user.id) &&
+                            <CallActionsGroup>
+                                <CallActionButton className={`${mediaSettings.isMuted ? 'bg-[var(--opacity-red-12)]' : ''}`}
+                                    onClick={() => setMuted(!mediaSettings.isMuted)}>
+                                    <div className="h-[20px] w-[20px] flex items-center justify-center">
+                                        {mediaSettings.isMuted ? <BsMicMuteFill className="text-[var(--red-400)]" size={18} /> : <BsMicFill size={18} />}
+                                    </div>
+                                </CallActionButton>
+                                <CallActionButton>
+                                    <div className="h-[20px] w-[20px] flex items-center justify-center">
+                                        <LuScreenShare size={18} onClick={startScreenShare} />
+                                    </div>
+                                </CallActionButton>
+
+                            </CallActionsGroup>
                         }
-                    </div>
-                </div>
-
-            </CallHeader>
+                        <div className="">
+                            {voiceStates.find(vs => vs.userId === user?.id) ?
+                                (<button className="p-[10px] bg-[var(--status-danger)] rounded-lg" onClick={handleLeaveVoiceCall}>
+                                    <div className="px-[12px] py-[4px]">
+                                        <ImPhoneHangUp className="" size={18} />
+                                    </div>
+                                </button>)
+                                :
+                                (<button className="p-[10px] bg-[var(--status-positive)] rounded-lg" onClick={handleJoinVoiceCall}>
+                                    <div className="px-[12px] py-[4px]">
+                                        <PiPhoneCallFill className="" size={18} />
+                                    </div>
+                                </button>)
+                            }
+                        </div>
+                    </ContentFooter>
+                }
+            </CallHeader >
         )
     }
 
