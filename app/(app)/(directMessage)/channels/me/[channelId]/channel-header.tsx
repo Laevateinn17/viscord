@@ -175,16 +175,20 @@ const TileText = styled.div`
     border-radius: 4px;
     display: flex;
     padding: 8px;
+    gap: 6px;
+    &:empty {
+        background: none;
+        padding: 0;
+    }
 `
 const Tile = styled.div`
-    min-width: 200px;
+    width: 200px;
     display: flex;
     flex-grow: 1;
     min-height: 150px;
     align-items: center;
     justify-content: center;
     border-radius: 8px;
-    overflow: hidden;
 `
 const Overlay = styled.div`
     width: 100%;
@@ -196,10 +200,11 @@ const Overlay = styled.div`
     justify-content: flex-end;
     align-items: flex-start;
 `
-function UserTile({ user, showDisplayName, isSpeaking }: { user: UserProfile, showDisplayName: boolean, isSpeaking: boolean }) {
+function UserTile({ user, showDisplayName, isSpeaking, isMuted = false, isDeafened = false }: { user: UserProfile, showDisplayName: boolean, isSpeaking: boolean, isMuted?: boolean, isDeafened?: boolean }) {
     const imgRef = useRef<HTMLImageElement>(null!);
     const [bannerColor, setBannerColor] = useState<string | null>();
     const avatarURL = user.avatarURL ? getImageURL('avatars', user.avatarURL) : getImageURL('assets', user.defaultAvatarURL);
+
     async function getBannerColor() {
         const img = imgRef.current;
         if (!img) return;
@@ -214,7 +219,8 @@ function UserTile({ user, showDisplayName, isSpeaking }: { user: UserProfile, sh
     }
     return (
         <div
-            className="w-full h-full flex items-center justify-center p-[8px] relative"
+            className={`w-full h-full flex items-center justify-center  relative rounded-lg transition-all duration-200 ${isSpeaking ? 'ring-2 ring-green-500 shadow-lg shadow-green-500/30' : ''
+                }`}
             style={{ backgroundColor: bannerColor ?? 'gray' }}
         >
             <img
@@ -225,287 +231,569 @@ function UserTile({ user, showDisplayName, isSpeaking }: { user: UserProfile, sh
                 alt="avatar"
                 onLoad={() => getBannerColor()}
             />
-            <AvatarImage crossOrigin="anonymous" className={`${isSpeaking ? 'ring-2 ring-green-500 p-[1px]' : ''}`} src={avatarURL} />
+            <AvatarImage crossOrigin="anonymous" src={avatarURL} />
             <Overlay>
-                {showDisplayName &&
-                    <TileText>
-                        {user.displayName}
-                    </TileText>
-                }
+                <TileText>
+                    {isMuted && <BsMicMuteFill />}
+                    {isDeafened && <LuHeadphoneOff />}
+                    {showDisplayName && <p>{user.displayName}</p>}
+                </TileText>
             </Overlay>
         </div>
     )
 }
-
+// Main CallHeader component
 function CallHeader({ channel }: { channel: Channel }) {
-    const [isHoveringName, setIsHoveringName] = useState(false);
     const [isHovering, setIsHovering] = useState(false);
-    const voiceRings = useGetChannelVoiceRing(channel.id);
     const { user } = useCurrentUserStore();
-    const { activeSpeakers, startScreenShare, resumeConsumer, pauseConsumer, stopScreenShare, producers, consumers } = useMediasoupStore();
-    const { emitVoiceEvent } = useVoiceEvents();
-    const { mediaSettings, setMuted } = useAppSettingsStore();
-    const screenShareConsumers = Array.from(consumers.values()).filter(c => c.appData.mediaTag === 'screen');
-    const screenShareProducer = Array.from(producers.values()).find(c => c.appData.mediaTag === 'screen');
-    const [activeStream, setActiveStream] = useState<Consumer | undefined>();
-    const activeStreamVideoRef = useRef<HTMLVideoElement>(null!);
-    const producerVideoRef = useRef<HTMLVideoElement>(null!);
-    const [focusedCard, setFocusedCard] = useState<ReactNode | undefined>();
-    const voiceStates = useGetChannelVoiceStates(channel.id);
     const { getUserProfile } = useUserProfileStore();
+    const voiceStates = useGetChannelVoiceStates(channel.id);
     const recipient: UserProfile = getUserProfile(channel.recipients[0].id) || channel.recipients[0];
-    const isTyping = useIsUserTyping(channel.id, recipient.id);
-    const tiles = [...screenShareConsumers,
-    ...(screenShareProducer ? [screenShareProducer] : []),
-    ...Array.from(voiceRings),
-    ...Array.from(voiceStates),
-    ];
+    const { emitVoiceEvent } = useVoiceEvents();
+    const { mediaSettings } = useAppSettingsStore();
 
     async function handleJoinVoiceCall() {
+        const voiceStates = useGetChannelVoiceStates(channel.id);
         if (voiceStates.length === 0) await ringChannelRecipients(channel.id);
         emitVoiceEvent(channel.id, VoiceEventType.VOICE_JOIN, {
             isMuted: mediaSettings.isMuted,
             isDeafened: mediaSettings.isDeafened
-        } as VoiceState)
+        } as VoiceState);
     }
 
     async function handleLeaveVoiceCall() {
-        emitVoiceEvent(channel.id, VoiceEventType.VOICE_LEAVE)
+        emitVoiceEvent(channel.id, VoiceEventType.VOICE_LEAVE);
     }
-
-    useEffect(() => {
-        if (channel.type === ChannelType.DM && screenShareConsumers.length > 0) {
-            const consumer = screenShareConsumers[0];
-            if (consumer.paused) {
-                resumeConsumer(consumer.id);
-            }
-            setActiveStream(consumer)
-        }
-    }, [screenShareConsumers]);
-
-    useEffect(() => {
-        if (!screenShareProducer) return;
-        const stream = new MediaStream([screenShareProducer.track!]);
-        producerVideoRef.current.srcObject = stream;
-    }, [screenShareProducer])
-
-    useEffect(() => {
-        if (!activeStream) return;
-        const stream = new MediaStream([activeStream.track]);
-        console.log('current active stream ref', activeStreamVideoRef.current);
-        activeStreamVideoRef.current.srcObject = stream;
-    }, [activeStream])
-
 
     return (
         <CallHeaderContainer
             className="relative"
             onMouseEnter={() => setIsHovering(true)}
-            onMouseLeave={() => setIsHovering(false)}>
-            <ContentHeader hide={!isHovering}>
-                <UserProfileHeader>
-                    <div className="ml-[4px] mr-[8px]">
-                        <UserAvatar user={recipient} size="24" isTyping={isTyping} />
-                    </div>
-                    <UserProfileHeaderTextContainer onMouseEnter={() => setIsHoveringName(true)} onMouseLeave={() => setIsHoveringName(false)}>
-                        <UserProfileHeaderText>
-                            {recipient.displayName}
-                        </UserProfileHeaderText>
-                        <Tooltip
-                            position="bottom"
-                            show={isHoveringName}
-                            text={recipient.username}
-                            fontSize="14px" />
-                    </UserProfileHeaderTextContainer>
-                </UserProfileHeader>
-                <div className="flex items-center text-[var(--interactive-normal)] gap-[8px]">
-                    <HeaderActionButton tooltipText="Join Voice Call" onClick={handleJoinVoiceCall}><PiPhoneCallFill size={20} /></HeaderActionButton>
-                    <HeaderActionButton tooltipText="Start Video Call"><PiVideoCameraFill size={20} /></HeaderActionButton>
-                    <HeaderActionButton tooltipText="Pinned Message"><BsPinAngleFill size={20} /></HeaderActionButton>
-                    <HeaderActionButton tooltipText="Add Friends to DM"><MdGroupAdd size={20} /></HeaderActionButton>
-                    <SearchBar channel={channel} />
-                </div>
-            </ContentHeader>
-            {focusedCard ?
-                <div className="flex items-center justify-center relative w-1/2 bg-black">
-                    {focusedCard}
-                </div>
-                :
-                <div className="flex justify-center items-center gap-3 my-[16px] w-full px-[12px] py-[8px]">
-                    {screenShareConsumers.length > 0 || screenShareProducer ?
-                        <div className="flex flex-wrap gap-4 w-full h-full">
-                            {tiles.map(val => {
-                                if (val instanceof Consumer) {
-                                    console.log('consumer tile', tiles)
-                                    return (
-                                        <div key={val.id} className="min-w-[200px] flex-1 min-h-[150px]">
-                                            <video
-                                                ref={activeStream?.id === val.id ? activeStreamVideoRef : undefined}
-                                                className="w-full h-full object-cover rounded-lg bg-black"
-                                                autoPlay
-                                            />
-                                        </div>
-                                    )
-                                }
-                                else if (val instanceof Producer) {
-                                    return (
-                                        <div key={val.id} className="min-w-[200px] flex-1 min-h-[150px]">
-                                            <video
-                                                ref={producerVideoRef}
-                                                className="w-full h-full object-cover rounded-lg bg-black"
-                                                autoPlay
-                                            />
-                                        </div>
-                                    )
-                                }
-                                else if (val instanceof VoiceRingState) {
-                                    const user = getUserProfile(val.recipientId);
-                                    const isSpeaking = (voiceStates.find(vs => vs.userId === val.recipientId) && activeSpeakers.has(val.recipientId)) ?? false;
-                                    if (user) {
-                                        return (
-                                            <Tile key={user.id}>
-                                                {user && <UserTile user={user} isSpeaking={isSpeaking} showDisplayName={isHovering} />}
-                                            </Tile>
-                                        );
-                                    }
-                                }
-                                else if (val instanceof VoiceState) {
-                                    const user = getUserProfile(val.userId);
-                                    const isSpeaking = (voiceStates.find(vs => vs.userId === val.userId) && activeSpeakers.has(val.userId)) ?? false;
-                                    if (user) {
-                                        return (
-                                            <Tile key={user.id}>
-                                                {user && <UserTile user={user} isSpeaking={isSpeaking} showDisplayName={isHovering} />}
-                                            </Tile>
-                                        );
-                                    }
-                                }
-                            })}
-                        </div>
+            onMouseLeave={() => setIsHovering(false)}
+        >
+            <CallHeaderTop
+                recipient={recipient}
+                channel={channel}
+                isHovering={isHovering}
+                onJoinCall={handleJoinVoiceCall}
+            />
 
-                        :
-                        <AnimatePresence>
-                            {voiceRings.map(vr => {
-                                const user = getUserProfile(vr.recipientId);
-                                return (
-                                    <motion.div
-                                        key={vr.recipientId}
-                                        initial={{ opacity: 0, scale: 0.8 }}
-                                        animate={{ opacity: 1, scale: 1 }}
-                                        exit={{ opacity: 0, scale: 0.8 }}
-                                        transition={{ duration: 0.3 }}
-                                    >
-                                        {user && <AvatarImage className="brightness-50" src={user.avatarURL ? getImageURL('avatars', user.avatarURL) : getImageURL('assets', user.defaultAvatarURL)} />}
-                                    </motion.div>
-                                );
-                            })}
-                            {voiceStates.map((vs) => {
-                                const participant = getUserProfile(vs.userId);
-                                const isSpeaking = voiceStates.find(vs => vs.userId === user.id) && activeSpeakers.has(vs.userId);
-                                return (
-                                    <motion.div
-                                        key={vs.userId}
-                                        initial={{ opacity: 0, scale: 0.8 }}
-                                        animate={{ opacity: 1, scale: 1 }}
-                                        exit={{ opacity: 0, scale: 0.8 }}
-                                        transition={{ duration: 0.3 }}
-                                        className="relative"
-                                    >
-                                        {participant &&
-                                            <>
-                                                <AvatarImage className={`${isSpeaking ? 'ring-2 ring-green-500 p-[1px]' : ''}`} src={participant.avatarURL ? getImageURL('avatars', participant.avatarURL) : getImageURL('assets', participant.defaultAvatarURL)} />
-                                                {vs.isDeafened ? <DeafenedIcon /> : vs.isMuted && <MutedIcon />}
-                                            </>
-                                        }
-                                    </motion.div>
-                                );
-                            })}
-                        </AnimatePresence>
+            <CallContent
+                channel={channel}
+                isHovering={isHovering}
+            />
+
+            <CallFooter
+                show={isHovering}
+                channel={channel}
+                user={user}
+                onJoinCall={handleJoinVoiceCall}
+                onLeaveCall={handleLeaveVoiceCall}
+            />
+        </CallHeaderContainer>
+    );
+}
+
+// Header with user profile and actions
+function CallHeaderTop({
+    recipient,
+    channel,
+    isHovering,
+    onJoinCall
+}: {
+    recipient: UserProfile;
+    channel: Channel;
+    isHovering: boolean;
+    onJoinCall: () => void;
+}) {
+    const [isHoveringName, setIsHoveringName] = useState(false);
+    const { getUserProfile } = useUserProfileStore();
+    const recipientProfile = getUserProfile(channel.recipients[0].id) || channel.recipients[0];
+    const isTyping = useIsUserTyping(channel.id, recipient.id);
+
+    return (
+        <ContentHeader hide={!isHovering}>
+            <UserProfileHeader>
+                <div className="ml-[4px] mr-[8px]">
+                    <UserAvatar user={recipient} size="24" isTyping={isTyping} />
+                </div>
+                <UserProfileHeaderTextContainer
+                    onMouseEnter={() => setIsHoveringName(true)}
+                    onMouseLeave={() => setIsHoveringName(false)}
+                >
+                    <UserProfileHeaderText>
+                        {recipient.displayName}
+                    </UserProfileHeaderText>
+                    <Tooltip
+                        position="bottom"
+                        show={isHoveringName}
+                        text={recipient.username}
+                        fontSize="14px"
+                    />
+                </UserProfileHeaderTextContainer>
+            </UserProfileHeader>
+
+            <CallHeaderActions onJoinCall={onJoinCall} channel={channel} />
+        </ContentHeader>
+    );
+}
+
+// Header action buttons
+function CallHeaderActions({
+    onJoinCall,
+    channel
+}: {
+    onJoinCall: () => void;
+    channel: Channel;
+}) {
+    return (
+        <div className="flex items-center text-[var(--interactive-normal)] gap-[8px]">
+            <HeaderActionButton tooltipText="Join Voice Call" onClick={onJoinCall}>
+                <PiPhoneCallFill size={20} />
+            </HeaderActionButton>
+            <HeaderActionButton tooltipText="Start Video Call">
+                <PiVideoCameraFill size={20} />
+            </HeaderActionButton>
+            <HeaderActionButton tooltipText="Pinned Message">
+                <BsPinAngleFill size={20} />
+            </HeaderActionButton>
+            <HeaderActionButton tooltipText="Add Friends to DM">
+                <MdGroupAdd size={20} />
+            </HeaderActionButton>
+            <SearchBar channel={channel} />
+        </div>
+    );
+}
+
+function CallContent({
+    channel,
+    isHovering
+}: {
+    channel: Channel;
+    isHovering: boolean;
+}) {
+    const { consumers, producers } = useMediasoupStore();
+    const screenShareConsumers = Array.from(consumers.values()).filter(c => c.appData.mediaTag === 'screen');
+    const screenShareProducer = Array.from(producers.values()).find(c => c.appData.mediaTag === 'screen');
+    const hasScreenShare = screenShareConsumers.length > 0 || screenShareProducer;
+
+    return (
+        <div className="flex justify-center items-center gap-3 my-[16px] w-full px-[12px] py-[8px]">
+            {hasScreenShare ? (
+                <VideoView
+                    channel={channel}
+                    isHovering={isHovering}
+                />
+            ) : (
+                <VoiceOnlyView
+                    channel={channel}
+                    isHovering={isHovering}
+                />
+            )}
+        </div>
+    );
+}
+
+function VideoView({
+    channel,
+    isHovering
+}: {
+    channel: Channel;
+    isHovering: boolean;
+}) {
+    const { consumers, producers, activeSpeakers } = useMediasoupStore();
+    const { getUserProfile } = useUserProfileStore();
+    const voiceRings = useGetChannelVoiceRing(channel.id);
+    const voiceStates = useGetChannelVoiceStates(channel.id);
+
+    const screenShareConsumers = Array.from(consumers.values()).filter(c => c.appData.mediaTag === 'screen');
+    const screenShareProducer = Array.from(producers.values()).find(c => c.appData.mediaTag === 'screen');
+    const [focusedTile, setFocusedTile] = useState<ReactNode | undefined>();
+
+
+    const tiles = [
+        ...screenShareConsumers,
+        ...(screenShareProducer ? [screenShareProducer] : []),
+        ...Array.from(voiceRings),
+        ...Array.from(voiceStates),
+    ];
+
+    return (
+        <div className="flex flex-wrap gap-4 w-full h-full justify-center">
+            {focusedTile ?
+                <div className="flex items-center justify-center relative w-1/2 bg-black" onClick={() => setFocusedTile(null)}>
+                    {focusedTile}
+                </div>
+            :
+            tiles.map(tile => (
+                <CallTile
+                    key={getTileKey(tile)}
+                    tile={tile}
+                    isHovering={isHovering}
+                    activeSpeakers={activeSpeakers}
+                    voiceStates={voiceStates}
+                    onClick={() => setFocusedTile(
+                        <CallTile
+                            key={getTileKey(tile)}
+                            tile={tile}
+                            isHovering={isHovering}
+                            activeSpeakers={activeSpeakers}
+                            voiceStates={voiceStates}
+                            getUserProfile={getUserProfile}
+                        />
+                    )}
+                    getUserProfile={getUserProfile}
+                />
+            ))}
+        </div>
+    );
+}
+
+function VoiceOnlyView({
+    channel,
+    isHovering
+}: {
+    channel: Channel;
+    isHovering: boolean;
+}) {
+    const { user } = useCurrentUserStore();
+    const { getUserProfile } = useUserProfileStore();
+    const { activeSpeakers } = useMediasoupStore();
+    const voiceRings = useGetChannelVoiceRing(channel.id);
+    const voiceStates = useGetChannelVoiceStates(channel.id);
+
+    return (
+        <AnimatePresence>
+            {voiceRings.map(vr => {
+                const userProfile = getUserProfile(vr.recipientId);
+                return (
+                    <motion.div
+                        key={vr.recipientId}
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.8 }}
+                        transition={{ duration: 0.3 }}
+                    >
+                        {userProfile && (
+                            <AvatarImage
+                                className="brightness-50"
+                                src={userProfile.avatarURL ?
+                                    getImageURL('avatars', userProfile.avatarURL) :
+                                    getImageURL('assets', userProfile.defaultAvatarURL)
+                                }
+                            />
+                        )}
+                    </motion.div>
+                );
+            })}
+
+            {voiceStates.map((vs) => {
+                const participant = getUserProfile(vs.userId);
+                const isSpeaking = voiceStates.find(state => state.userId === user.id) && activeSpeakers.has(vs.userId);
+
+                return (
+                    <motion.div
+                        key={vs.userId}
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.8 }}
+                        transition={{ duration: 0.3 }}
+                        className="relative"
+                    >
+                        {participant && (
+                            <>
+                                <AvatarImage
+                                    className={`${isSpeaking ? 'ring-2 ring-green-500 p-[1px]' : ''}`}
+                                    src={participant.avatarURL ?
+                                        getImageURL('avatars', participant.avatarURL) :
+                                        getImageURL('assets', participant.defaultAvatarURL)
+                                    }
+                                />
+                                {vs.isDeafened ? <DeafenedIcon /> : vs.isMuted && <MutedIcon />}
+                            </>
+                        )}
+                    </motion.div>
+                );
+            })}
+        </AnimatePresence>
+    );
+}
+
+function CallTile({
+    tile,
+    isHovering,
+    activeSpeakers,
+    voiceStates,
+    getUserProfile,
+    onClick
+}: {
+    tile: Consumer | Producer | VoiceRingState | VoiceState;
+    isHovering: boolean;
+    activeSpeakers: Map<string, boolean>;
+    voiceStates: VoiceState[];
+    getUserProfile: (id: string) => UserProfile | undefined;
+    onClick?: () => void;
+}) {
+    const [activeStream, setActiveStream] = useState<Consumer | undefined>();
+    const activeStreamVideoRef = useRef<HTMLVideoElement>(null!);
+    const producerVideoRef = useRef<HTMLVideoElement>(null!);
+    const { consumers, resumeConsumer } = useMediasoupStore();
+
+    useEffect(() => {
+        if (tile instanceof Consumer && tile.appData.mediaTag === 'screen') {
+            if (tile.paused) {
+                resumeConsumer(tile.id);
+            }
+            setActiveStream(tile);
+        }
+    }, [tile, resumeConsumer]);
+
+    useEffect(() => {
+        if (!activeStream) return;
+        const stream = new MediaStream([activeStream.track]);
+        activeStreamVideoRef.current.srcObject = stream;
+    }, [activeStream]);
+
+    useEffect(() => {
+        if (!(tile instanceof Producer)) return;
+        const stream = new MediaStream([tile.track!]);
+        producerVideoRef.current.srcObject = stream;
+    }, [tile]);
+
+    if (tile instanceof Consumer) {
+        return (
+            <Tile onClick={onClick}>
+                <video
+                    ref={activeStream?.id === tile.id ? activeStreamVideoRef : undefined}
+                    className="w-full h-full object-cover rounded-lg bg-black"
+                    autoPlay
+                />
+            </Tile>
+        );
+    }
+
+    if (tile instanceof Producer) {
+        return (
+            <Tile onClick={onClick}>
+                <video
+                    ref={producerVideoRef}
+                    className="w-full h-full object-cover rounded-lg bg-black"
+                    autoPlay
+                />
+            </Tile>
+        );
+    }
+
+    if (tile instanceof VoiceRingState) {
+        const user = getUserProfile(tile.recipientId);
+        const isSpeaking = (voiceStates.find(vs => vs.userId === tile.recipientId) && activeSpeakers.has(tile.recipientId)) ?? false;
+
+        if (user) {
+            return (
+                <Tile>
+                    <UserTile user={user} isSpeaking={isSpeaking} showDisplayName={isHovering} />
+                </Tile>
+            );
+        }
+    }
+
+    if (tile instanceof VoiceState) {
+        const user = getUserProfile(tile.userId);
+        const isSpeaking = (voiceStates.find(vs => vs.userId === tile.userId) && activeSpeakers.has(tile.userId)) ?? false;
+
+        if (user) {
+            return (
+                <Tile key={user.id} onClick={onClick}>
+                    <UserTile
+                        user={user}
+                        isSpeaking={isSpeaking}
+                        showDisplayName={isHovering}
+                        isMuted={tile.isMuted}
+                        isDeafened={tile.isDeafened}
+                    />
+                </Tile>
+            );
+        }
+    }
+
+    return null;
+}
+
+function CallFooter({
+    show,
+    channel,
+    user,
+    onJoinCall,
+    onLeaveCall,
+}: {
+    show: boolean;
+    channel: Channel;
+    user: any;
+    onJoinCall: () => void;
+    onLeaveCall: () => void;
+}) {
+    const { consumers, producers } = useMediasoupStore();
+    const voiceStates = useGetChannelVoiceStates(channel.id);
+    const screenShareConsumers = Array.from(consumers.values()).filter(c => c.appData.mediaTag === 'screen');
+    const screenShareProducer = Array.from(producers.values()).find(c => c.appData.mediaTag === 'screen');
+    const hasActiveStream = screenShareConsumers.length > 0 || screenShareProducer;
+
+    if (hasActiveStream) {
+        return (
+            <CallFooterWithGradient
+                show={show}
+                voiceStates={voiceStates}
+                user={user}
+                onJoinCall={onJoinCall}
+                onLeaveCall={onLeaveCall}
+                screenShareProducer={screenShareProducer}
+            />
+        );
+    }
+
+    return (
+        <CallFooterSimple
+            show={true}
+            voiceStates={voiceStates}
+            user={user}
+            onJoinCall={onJoinCall}
+            onLeaveCall={onLeaveCall}
+        />
+    );
+}
+
+function CallFooterWithGradient({
+    show,
+    voiceStates,
+    user,
+    onJoinCall,
+    onLeaveCall,
+    screenShareProducer,
+}: {
+    show: boolean;
+    voiceStates: VoiceState[];
+    user: any;
+    onJoinCall: () => void;
+    onLeaveCall: () => void;
+    screenShareProducer?: Producer;
+}) {
+    return (
+        <HeaderBottomGradient className={`${show ? 'active' : ''}`}>
+            <ContentFooter hide={false}>
+                {voiceStates.find(vs => vs.userId === user.id) && (
+                    <CallControls screenShareProducer={screenShareProducer} />
+                )}
+                <CallJoinLeaveButton
+                    isInCall={!!voiceStates.find(vs => vs.userId === user?.id)}
+                    onJoin={onJoinCall}
+                    onLeave={onLeaveCall}
+                />
+            </ContentFooter>
+        </HeaderBottomGradient>
+    );
+}
+
+function CallFooterSimple({
+    show,
+    voiceStates,
+    user,
+    onJoinCall,
+    onLeaveCall
+}: {
+    show: boolean;
+    voiceStates: VoiceState[];
+    user: any;
+    onJoinCall: () => void;
+    onLeaveCall: () => void;
+}) {
+    return (
+        <ContentFooter hide={!show}>
+            {voiceStates.find(vs => vs.userId === user.id) && (
+                <CallControls />
+            )}
+            <CallJoinLeaveButton
+                isInCall={!!voiceStates.find(vs => vs.userId === user?.id)}
+                onJoin={onJoinCall}
+                onLeave={onLeaveCall}
+            />
+        </ContentFooter>
+    );
+}
+
+function CallControls({ screenShareProducer }: { screenShareProducer?: Producer }) {
+    const { mediaSettings, setMuted } = useAppSettingsStore();
+    const { startScreenShare, stopScreenShare } = useMediasoupStore();
+
+    return (
+        <CallActionsGroup>
+            <CallActionButton
+                className={`${mediaSettings.isMuted ? 'bg-[var(--opacity-red-12)]' : ''}`}
+                onClick={() => setMuted(!mediaSettings.isMuted)}
+            >
+                <div className="h-[20px] w-[20px] flex items-center justify-center">
+                    {(mediaSettings.isMuted || mediaSettings.isDeafened) ?
+                        <BsMicMuteFill className="text-[var(--red-400)]" size={18} /> :
+                        <BsMicFill size={18} />
                     }
                 </div>
-            }
-            {
-                (activeStream || screenShareProducer) ?
-                    <HeaderBottomGradient className={`${isHovering ? 'active' : ''}`}>
-                        <ContentFooter hide={false}>
-                            {voiceStates.find(vs => vs.userId === user.id) &&
-                                <CallActionsGroup>
-                                    <CallActionButton className={`${mediaSettings.isMuted ? 'bg-[var(--opacity-red-12)]' : ''}`}
-                                        onClick={() => setMuted(!mediaSettings.isMuted)}>
-                                        <div className="h-[20px] w-[20px] flex items-center justify-center">
-                                            {mediaSettings.isMuted ? <BsMicMuteFill className="text-[var(--red-400)]" size={18} /> : <BsMicFill size={18} />}
-                                        </div>
-                                    </CallActionButton >
-                                    {screenShareProducer ?
-                                        <CallActionButton onClick={stopScreenShare} className="bg-[var(--opacity-green-12)]">
-                                            <div className="h-[20px] w-[20px] flex items-center justify-center">
-                                                <LuScreenShareOff className="text-[var(--green-300)]" size={18} />
-                                            </div >
-                                        </CallActionButton >
-                                        :
-                                        <CallActionButton onClick={startScreenShare}>
-                                            <div className="h-[20px] w-[20px] flex items-center justify-center">
-                                                <LuScreenShare size={18} />
-                                            </div >
-                                        </CallActionButton >
-                                    }
+            </CallActionButton>
 
-                                </CallActionsGroup >
-                            }
-                            <div className="">
-                                {voiceStates.find(vs => vs.userId === user?.id) ?
-                                    (<button className="p-[10px] bg-[var(--status-danger)] rounded-lg" onClick={handleLeaveVoiceCall}>
-                                        <div className="px-[12px] py-[4px]">
-                                            <ImPhoneHangUp className="" size={18} />
-                                        </div>
-                                    </button>)
-                                    :
-                                    (<button className="p-[10px] bg-[var(--status-positive)] rounded-lg" onClick={handleJoinVoiceCall}>
-                                        <div className="px-[12px] py-[4px]">
-                                            <PiPhoneCallFill className="" size={18} />
-                                        </div>
-                                    </button>)
-                                }
-                            </div>
-                        </ContentFooter >
-                    </HeaderBottomGradient >
-                    :
-                    <ContentFooter hide={false}>
-                        {voiceStates.find(vs => vs.userId === user.id) &&
-                            <CallActionsGroup>
-                                <CallActionButton className={`${mediaSettings.isMuted ? 'bg-[var(--opacity-red-12)]' : ''}`}
-                                    onClick={() => setMuted(!mediaSettings.isMuted)}>
-                                    <div className="h-[20px] w-[20px] flex items-center justify-center">
-                                        {mediaSettings.isMuted || mediaSettings.isDeafened ? <BsMicMuteFill className="text-[var(--red-400)]" size={18} /> : <BsMicFill size={18} />}
-                                    </div>
-                                </CallActionButton>
-                                <CallActionButton>
-                                    <div className="h-[20px] w-[20px] flex items-center justify-center">
-                                        <LuScreenShare size={18} onClick={startScreenShare} />
-                                    </div>
-                                </CallActionButton>
+            {screenShareProducer ? (
+                <CallActionButton onClick={stopScreenShare} className="bg-[var(--opacity-green-12)]">
+                    <div className="h-[20px] w-[20px] flex items-center justify-center">
+                        <LuScreenShareOff className="text-[var(--green-300)]" size={18} />
+                    </div>
+                </CallActionButton>
+            ) : (
+                <CallActionButton onClick={startScreenShare}>
+                    <div className="h-[20px] w-[20px] flex items-center justify-center">
+                        <LuScreenShare size={18} />
+                    </div>
+                </CallActionButton>
+            )}
+        </CallActionsGroup>
+    );
+}
 
-                            </CallActionsGroup>
-                        }
-                        <div className="">
-                            {voiceStates.find(vs => vs.userId === user?.id) ?
-                                (<button className="p-[10px] bg-[var(--status-danger)] rounded-lg" onClick={handleLeaveVoiceCall}>
-                                    <div className="px-[12px] py-[4px]">
-                                        <ImPhoneHangUp className="" size={18} />
-                                    </div>
-                                </button>)
-                                :
-                                (<button className="p-[10px] bg-[var(--status-positive)] rounded-lg" onClick={handleJoinVoiceCall}>
-                                    <div className="px-[12px] py-[4px]">
-                                        <PiPhoneCallFill className="" size={18} />
-                                    </div>
-                                </button>)
-                            }
-                        </div>
-                    </ContentFooter>
-            }
-        </CallHeaderContainer >
-    )
+function CallJoinLeaveButton({
+    isInCall,
+    onJoin,
+    onLeave
+}: {
+    isInCall: boolean;
+    onJoin: () => void;
+    onLeave: () => void;
+}) {
+    if (isInCall) {
+        return (
+            <button className="p-[10px] bg-[var(--status-danger)] rounded-lg" onClick={onLeave}>
+                <div className="px-[12px] py-[4px]">
+                    <ImPhoneHangUp size={18} />
+                </div>
+            </button>
+        );
+    }
+
+    return (
+        <button className="p-[10px] bg-[var(--status-positive)] rounded-lg" onClick={onJoin}>
+            <div className="px-[12px] py-[4px]">
+                <PiPhoneCallFill size={18} />
+            </div>
+        </button>
+    );
+}
+
+function getTileKey(tile: Consumer | Producer | VoiceRingState | VoiceState): string {
+    if (tile instanceof Consumer || tile instanceof Producer) {
+        return tile.id;
+    }
+    if (tile instanceof VoiceRingState) {
+        return `ring-${tile.recipientId}`;
+    }
+    if (tile instanceof VoiceState) {
+        return `voice-${tile.userId}`;
+    }
+    return 'unknown';
 }
 
 
