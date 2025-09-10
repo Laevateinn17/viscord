@@ -18,7 +18,7 @@
   --modal-background: oklab(0.339495 0.00330827 -0.0116803);
 
   --border-container: oklab(0.678888 0.00325716 -0.011175 / 0.121569);
-  --border-faint:oklab(0.678888 0.00325716 -0.011175 / 0.160784);
+  --border-faint: oklab(0.678888 0.00325716 -0.011175 / 0.160784);
   --border-subtle: oklab(0.678888 0.00325716 -0.011175 / 0.121569);
   --placeholder: oklab(0.541247 0.00383598 -0.0133453);
 
@@ -74,6 +74,25 @@
   --green-300: rgb(117, 195, 131);
   --opacity-green-12: rgba(0, 134, 58, 0.12);
   --overlay-text-background: oklab(0 0 0 / 0.54);
+
+  --rounded-sm: 4px;
+  --rounded-md: 6px;
+  --rounded-lg: 8px;
+
+  --text-xs: 12px;
+  --text-sm: 14px;
+  --text-base: 16px;
+  --text-lg: 20px;
+  --text-xl: 24px;
+
+  --line-height-tight: 1.2;
+  --line-height-normal: 1.5;
+  --line-height-loose: 1.8;
+
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -87,28 +106,28 @@
   font-family: "GG Sans";
   src: url("../fonts/gg\ sans\ Bold.woff") format("woff"),
     url("../fonts/gg sans Bold.ttf") format("truetype");
-  font-weight: 700, bold;
+  font-weight: var(--font-weight-bold);
 }
 
 @font-face {
   font-family: "GG Sans";
   src: url("../fonts/gg\ sans\ Semibold.ttf") format("truetype"),
     url("../fonts/gg\ sans\ Semibold.woff") format("woff");
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
 }
 
 @font-face {
   font-family: "GG Sans";
   src: url("../fonts/gg\ sans\ Medium.ttf") format("truetype"),
     url("../fonts/gg\ sans\ Medium.woff") format("woff");
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
 }
 
 @font-face {
   font-family: "GG Sans";
   src: url("../fonts/gg\ sans\ Regular.ttf") format("truetype"),
     url("../fonts/gg\ sans\ Regular.woff") format("woff");
-  font-weight: 400;
+  font-weight: var(--font-weight-regular);
 }
 
 html,
@@ -234,7 +253,6 @@ a {
   color: black;
   font-weight: 600;
 }
-
 
 * {
   user-select: none;

@@ -5,6 +5,8 @@ import { FaAngleDown, FaPlus } from "react-icons/fa6";
 import styled from "styled-components";
 import ChannelButton from "./channel-button";
 import { usePathname } from "next/navigation";
+import { useModal } from "@/contexts/modal.context";
+import { ModalType } from "@/enums/modal-type.enum";
 
 
 const Container = styled.div`
@@ -53,6 +55,7 @@ const ChildrenContainer = styled.div`
 `
 
 export function ChannelCategory({ channel, children }: { channel: Channel, children: Channel[] }) {
+    const {openModal} = useModal();
     const [collapse, setCollapse] = useState(false);
     const [hoverAddChannel, setHoverAddChannel] = useState(false);
     const pathname = usePathname();
@@ -65,7 +68,8 @@ export function ChannelCategory({ channel, children }: { channel: Channel, child
                     <ToggleIcon className={`${collapse ? 'item-collapse' : ''}`}><FaAngleDown size={10} /></ToggleIcon>
                 </CategoryToggleContainer>
                 <div className="relative">
-                    <CreateChannelButton 
+                    <CreateChannelButton
+                        onClick={ () => openModal(ModalType.CREATE_CHANNEL, channel)}
                         onMouseEnter={() => setHoverAddChannel(true)}
                         onMouseLeave={() => setHoverAddChannel(false)}>
                         <FaPlus size={13} />

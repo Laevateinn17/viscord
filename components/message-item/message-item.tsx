@@ -40,7 +40,7 @@ const ContentContainer = styled.div`
 `
 
 const ContentText = styled.p`
-    font-weight: 400;
+    font-weight: var(--font-weight-regular);
     font-size: 16px;
     line-height: 22px;
 

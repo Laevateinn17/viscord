@@ -419,7 +419,7 @@ function VideoView({
     ];
 
     return (
-        <div className="flex flex-wrap gap-4 w-full h-full justify-center">
+        <div className="flex flex-wrap gap-4 justify-center">
             {focusedTile ?
                 <div className="flex items-center justify-center relative w-1/2 bg-black" onClick={() => setFocusedTile(null)}>
                     {focusedTile}

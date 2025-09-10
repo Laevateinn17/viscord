@@ -1,5 +1,5 @@
 import { ChangeEvent, Dispatch, SetStateAction, useState } from "react";
-import Modal from "../modal/modal";
+import Modal from "./modal";
 import styled from "styled-components";
 import Image from "next/image";
 import { FaChevronRight } from "react-icons/fa6";
@@ -96,7 +96,7 @@ enum ModalContent {
     JoinServer = 2
 }
 
-export function CreateGuildModal({ show, setShow }: { show: boolean, setShow: Dispatch<SetStateAction<boolean>> }) {
+export function CreateGuildModal({ onClose }: { onClose: () => void}) {
     const [serverName, setServerName] = useState('');
     const [activeContent, setActiveContent] = useState<ModalContent>(ModalContent.Main);
     const [icon, setIcon] = useState<File>()
@@ -120,7 +120,7 @@ export function CreateGuildModal({ show, setShow }: { show: boolean, setShow: Di
                 return [...old, response.data!];
             });
 
-            setShow(false);
+            onClose();
         },
         onError: (error) => {
             setErrorMessage("Unknown error occurred");
@@ -146,7 +146,7 @@ export function CreateGuildModal({ show, setShow }: { show: boolean, setShow: Di
 
 
     return (
-        <Modal show={show} setShow={setShow}>
+        <Modal onClose={onClose}>
             <ModalContentContainer className={`${activeContent === ModalContent.Main ? 'active' : ''}`}>
                 <ModalHeaderContainer>
                     <h1 className="text-[24px] font-bold leading-[30px]">Create Your Server</h1>

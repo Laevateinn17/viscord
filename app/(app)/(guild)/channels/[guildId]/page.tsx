@@ -15,5 +15,5 @@ export default function Page() {
         document.title = `Viscord | ${guild.name}`
     }, [guild])
 
-    return <div>{guild?.name}</div>
+    return <></>;
 }

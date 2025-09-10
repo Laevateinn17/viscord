@@ -12,24 +12,21 @@ const ModalBackground = styled.div`
     background-color: rgba(0, 0, 0, 0.7);
     justify-content: center;
     align-items: center;
-    display: none;
+    display: flex;
 
-    &.active {
-        display: flex;
-    }
 `
 
 
-export default function Modal({children, show, setShow}: {children: ReactNode, show: boolean, setShow: Dispatch<SetStateAction<boolean>>}) {
+export default function Modal({children, onClose}: {children: ReactNode, onClose: () => void}) {
     
     function hideModal(e: MouseEvent<HTMLDivElement>) {
         if (e.target === e.currentTarget) {
-            setShow(false);
+            onClose();
         }
     }
     
     return (
-        <ModalBackground onClick={hideModal} className={`${show ? 'active' : ''}`}>
+        <ModalBackground onClick={hideModal}>
             {children}
         </ModalBackground>
     )

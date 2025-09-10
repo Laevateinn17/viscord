@@ -7,7 +7,6 @@ import Tooltip from "../tooltip/tooltip";
 import { FaCirclePlus } from "react-icons/fa6";
 import { FaCompass } from "react-icons/fa";
 import { HiDownload } from "react-icons/hi";
-import { CreateGuildModal } from "./create-guild-modal";
 import { useGuildsQuery } from "@/hooks/queries";
 import { getImageURL } from "@/services/storage/storage.service";
 
@@ -64,6 +63,10 @@ const IconContainer = styled.div`
         border-radius: 16px;
         background-color: var(--primary);
     }
+`
+
+const GuildIconText = styled.p`
+    font-weight: bold;
 `
 
 export function GuildIcon({ children, guild, onClick }: { children: ReactNode, guild: GuildSummary, onClick?: () => any }) {
@@ -155,7 +158,7 @@ export default function GuildListSidebar({ isDM }: { isDM: boolean }) {
                                 className="w-full h-full"
                                 src={getImageURL(`icons/${guild.id}`, guild.iconURL)} alt="initials" />
                             :
-                            <p>{initials}</p>
+                            <GuildIconText>{initials}sass</GuildIconText>
                         }
                     </GuildIcon>
                 )
@@ -171,7 +174,7 @@ export default function GuildListSidebar({ isDM }: { isDM: boolean }) {
                     <HiDownload size={20} />
                 </GuildIcon>
             </div>
-            {showModal && <CreateGuildModal show={showModal} setShow={setShowModal} />}
+            {/* {showModal && <CreateGuildModal show={showModal} onClose={setShowModal} />} */}
         </div>
     );
 }

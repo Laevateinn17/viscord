@@ -9,7 +9,6 @@ import { isSet } from "util/types";
 import { useGuildsQuery, useMessagesQuery, useRelationshipsQuery } from "@/hooks/queries";
 import { FaCirclePlus, FaCompass } from "react-icons/fa6";
 import { HiDownload } from "react-icons/hi";
-import { CreateGuildModal } from "@/components/guild-list-sidebar/create-guild-modal";
 import Tooltip from "@/components/tooltip/tooltip";
 import styled from "styled-components";
 import { usePathname, useRouter } from "next/navigation";
@@ -35,6 +34,8 @@ import { useCurrentUserStore } from "../stores/current-user-store";
 import { useUserPresenceStore } from "../stores/user-presence-store";
 import { PiGithubLogoBold } from "react-icons/pi";
 import { BsGithub } from "react-icons/bs";
+import { ModalProvider, useModal } from "@/contexts/modal.context";
+import { ModalType } from "@/enums/modal-type.enum";
 
 interface HomeLayoutProps {
     children: ReactNode
@@ -246,7 +247,7 @@ function UnreadDMChannel({ channel, unreadCount }: { channel: Channel, unreadCou
 
 
 function GuildListSidebar() {
-    const [showModal, setShowModal] = useState(false);
+    const { openModal } = useModal();
     const { data: guilds } = useGuildsQuery();
     const pathname = usePathname();
     const dmChannels = useGetDMChannels();
@@ -296,7 +297,7 @@ function GuildListSidebar() {
                 )
             })}
             <div className="">
-                <GuildIcon guild={{ id: 'create', name: 'Add a server' }} onClick={() => { setShowModal(true) }}>
+                <GuildIcon guild={{ id: 'create', name: 'Add a server' }} onClick={() => { openModal(ModalType.CREATE_GUILD) }}>
                     <FaCirclePlus size={20} />
                 </GuildIcon>
                 <GuildIcon guild={{ id: 'discovery', name: 'Discover' }}>
@@ -306,7 +307,6 @@ function GuildListSidebar() {
                     <HiDownload size={20} />
                 </GuildIcon>
             </div>
-            {showModal && <CreateGuildModal show={showModal} setShow={setShowModal} />}
         </div>
     );
 }
@@ -424,23 +424,25 @@ export default function HomeLayout({ children, sidebar }: HomeLayoutProps) {
     return (
         // <AppStateProvider>
         // {/* <UserPresenceProvider> */ }
-        < SocketProvider >
+        <SocketProvider>
             <AppInitializer>
-                <ContextMenuProvider>
-                    <div className={styles["page"]}>
-                        <Fragment>
-                            <div className={`${styles["main-content"]} ${isSettingOpen ? styles["main-content-hidden"] : ""}`}>
-                                <GuildListSidebar />
-                                <div className="absolute bottom-[8px] left-[8px] w-[358px]">
-                                    <UserArea openSettingsHandler={() => setIsSettingOpen(true)} />
+                <ModalProvider>
+                    <ContextMenuProvider>
+                        <div className={styles["page"]}>
+                            <Fragment>
+                                <div className={`${styles["main-content"]} ${isSettingOpen ? styles["main-content-hidden"] : ""}`}>
+                                    <GuildListSidebar />
+                                    <div className="absolute bottom-[8px] left-[8px] w-[358px]">
+                                        <UserArea openSettingsHandler={() => setIsSettingOpen(true)} />
+                                    </div>
+                                    {children}
                                 </div>
-                                {children}
-                            </div>
-                            <SettingsPage show={isSettingOpen} closeSettingsHandler={() => setIsSettingOpen(false)} />
-                        </Fragment>
-                    </div>
-                </ContextMenuProvider>
+                                <SettingsPage show={isSettingOpen} closeSettingsHandler={() => setIsSettingOpen(false)} />
+                            </Fragment>
+                        </div>
+                    </ContextMenuProvider>
                 <VoiceRingManager />
+                </ModalProvider>
             </AppInitializer>
             <PeerConnectionManager />
         </SocketProvider >
