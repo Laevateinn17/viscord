@@ -1,7 +1,7 @@
 "use client"
 import { ReactNode, useEffect, useRef, useState } from "react";
 import styles from './styles.module.css'
-import PrimaryButton from "../primary-button/primary-button";
+import PrimaryButton from "../buttons/primary-button";
 
 export interface TextInputProps {
     label: string
@@ -29,7 +29,7 @@ export default function TextInput({children, label, type = "text", placeholder, 
     }, [focus])
     
     return (
-        <div className={`${styles.container}`}>
+        <div className={`${styles.container} ${focus ? 'focus' : ''}`}>
             <div className={styles['label-container']}>
                 <p className={`font-bold tracking-wide whitespace-break-spaces leading-[1.333] ${errorMessage ? "text-red-400" : ""}`}>{label.toUpperCase() + ' '}</p>
                 {!errorMessage && isRequired && <span className="text-red-400">*</span>}

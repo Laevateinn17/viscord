@@ -4,12 +4,12 @@ import styled from "styled-components";
 import Image from "next/image";
 import { FaChevronRight } from "react-icons/fa6";
 import TextInput from "../text-input/text-input";
-import PrimaryButton from "../primary-button/primary-button";
+import PrimaryButton from "../buttons/primary-button";
 import Link from "next/link";
 import { QueryClient, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CreateGuildDto } from "@/interfaces/dto/create-guild.dto";
 import { createGuild } from "@/services/guild/guild.service";
-import { GUILDS_CACHE } from "@/constants/cache";
+import { GUILDS_CACHE } from "@/constants/query-keys";
 import { Guild } from "@/interfaces/guild";
 
 const ModalContentContainer = styled.div`

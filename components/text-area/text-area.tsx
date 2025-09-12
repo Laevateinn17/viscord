@@ -1,7 +1,7 @@
 "use client"
 import { ReactNode, useEffect, useRef, useState } from "react";
 import styles from './styles.module.css'
-import PrimaryButton from "../primary-button/primary-button";
+import PrimaryButton from "../buttons/primary-button";
 
 export interface TextAreaProps {
     label: string

@@ -13,7 +13,7 @@ import { IoMdMore } from "react-icons/io";
 import { useAuth } from "@/contexts/auth.context";
 import { acceptFriendRequest, declineFriendRequest } from "@/services/relationships/relationships.service";
 import { useQueryClient } from "@tanstack/react-query";
-import { RELATIONSHIPS_CACHE } from "@/constants/cache";
+import { RELATIONSHIPS_CACHE } from "@/constants/query-keys";
 import { useRouter } from "next/navigation";
 import { useAcceptFriendRequestMutation, useDeleteRelationshipMutation } from "@/hooks/mutations";
 import { useChannelsStore } from "@/app/stores/channels-store";

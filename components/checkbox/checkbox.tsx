@@ -2,7 +2,7 @@ import { ReactNode } from "react";
 import styles from "./styles.module.css"
 import { FaCheck } from "react-icons/fa";
 interface CheckboxProps {
-    children: ReactNode;
+    children?: ReactNode;
     value: boolean;
     onChange: (val: boolean) => void
 }

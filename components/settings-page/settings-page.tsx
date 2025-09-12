@@ -1,5 +1,5 @@
 import { Fragment, ReactNode, useEffect, useState } from "react"
-import PrimaryButton from "../primary-button/primary-button"
+import PrimaryButton from "../buttons/primary-button"
 import styles from "./styles.module.css"
 import TextInput from "../text-input/text-input"
 import { LuLogOut } from "react-icons/lu"

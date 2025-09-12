@@ -1,14 +1,20 @@
 "use client"
 
 import styles from "./styles.module.css"
-import GuildSidebar from "@/components/guild-sidebar/guild-sidebar";
 import { createContext, Dispatch, Fragment, ReactNode, SetStateAction, useContext, useEffect, useState } from "react";
 import MeSidebarContent from "@/components/sidebar/me-sidebar";
-import { useCurrentUserStore } from "@/app/stores/current-user-store";
+import styled from "styled-components";
 
 interface HomeLayoutProps {
     children: ReactNode
 }
+
+const SidebarContainer = styled.div`
+    width: 304px;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+`
 
 export default function HomeLayout({ children }: HomeLayoutProps) {
     const [isSettingOpen, setIsSettingOpen] = useState(false);
@@ -26,9 +32,9 @@ export default function HomeLayout({ children }: HomeLayoutProps) {
     return (
         <Fragment>
             <div className={`${styles["guild-sidebar-container"]}`}>
-                <GuildSidebar>
+                <SidebarContainer>
                     <MeSidebarContent />
-                </GuildSidebar>
+                </SidebarContainer>
             </div>
             <div className={styles["content-container"]}>
                 {children}

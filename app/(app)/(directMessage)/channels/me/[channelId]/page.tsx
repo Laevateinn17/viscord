@@ -6,7 +6,7 @@ import { useUserProfileStore } from "@/app/stores/user-profiles-store";
 import { useIsUserTyping, useTypingUsersFromChannel, useUserTypingStore } from "@/app/stores/user-typing-store";
 import { LoadingIndicator } from "@/components/loading-indicator/loading-indicator";
 import MessageItem from "@/components/message-item/message-item";
-import { MESSAGES_CACHE } from "@/constants/cache";
+import { MESSAGES_CACHE } from "@/constants/query-keys";
 import { MessageStatus } from "@/enums/message-status.enum";
 import { useMessagesQuery } from "@/hooks/queries";
 import { Channel } from "@/interfaces/channel";

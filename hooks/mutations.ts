@@ -1,4 +1,4 @@
-import { CURRENT_USER_CACHE, RELATIONSHIPS_CACHE } from "@/constants/cache";
+import { CURRENT_USER_CACHE, RELATIONSHIPS_CACHE } from "@/constants/query-keys";
 import { RelationshipType } from "@/enums/relationship-type.enum";
 import Relationship from "@/interfaces/relationship";
 import { logout } from "@/services/auth/auth.service";

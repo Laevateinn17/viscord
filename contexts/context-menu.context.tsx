@@ -4,7 +4,7 @@ import ContextMenuState from "@/interfaces/context-menu-state";
 import { createContext, ReactNode, useContext, useState } from "react";
 
 interface ContextMenuContextType {
-    menuState: ContextMenuState | undefined
+    menuState: ContextMenuState | undefined;
     showMenu: (evt: React.MouseEvent, type: ContextMenuType, data: any) => void;
     hideMenu: () => void;
 }

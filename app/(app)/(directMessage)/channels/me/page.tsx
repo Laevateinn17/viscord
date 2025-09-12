@@ -1,5 +1,5 @@
 "use client"
-import PrimaryButton from "@/components/primary-button/primary-button";
+import PrimaryButton from "@/components/buttons/primary-button";
 import styled from "styled-components";
 import { FormEvent, Fragment, ReactNode, useEffect, useState } from "react";
 import { UserStatus, UserStatusString } from "@/enums/user-status.enum";
@@ -8,7 +8,7 @@ import { acceptFriendRequest, addFriend, declineFriendRequest, getRelationships 
 import { RelationshipType } from "@/enums/relationship-type.enum";
 import TextInput from "@/components/text-input/text-input";
 import { QueryClient, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { RELATIONSHIPS_CACHE } from "@/constants/cache";
+import { RELATIONSHIPS_CACHE } from "@/constants/query-keys";
 import { useDMChannelsQuery, useRelationshipsQuery } from "@/hooks/queries";
 import { useRouter } from "next/navigation";
 import { AddFriendTab } from "./add-friend-tab";

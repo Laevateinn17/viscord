@@ -1,4 +1,4 @@
-import { CURRENT_USER_CACHE, DM_CHANNELS_CACHE, GUILDS_CACHE, MESSAGES_CACHE, RELATIONSHIPS_CACHE } from "@/constants/cache";
+import { CURRENT_USER_CACHE, DM_CHANNELS_CACHE, GUILDS_CACHE, MESSAGES_CACHE, RELATIONSHIPS_CACHE } from "@/constants/query-keys";
 import { Guild } from "@/interfaces/guild";
 import { getDMChannels } from "@/services/channels/channels.service";
 import { getGuildDetail, getGuilds } from "@/services/guild/guild.service";

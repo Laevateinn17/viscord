@@ -1,5 +1,5 @@
-import PrimaryButton from "@/components/primary-button/primary-button";
-import { RELATIONSHIPS_CACHE } from "@/constants/cache";
+import PrimaryButton from "@/components/buttons/primary-button";
+import { RELATIONSHIPS_CACHE } from "@/constants/query-keys";
 import Relationship from "@/interfaces/relationship";
 import { addFriend } from "@/services/relationships/relationships.service";
 import { useMutation, useQueryClient } from "@tanstack/react-query";

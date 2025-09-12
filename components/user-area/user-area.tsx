@@ -11,7 +11,7 @@ import { PiMoonFill } from "react-icons/pi";
 import UserAvatar from "../user-avatar/user-avatar";
 import { FaCircle } from "react-icons/fa";
 import { CurrentUserProfileCard } from "../user-profile-card/user-profile-card";
-import Modal from "../modal/modal";
+import Modal from "../modals/modal";
 import { useUserProfileStore } from "@/app/stores/user-profiles-store";
 import { useCurrentUserQuery } from "@/hooks/queries";
 import { useCurrentUserStore } from "@/app/stores/current-user-store";

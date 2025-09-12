@@ -1,7 +1,4 @@
 
-.container {
-}
-
 .label-container {
     display: flex;
     font-size: 12px;
@@ -24,6 +21,17 @@
     &:focus {
         outline: 1px solid var(--input-focused);
     }
+}
+
+.input-transparent {
+    width: 100%;
+    background-color: transparent;
+    padding: 12px 10px;
+    font-size: 16px;
+    border-radius: 8px;
+
+    min-width: 0;
+    outline: none;
 }
 
 .text-helper {

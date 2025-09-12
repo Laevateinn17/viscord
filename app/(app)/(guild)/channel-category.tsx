@@ -10,7 +10,6 @@ import { ModalType } from "@/enums/modal-type.enum";
 
 
 const Container = styled.div`
-    padding: 0 8px;
 `
 
 const CategoryToggleContainer = styled.div`
@@ -69,7 +68,7 @@ export function ChannelCategory({ channel, children }: { channel: Channel, child
                 </CategoryToggleContainer>
                 <div className="relative">
                     <CreateChannelButton
-                        onClick={ () => openModal(ModalType.CREATE_CHANNEL, channel)}
+                        onClick={ () => openModal(ModalType.CREATE_CHANNEL, {category: channel, guildId: channel.guild!.id})}
                         onMouseEnter={() => setHoverAddChannel(true)}
                         onMouseLeave={() => setHoverAddChannel(false)}>
                         <FaPlus size={13} />

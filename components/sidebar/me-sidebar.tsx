@@ -5,7 +5,7 @@ import { useUserTypingStore } from "@/app/stores/user-typing-store";
 import SidebarContentContainer from "@/components/guild-sidebar/sidebar-content-container";
 import SidebarHeader from "@/components/guild-sidebar/sidebar-header";
 import UserAvatar from "@/components/user-avatar/user-avatar";
-import { DM_CHANNELS_CACHE } from "@/constants/cache";
+import { DM_CHANNELS_CACHE } from "@/constants/query-keys";
 import { ChannelType } from "@/enums/channel-type.enum";
 import { getDMChannels } from "@/services/channels/channels.service";
 import { getRelationships } from "@/services/relationships/relationships.service";

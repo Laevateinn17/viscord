@@ -1,7 +1,6 @@
 "use client"
 
 import styles from "./styles.module.css"
-import GuildSidebar from "@/components/guild-sidebar/guild-sidebar";
 import { createContext, Dispatch, Fragment, ReactNode, SetStateAction, useContext, useEffect, useState } from "react";
 import UserArea from "@/components/user-area/user-area";
 import SettingsPage from "@/components/settings-page/settings-page";

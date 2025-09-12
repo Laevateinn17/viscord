@@ -1,9 +1,5 @@
 
 .container {
-    width: 304px;
-    display: flex;
-    flex-direction: column;
-    flex: 1;
 }
 
 .header-container {

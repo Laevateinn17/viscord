@@ -2,7 +2,7 @@
 import styles from './styles.module.css'
 import TextInput from '@/components/text-input/text-input'
 import TextLink from '@/components/text-link/text-link'
-import PrimaryButton from "@/components/primary-button/primary-button"
+import PrimaryButton from "@/components/buttons/primary-button"
 import DateInput from "@/components/date-input/date-input"
 import Checkbox from "@/components/checkbox/checkbox"
 import { FormEvent, useEffect, useRef, useState } from "react"

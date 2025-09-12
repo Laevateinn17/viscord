@@ -47,6 +47,7 @@
   --container-background: #2e2e34;
   --container-background-hover: #3a3a41;
   --checkbox-background-checked: #5865f2;
+  --checkbox-border-default: #81828a;
   --header-modifier-accent: #35363c;
   --icon: #b5bac1;
   --channel-default: oklab(0.686636 -0.00407365 -0.0149199);

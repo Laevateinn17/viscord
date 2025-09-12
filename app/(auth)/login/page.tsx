@@ -3,7 +3,7 @@ import Image from 'next/image'
 import styles from './styles.module.css'
 import TextInput from '@/components/text-input/text-input'
 import TextLink from '@/components/text-link/text-link'
-import PrimaryButton from "@/components/primary-button/primary-button"
+import PrimaryButton from "@/components/buttons/primary-button"
 import { FormEvent, FormEventHandler, useEffect, useReducer, useRef, useState } from "react"
 import { login, refreshToken } from "@/services/auth/auth.service"
 import { Response } from "@/interfaces/response"

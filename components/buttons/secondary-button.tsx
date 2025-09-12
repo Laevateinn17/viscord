@@ -14,51 +14,52 @@ interface PrimaryButtonProps {
     tooltipSize?: string
     className?: string
     disabled?: boolean
+    size?: "sm" | "md" | "lg"
 }
 
 const Button = styled.button`
     display: flex;
-    background-color: var(--button-primary);
+    background-color: var(--button-secondary);
     border: 1px solid transparent;
-    padding: 4px 12px;
-    line-height: 20px;
     border-radius: 8px;
-    font-weight: 500;
-    flex-grow: 1;
+    font-weight: var(--font-weight-regular);
 
     &.hover {
-        background-color: var(--button-primary-hover);
+        background-color: var(--button-secondary-hover);
     }
 
-    &.active {
-        background-color: var(--button-primary-selected);
-        color: var(--text-brand);
+    &.md {
+        padding: 4px 12px;
+        font-size: var(--text-base);
+        line-height: var(--line-height-tight);
     }
 
-    &.disabled {
-        // background-color: var(--button-primary-disabled);
-        opacity: 0.5;
-        cursor: not-allowed;
+    &.lg {
+        padding: 7px 15px;
+        font-size: var(--text-base);
+        line-height: normal;
+        min-height: 38px;
     }
+    
 
 `
 
-export default function PrimaryButton({ className, children, onClick, isLoading, disabled, tooltipPosition, tooltip, tooltipSize }: PrimaryButtonProps) {
+export default function SecondaryButton({ className = "", size = 'md', children, onClick, isLoading, disabled, tooltipPosition, tooltip, tooltipSize }: PrimaryButtonProps) {
     const [isHovering, setIsHovering] = useState(false);
-    
+
     return (
-        <Button className={`${className} ${isHovering ? "hover" : ""} ${disabled || isLoading ? "disabled" : ""}`}
+        <Button className={`${className} ${isHovering ? "hover" : ""} ${disabled || isLoading ? "disabled" : ""} ${size}`}
             onClick={isLoading !== true ? onClick : undefined}
             disabled={disabled || isLoading === true}
-            onMouseEnter={() => {if (!disabled) setIsHovering(true)}}
-            onMouseLeave={() => {if (!disabled) setIsHovering(false)}}>
+            onMouseEnter={() => { if (!disabled) setIsHovering(true) }}
+            onMouseLeave={() => { if (!disabled) setIsHovering(false) }}>
             {tooltip &&
                 <Tooltip position={tooltipPosition!} show={isHovering} text={tooltip} fontSize={tooltipSize} />}
             {isLoading === true ?
                 // <div className={styles["loading-wrapper"]}>
                 //     <div className={styles["dot-flashing"]}></div>
                 // </div>
-                <LoadingIndicator/>
+                <LoadingIndicator />
                 :
                 children}
         </Button>

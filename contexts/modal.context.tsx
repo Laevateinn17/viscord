@@ -1,5 +1,6 @@
-import { CreateChannelModal } from "@/app/(app)/(guild)/channels/[guildId]/create-channel-modal";
-import { CreateGuildModal } from "@/components/modal/create-guild-modal";
+import { CreateCategoryModal } from "@/components/modals/create-category-modal";
+import { CreateChannelModal } from "@/components/modals/create-channel-modal";
+import { CreateGuildModal } from "@/components/modals/create-guild-modal";
 import { ModalType } from "@/enums/modal-type.enum";
 import { createContext, ReactNode, useContext, useState } from "react";
 
@@ -34,8 +35,9 @@ export function ModalProvider({children}: {children: ReactNode}) {
     return (
         <ModalContext.Provider value={{openModal, closeModal, modal}}>
             {children}
-            {modal.type === ModalType.CREATE_CHANNEL && <CreateChannelModal category={modal.data} onClose={closeModal}/>}
+            {modal.type === ModalType.CREATE_CHANNEL && <CreateChannelModal guildId={modal.data.guildId} category={modal.data.category} onClose={closeModal}/>}
             {modal.type === ModalType.CREATE_GUILD && <CreateGuildModal onClose={closeModal} />}
+            {modal.type === ModalType.CREATE_CATEGORY && <CreateCategoryModal guildId={modal.data.guildId} onClose={closeModal}/>}
         </ModalContext.Provider>
     );
 }

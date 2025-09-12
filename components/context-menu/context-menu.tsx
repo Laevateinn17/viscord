@@ -1,8 +1,11 @@
 import { useContextMenu } from "@/contexts/context-menu.context";
+import { useModal } from "@/contexts/modal.context";
 import { ContextMenuType } from "@/enums/context-menu-type.enum";
+import { ModalType } from "@/enums/modal-type.enum";
 import { RelationshipType } from "@/enums/relationship-type.enum";
 import { useDeleteRelationshipMutation } from "@/hooks/mutations";
 import { useDMChannelsQuery, useGuildsQuery } from "@/hooks/queries";
+import { Guild } from "@/interfaces/guild";
 import Relationship from "@/interfaces/relationship";
 import { createDMChannel } from "@/services/channels/channels.service";
 import { useRouter } from "next/navigation";
@@ -64,7 +67,7 @@ function UserContextMenu({ relationship }: { relationship: Relationship }) {
                     if (!channel) {
                         await createDMChannel(relationship.user.id);
                     }
-                    router.push(`/channels/me/${channel.id}`);
+                    router.push(`/channels/me/${channel!.id}`);
                 }}>Message</ListItem>
                 <ListItem>Call</ListItem>
             </div>
@@ -89,6 +92,28 @@ function UserContextMenu({ relationship }: { relationship: Relationship }) {
                 <ListItem>Ignore</ListItem>
                 <ListItem className="text-[var(--text-danger)] hover:bg-[var(--">Block</ListItem>
             </div>
+        </Fragment>
+    )
+}
+
+function GuildSidebarContextMenu({ guild }: { guild: Guild }) {
+    const { openModal } = useModal();
+    const { hideMenu } = useContextMenu();
+
+
+    return (
+        <Fragment>
+            <ListItem
+                onClick={() => {
+                    openModal(ModalType.CREATE_CHANNEL, { guildId: guild.id });
+                    hideMenu();
+                }}>Create Channel</ListItem>
+            <ListItem
+                onClick={() => {
+                    openModal(ModalType.CREATE_CATEGORY, { guildId: guild.id });
+                    hideMenu();
+                }}>Create Category</ListItem>
+            <ListItem>Invite People</ListItem>
         </Fragment>
     )
 }
@@ -137,6 +162,7 @@ export default function ContextMenu() {
     return (
         <ContextMenuContainer className="absolute" style={{ top: position.y, left: position.x }} ref={menuRef}>
             {menuState.type === ContextMenuType.USER && <UserContextMenu relationship={menuState.data} />}
+            {menuState.type === ContextMenuType.GUILD_SIDEBAR && <GuildSidebarContextMenu guild={menuState.data} />}
         </ContextMenuContainer>
     );
 }

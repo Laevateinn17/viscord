@@ -12,10 +12,10 @@ import styled from "styled-components";
 import { Router } from "next/router";
 import { ChannelCategory } from "./channel-category";
 import styles from "./styles.module.css"
-import GuildListSidebar from "@/components/guild-list-sidebar/guild-list-sidebar";
-import GuildSidebar from "@/components/guild-sidebar/guild-sidebar";
-import SettingsPage from "@/components/settings-page/settings-page";
 import { useCurrentUserStore } from "@/app/stores/current-user-store";
+import ChannelButton from "./channel-button";
+import { useContextMenu } from "@/contexts/context-menu.context";
+import { ContextMenuType } from "@/enums/context-menu-type.enum";
 
 const HeaderContainer = styled.div`
     padding: 12px 8px 12px 16px;
@@ -44,16 +44,21 @@ const MoreButton = styled.div`
     color: var(--icon-tertiary);
 `
 
+const SidebarContainer = styled.div`
+    width: 304px;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+`
+
 export default function Page({ children }: { children: ReactNode }) {
     const { guildId } = useParams();
     const { isPending, data: guild, isError } = useGuildDetailQuery(guildId ? guildId.toString() : '');
     const [categories, setCategories] = useState<Channel[]>([]);
     const router = useRouter();
     const { user } = useCurrentUserStore();
-    const [isLoading, setIsLoading] = useState(true);
-    const [isSettingOpen, setIsSettingOpen] = useState(false);
+    const { showMenu } = useContextMenu();
     // const [prevTitle, setPrevTitle] = useState(document.title);
-    const { data: relationships } = useRelationshipsQuery();
     useEffect(() => {
         if (!guild) return;
 
@@ -70,7 +75,7 @@ export default function Page({ children }: { children: ReactNode }) {
     return (
         <Fragment>
             <div className={`${styles["guild-sidebar-container"]}`}>
-                <GuildSidebar>
+                <SidebarContainer onContextMenu={(e) => showMenu(e, ContextMenuType.GUILD_SIDEBAR, guild)} >
                     <SidebarHeader>
                         <HeaderContainer>
                             <HeaderText>{guild?.name}</HeaderText>
@@ -81,17 +86,21 @@ export default function Page({ children }: { children: ReactNode }) {
                     </SidebarHeader>
                     <SidebarContentContainer>
                         <div className="py-[8px]">
+                            {guild?.channels.filter(ch => !ch.parent && ch.type !== ChannelType.Category).map(ch => {
+                                return (
+                                    <div className="mt-[8px] px-[8px]" key={ch.id}>
+                                        <ChannelButton collapse={false} channel={{ ...ch, guild: guild }} />
+                                    </div>
+                                );
+                            })}
                             {categories.sort((a, b) => a.createdAt > b.createdAt ? 1 : a.createdAt === b.createdAt ? 0 : -1).map(cat => {
-                                return <div key={cat.id}>
+                                return <div className="px-[8px]" key={cat.id}>
                                     <ChannelCategory channel={{ ...cat, guild: guild }} children={guild ? guild.channels.filter(ch => ch.parent && ch.parent.id === cat.id) : []}></ChannelCategory>
                                 </div>
                             })}
-                            {guild?.channels.filter(ch => !ch.parent && ch.type !== ChannelType.Category).map(ch => {
-                                return <p key={ch.id}>{ch.name}</p>
-                            })}
                         </div>
                     </SidebarContentContainer>
-                </GuildSidebar>
+                </SidebarContainer>
             </div>
             <div className={styles["content-container"]}>
                 {children}
