@@ -4,6 +4,7 @@ import { CreateUserProfileDto } from './dto/create-user-profile.dto';
 import { UpdateUsernameDTO } from "src/users/dto/update-username.dto";
 import { Response } from "express";
 import { UpdateStatusDTO } from "src/users/dto/update-status.dto";
+import { GrpcMethod } from "@nestjs/microservices";
 
 @Controller('user-profiles')
 export class UserProfilesController {
@@ -53,5 +54,10 @@ export class UserProfilesController {
   @Delete(':id')
   remove(@Param('id') id: string) {
     // return this.userProfilesService.remove(+id);
+  }
+
+  @GrpcMethod('UserProfilesService', 'GetUserProfiles')
+  async getUserProfiles(@Res() res: Response, @Body(new ValidationPipe({transform: true})) dto: {userIds: string[]}) {
+    return await this.userProfilesService.getUserProfiles(dto.userIds);
   }
 }

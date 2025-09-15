@@ -6,6 +6,18 @@ service UsersService {
     rpc GetCurrentUser(GetCurrentUserRequest) returns (GetCurrentUserResponse);
 }
 
+service UserProfilesService {
+    rpc GetUserProfiles(GetUserProfilesRequest) returns (GetUserProfilesResponse);
+}
+
+message GetUserProfilesRequest {
+    repeated string userIds = 1;
+}
+
+message GetUserProfilesResponse {
+    int32 status = 1;
+    repeated UserProfile data = 2;
+}
 
 message GetCurrentUserRequest {
     string userId = 1;

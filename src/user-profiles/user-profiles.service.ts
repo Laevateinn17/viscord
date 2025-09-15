@@ -2,7 +2,7 @@ import { Body, HttpStatus, Injectable, ValidationPipe } from '@nestjs/common';
 import { CreateUserProfileDto } from './dto/create-user-profile.dto';
 import { UserProfile } from './entities/user-profile.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Result } from 'src/interfaces/result.interface';
 import { mapper } from 'src/mappings/mappers';
 import { createMap } from '@automapper/core';
@@ -189,7 +189,6 @@ export class UserProfilesService {
     }
 
     try {
-
       const user: UserProfile = await this.userProfileRepository.findOne({ where: { username: username } });
 
       if (!user) {
@@ -203,6 +202,23 @@ export class UserProfilesService {
       return {
         status: HttpStatus.OK,
         data: mapper.map(user, UserProfile, UserProfileResponseDTO),
+        message: "User profile retrieved successfully"
+      };
+    } catch (error) {
+      return {
+        status: HttpStatus.BAD_REQUEST,
+        data: null,
+        message: "User not found",
+      };
+    }
+  }
+
+  async getUserProfiles(userIds: string[]): Promise<Result<UserProfileResponseDTO[]>> {
+    try {
+      const userProfiles: UserProfile[] = await this.userProfileRepository.findBy({ id: In(userIds) });
+      return {
+        status: HttpStatus.OK,
+        data: userProfiles.map(user => mapper.map(user, UserProfile, UserProfileResponseDTO)),
         message: "User profile retrieved successfully"
       };
     } catch (error) {
