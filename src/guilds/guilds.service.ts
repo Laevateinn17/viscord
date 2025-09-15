@@ -73,13 +73,13 @@ export class GuildsService {
         guild.iconURL = response.data;
       }
 
-      const response = await this.channelsService.create(userId, { guildId: guild.id, name: 'Text Channels', type: ChannelType.Category });
+      const response = await this.channelsService.create(userId, { guildId: guild.id, name: 'Text Channels', type: ChannelType.Category, isPrivate: false });
       if (response.status !== HttpStatus.CREATED) throw new Error(response.message);
-      await this.channelsService.create(userId, { guildId: guild.id, name: 'general', type: ChannelType.Text, parentId: response.data.id });
+      await this.channelsService.create(userId, { guildId: guild.id, name: 'general', type: ChannelType.Text, parentId: response.data.id, isPrivate: false });
 
-      const voiceCategoryResponse = await this.channelsService.create(userId, { guildId: guild.id, name: 'Voice Channels', type: ChannelType.Category });
+      const voiceCategoryResponse = await this.channelsService.create(userId, { guildId: guild.id, name: 'Voice Channels', type: ChannelType.Category, isPrivate: false });
       if (voiceCategoryResponse.status !== HttpStatus.CREATED) throw new Error(voiceCategoryResponse.message);
-      await this.channelsService.create(userId, { guildId: guild.id, name: 'General', type: ChannelType.Voice, parentId: voiceCategoryResponse.data.id });
+      await this.channelsService.create(userId, { guildId: guild.id, name: 'General', type: ChannelType.Voice, parentId: voiceCategoryResponse.data.id, isPrivate: false });
 
       await this.guildsRepository.save(guild);
 
@@ -130,7 +130,9 @@ export class GuildsService {
       .leftJoinAndSelect('guild.members', 'member')
       .leftJoinAndSelect('guild.channels', 'channel')
       .leftJoinAndSelect('channel.parent', 'parentChannel')
+      .leftJoinAndSelect('channel.recipients', 'recipients')
       .where('guild.id = :guildId', { guildId: guildId }).getOne();
+
 
     if (!guild.members.find(m => m.userId === userId)) {
       return {
@@ -141,7 +143,10 @@ export class GuildsService {
     }
 
     const data = mapper.map(guild, Guild, GuildResponseDTO);
-    data.channels = guild.channels.map(ch => mapper.map(ch, Channel, ChannelResponseDTO));
+    // data.channels = guild.channels.map(ch => {
+    //   const channel = mapper.map(ch, Channel, ChannelResponseDTO)
+    //   channel.recipients = mapper.map()
+    // });
 
     data.members = await Promise.all(guild.members.map(async (m) => {
       try {

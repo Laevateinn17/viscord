@@ -20,7 +20,8 @@ export class GuildChannelsController {
     private readonly channelsService: ChannelsService) { }
 
   @Post()
-  async create(@Headers('X-User-Id') userId: string, @Body() createChannelDto: CreateChannelDTO, @Res() res: Response) {
+  async create(@Headers('X-User-Id') userId: string, @Body() createChannelDto: CreateChannelDTO, @Res() res: Response, @Param('guildId') guildId: string) {
+    createChannelDto.guildId = guildId;
     const result = await this.channelsService.create(userId, createChannelDto);
     const { status } = result;
 

@@ -3,14 +3,17 @@ import { ChannelType } from "../enums/channel-type.enum";
 
 export class CreateChannelDTO {
     @AutoMap()
-    guildId: string
+    guildId: string;
 
     @AutoMap()
     name: string;
 
     @AutoMap()
-    type: ChannelType
+    type: ChannelType;
 
     @AutoMap()
-    parentId?: string
+    isPrivate: boolean;
+
+    @AutoMap()
+    parentId?: string;
 }

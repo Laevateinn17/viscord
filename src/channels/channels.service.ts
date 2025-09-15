@@ -32,6 +32,7 @@ import { VOICE_RING_TIMEOUT } from "src/constants/time";
 import { VoiceRingStateDTO } from "./dto/voice-ring-state.dto";
 import { RTCOfferDTO } from "./dto/rtc-offer.dto";
 import { ProducerCreatedDTO } from "./dto/producer-created.dto";
+import { Guild } from "src/guilds/entities/guild.entity";
 
 @Injectable()
 export class ChannelsService {
@@ -40,6 +41,7 @@ export class ChannelsService {
   constructor(
     private readonly usersService: HttpService,
     private readonly redisService: RedisService,
+    @InjectRepository(Guild) private readonly guildsRepository: Repository<Guild>,
     @InjectRepository(Channel) private readonly channelsRepository: Repository<Channel>,
     @InjectRepository(ChannelRecipient) private readonly channelRecipientRepository: Repository<ChannelRecipient>,
     @InjectRepository(UserReadState) private readonly userReadStateRepository: Repository<UserReadState>
@@ -63,11 +65,27 @@ export class ChannelsService {
       };
     }
 
-    const channel = mapper.map(dto, CreateChannelDTO, Channel);
-    channel.ownerId = userId;
+    const guild = await this.guildsRepository.findOneBy({ id: dto.guildId });
+
+    if (guild.ownerId !== userId) {
+      return {
+        status: HttpStatus.FORBIDDEN,
+        data: null,
+        message: 'User is not permitted to create a channel for this guild'
+      }
+    }
+
+    const channelToSave = mapper.map(dto, CreateChannelDTO, Channel);
+    channelToSave.ownerId = userId;
+
+    let recipients: ChannelRecipient[] = []
 
     try {
-      await this.channelsRepository.save(channel);
+      await this.channelsRepository.save(channelToSave);
+      recipients = guild.members.map(member => ({ channelId: channelToSave.id, userId: member.userId }));
+
+      await this.channelRecipientRepository.save(recipients);
+      channelToSave.recipients = recipients;
     } catch (error) {
       console.error(error)
       return {
@@ -77,9 +95,16 @@ export class ChannelsService {
       };
     }
 
+    const channelWithParent = await this.channelsRepository.findOne({
+      where: { id: channelToSave.id },
+      relations: ['parent'],
+    });
+
+    channelWithParent.recipients = recipients;
+
     return {
       status: HttpStatus.CREATED,
-      data: mapper.map(channel, Channel, ChannelResponseDTO),
+      data: mapper.map(channelWithParent, Channel, ChannelResponseDTO),
       message: 'Channel created successfully'
     };
   }
@@ -677,7 +702,7 @@ export class ChannelsService {
     }
 
     console.log('d');
-    this.gatewayMQ.emit(VOICE_UPDATE_EVENT, {recipients: recipients, data: payload} as Payload<VoiceEventDTO>)
+    this.gatewayMQ.emit(VOICE_UPDATE_EVENT, { recipients: recipients, data: payload } as Payload<VoiceEventDTO>)
   }
 
 
