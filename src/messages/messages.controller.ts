@@ -48,4 +48,13 @@ export class ChannelMessageController {
 
     return res.status(status).json(result);
   }
+
+  @Post(':channelId/messages/:messageId/ack') 
+  async acknowledgeMessage(@Headers('X-User-Id') userId: string, @Param('channelId') channelId: string, @Param('messageId') messageId: string, @Res() res: Response) {
+    const result = await this.messagesService.acknowledgeMessage(userId, channelId, messageId);
+    const { status } = result;
+
+    return res.status(status).json(result);
+
+  }
 }

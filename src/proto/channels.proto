@@ -1,0 +1,82 @@
+syntax = "proto3";
+
+package channels;
+
+import "google/protobuf/timestamp.proto";
+
+service ChannelsService {
+  rpc AcknowledgeMessage (AcknowledgeMessageRequest) returns (AcknowledgeMessageResponse);
+  rpc GetDMChannels (GetDMChannelsRequest) returns (GetDMChannelsResponse);
+}
+
+message AcknowledgeMessageRequest {
+  string userId = 1;
+  string channelId = 2;
+  string messageId = 3;
+}
+
+message AcknowledgeMessageResponse {
+  int32 status = 1;
+  string message = 2;
+}
+
+message GetDMChannelsRequest {
+  string userId = 1;
+}
+
+message GetDMChannelsResponse {
+  string status = 1;
+  repeated Channel data = 2;
+}
+
+enum ChannelType {
+  TEXT = 0;
+  VOICE = 1;
+  CATEGORY = 2;
+  DM = 3;
+}
+
+enum UserStatus {
+  OFFLINE = 0;
+  ONLINE = 1;
+  INVISIBLE = 2;
+  IDLE = 3;
+  DO_NOT_DISTURB = 4;
+}
+
+message UserProfile {
+  string id = 1;
+  string displayName = 2;
+  string username = 3;
+  string pronouns = 4;
+  string bio = 5;
+  UserStatus status = 6;
+  string avatarURL = 7;
+  string defaultAvatarURL = 8;
+  string createdAt = 9;
+  string updatedAt = 10;
+}
+
+message Guild {
+  string id = 1;
+  string name = 2;
+  string ownerId = 3;
+  string iconURL = 4;
+  repeated Channel channels = 5;
+  string createdAt = 6;
+  string updatedAt = 7;
+  repeated UserProfile members = 8;
+}
+
+message Channel {
+  string id = 1;
+  string name = 2;
+  ChannelType type = 3;
+  bool isPrivate = 4;
+  string createdAt = 5;
+  string updatedAt = 6;
+  Channel parent = 7;
+  Guild guild = 8;
+  repeated UserProfile recipients = 9;
+  string lastReadId = 10;
+}

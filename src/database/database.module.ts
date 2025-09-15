@@ -5,7 +5,6 @@ import { TypeOrmModule } from "@nestjs/typeorm";
     imports: [
         TypeOrmModule.forRootAsync({
             useFactory: () => {
-                console.log(`connecting to ${process.env.DB_HOST}`)
                 return {
                     type: 'postgres',
                     host: process.env.DB_HOST,

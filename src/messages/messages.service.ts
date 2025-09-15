@@ -1,4 +1,4 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { CreateMessageDto } from './dto/create-message.dto';
 import { UpdateMessageDto } from './dto/update-message.dto';
 import { Result } from "src/interfaces/result.interface";
@@ -15,22 +15,24 @@ import { MessageMention } from "./entities/message-mention.entity";
 import { AxiosResponse } from "axios";
 import { firstValueFrom } from "rxjs";
 import { HttpService } from "@nestjs/axios";
-import { ClientProxy, ClientProxyFactory, Transport } from "@nestjs/microservices";
+import { ClientGrpc, ClientProxy, ClientProxyFactory, Transport } from "@nestjs/microservices";
 import { GATEWAY_QUEUE, MESSAGE_RECEIVED } from "src/constants/message-broker";
 import { channel } from "diagnostics_channel";
 import { Payload } from "src/interfaces/payload.dto";
 import { ChannelResponseDTO } from "src/channels/dto/channel-response.dto";
+import { ChannelsService } from "src/grpc/channels.service";
 
 @Injectable()
 export class MessagesService {
-
+  private channelsGRPCService: ChannelsService;
   private gatewayMQ: ClientProxy;
   constructor(
     @InjectRepository(Message) private readonly messagesRepository: Repository<Message>,
     @InjectRepository(Attachment) private readonly attachmentsRepository: Repository<Attachment>,
     @InjectRepository(MessageMention) private readonly messageMentionsRepository: Repository<MessageMention>,
     private readonly storageService: StorageService,
-    private readonly channelsService: HttpService,
+    private readonly channelsService: HttpService, // should be moved to gRPC
+    @Inject('CHANNELS_SERVICE') private client: ClientGrpc
   ) {
     this.gatewayMQ = ClientProxyFactory.create({
       transport: Transport.RMQ,
@@ -114,6 +116,7 @@ export class MessagesService {
     const userIds = channelResponse.data.recipients.filter(r => r.id !== dto.senderId).map(r => r.id);
     try {
       this.gatewayMQ.emit(MESSAGE_RECEIVED, { recipients: userIds, data: data } as Payload<MessageResponseDTO>);
+      this.acknowledgeMessage(message.senderId, message.channelId, message.id);
     } catch (error) {
       console.error(error);
     }
@@ -200,9 +203,27 @@ export class MessagesService {
     return `This action removes a #${id} message`;
   }
 
+  async acknowledgeMessage(userId: string, channelId: string, messageId: string): Promise<Result<null>> {
+    const message = await this.messagesRepository.findOneBy({ id: messageId });
+    console.log('message ack', message);
+
+    if (message.channelId !== channelId) {
+      return {
+        status: HttpStatus.BAD_REQUEST,
+        data: null,
+        message: 'Invalid channel id'
+      };
+    }
+
+    const result = await firstValueFrom(this.channelsGRPCService.acknowledgeMessage({ userId, channelId, messageId }));
+    return result;
+  }
+
   onModuleInit() {
     createMap(mapper, CreateMessageDto, Message);
     createMap(mapper, Message, MessageResponseDTO);
     createMap(mapper, Attachment, AttachmentResponseDTO);
+
+    this.channelsGRPCService = this.client.getService<ChannelsService>('ChannelsService');
   }
 }
