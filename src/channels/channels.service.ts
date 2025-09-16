@@ -130,11 +130,7 @@ export class ChannelsService {
       };
     }
 
-    const channel = await this.channelsRepository
-      .createQueryBuilder('channel')
-      .leftJoinAndSelect('channel.recipients', 'recipients')
-      .where('channel.id = :channelId', { channelId: channelId })
-      .getOne();
+    const channel = await this.channelsRepository.findOne({where: {id: channelId}, relations: ['recipients']})
 
 
     if (!channel) {
@@ -154,8 +150,9 @@ export class ChannelsService {
     }
 
     try {
-      await this.channelsRepository.delete(channel);
+      await this.channelsRepository.delete({id: channel.id});
     } catch (error) {
+      console.error(error);
       return {
         status: HttpStatus.INTERNAL_SERVER_ERROR,
         data: null,
