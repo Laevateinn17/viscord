@@ -1,6 +1,6 @@
 import { Body, Controller, Inject, ValidationPipe } from '@nestjs/common';
 import { EventPattern } from "@nestjs/microservices";
-import { Payload } from "./dto/payload.dto";
+import { Payload } from "../interfaces/payload.dto";
 import { RelationshipResponseDTO } from "src/relationships/dto/relationship-response.dto";
 import { WsGateway } from "./ws.gateway";
 import { FRIEND_REQUEST_RECEIVED_EVENT } from "src/constants/events";

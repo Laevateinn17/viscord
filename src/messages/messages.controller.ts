@@ -1,7 +1,7 @@
 import { Controller } from '@nestjs/common';
 import { EventPattern } from "@nestjs/microservices";
 import { MESSAGE_RECEIVED_EVENT } from "src/constants/events";
-import { Payload } from "src/ws/dto/payload.dto";
+import { Payload } from "src/interfaces/payload.dto";
 import { WsGateway } from "src/ws/ws.gateway";
 
 @Controller('/ws/messages')

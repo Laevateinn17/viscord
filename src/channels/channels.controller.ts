@@ -2,7 +2,7 @@ import { Body, Controller, ValidationPipe } from '@nestjs/common';
 import { MessagePattern } from "@nestjs/microservices";
 import { CREATE_RTC_ANSWER, CREATE_RTC_OFFER, CREATE_SEND_TRANSPORT, GET_VOICE_RINGS_EVENT, GET_VOICE_STATES_EVENT, VOICE_RING_DISMISS_EVENT, VOICE_RING_EVENT, VOICE_UPDATE_EVENT } from "src/constants/events";
 import { UserTypingDTO } from "src/guilds/dto/user-typing.dto";
-import { Payload } from "src/ws/dto/payload.dto";
+import { Payload } from "src/interfaces/payload.dto";
 import { WsGateway } from "src/ws/ws.gateway";
 import { VoiceEventDTO } from "./dto/voice-event.dto";
 

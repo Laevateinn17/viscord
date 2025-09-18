@@ -1,8 +1,8 @@
 import { Body, Controller, Get, Inject, ValidationPipe } from '@nestjs/common';
 import { EventPattern, MessagePattern } from "@nestjs/microservices";
-import { FRIEND_ADDED_EVENT, FRIEND_REMOVED_EVENT, FRIEND_REQUEST_RECEIVED_EVENT, GET_USERS_STATUS_EVENT, GET_USERS_STATUS_RESPONSE_EVENT, USER_OFFLINE_EVENT, USER_ONLINE_EVENT } from "src/constants/events";
+import { FRIEND_ADDED_EVENT, FRIEND_REMOVED_EVENT, FRIEND_REQUEST_RECEIVED_EVENT, GET_USERS_PRESENCE_EVENT, GET_USERS_PRESENCE_RESPONSE_EVENT, USER_OFFLINE_EVENT, USER_ONLINE_EVENT } from "src/constants/events";
 import { RelationshipResponseDTO } from "./dto/relationship-response.dto";
-import { Payload } from "src/ws/dto/payload.dto";
+import { Payload } from "src/interfaces/payload.dto";
 import { WsGateway } from "src/ws/ws.gateway";
 
 @Controller('/ws/relationships')
@@ -42,4 +42,5 @@ export class RelationshipsController {
         console.log("USER OFFLINE", dto.recipients)
         this.gateway.handleUserOffline(dto);
     }
+
 }

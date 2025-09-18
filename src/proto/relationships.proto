@@ -4,6 +4,7 @@ package relationships;
 
 service RelationshipsService {
     rpc GetRelationships(GetRelationshipsRequest) returns (GetRelationshipsResponse);
+    rpc GetVisibleUsers(GetVisibleUsersRequest) returns (GetVisibleUsersResponse);
 }
 
 message GetRelationshipsRequest {
@@ -11,14 +12,22 @@ message GetRelationshipsRequest {
 }
 
 message GetRelationshipsResponse {
-    string status = 1;
-    string message = 2;
-    repeated Relationship data = 3;
+    int32 status = 1;
+    repeated Relationship data = 2;
+}
+
+message GetVisibleUsersRequest {
+    string userId = 1;
+}
+
+message GetVisibleUsersResponse {
+    int32 status = 1;
+    repeated string data = 2;
 }
 
 message Relationship {
     string id = 1;
-    string user = 2;
+    UserProfile user = 2;
     RelationshipType type = 3;
     string createdAt = 4;
     string updatedAt = 5;
@@ -30,4 +39,25 @@ enum RelationshipType {
     FRIENDS = 2;
     BLOCKED = 3;
     PENDING_RECEIVED = 4;
+}
+
+message UserProfile {
+    string id = 1;
+    string displayName = 2;
+    string username = 3;
+    string pronouns = 4;
+    string bio = 5;
+    UserStatus status = 6;
+    string avatarURL = 7;
+    string defaultAvatarURL = 8;
+    string createdAt = 9;
+    string updatedAt = 10;
+}
+
+enum UserStatus {
+    OFFLINE = 0;
+    ONLINE = 1;
+    INVISIBLE = 2;
+    IDLE = 3;
+    DO_NOT_DISTURB = 4;
 }
