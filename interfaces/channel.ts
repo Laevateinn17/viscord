@@ -10,7 +10,7 @@ export interface Channel {
     createdAt: Date;
     updatedAt: Date;
     parent?: Channel;
-    guild?: Guild;
+    guildId: string;
     recipients: UserProfile[]
     lastReadId?: string
 }

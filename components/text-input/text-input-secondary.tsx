@@ -19,10 +19,10 @@ const Container = styled.div`
     border: 1px solid var(--input-border);
     font-size: 16px;
     border-radius: 8px;
-
     min-width: 0;
     display: flex;
     align-items: center;
+    height: 100%;
 
     &.focus {
         outline: 1px solid var(--input-focused);

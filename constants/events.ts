@@ -19,8 +19,8 @@ export const GET_RELATIONSHIPS_EVENT = 'get_relationships';
 export const GET_GUILDS_EVENT = 'get_guilds';
 export const GET_DM_CHANNELS_EVENT = 'get_dm_channels'
 
-export const GET_USERS_STATUS_EVENT = 'get_users_status';
-export const GET_USERS_STATUS_RESPONSE_EVENT = 'get_users_status_response';
+export const GET_USERS_PRESENCE_EVENT = 'get_users_presence';
+export const GET_USERS_PRESENCE_RESPONSE_EVENT = 'get_users_presence_response';
 
 export const VOICE_RING_EVENT = 'voice_ring';
 export const VOICE_RING_DISMISS_EVENT = 'voice_ring_dismiss';

@@ -52,6 +52,7 @@ function MessageActionButton({ channel, relationship }: { channel?: Channel, rel
 export function OnlineFriendsTab({ relationships }: { relationships: Relationship[] }) {
     const { getFriendChannel} = useChannelsStore();
 
+    console.log('relationships', relationships)
     return (
         <Fragment>
             <FilterTypeContainer>{`Online — ${relationships.length}`}</FilterTypeContainer>

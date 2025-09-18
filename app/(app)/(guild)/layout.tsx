@@ -89,13 +89,13 @@ export default function Page({ children }: { children: ReactNode }) {
                             {guild?.channels.filter(ch => !ch.parent && ch.type !== ChannelType.Category).map(ch => {
                                 return (
                                     <div className="mt-[8px] px-[8px]" key={ch.id}>
-                                        <ChannelButton collapse={false} channel={{ ...ch, guild: guild }} />
+                                        <ChannelButton collapse={false} channel={ch} />
                                     </div>
                                 );
                             })}
                             {categories.sort((a, b) => a.createdAt > b.createdAt ? 1 : a.createdAt === b.createdAt ? 0 : -1).map(cat => {
                                 return <div className="px-[8px]" key={cat.id}>
-                                    <ChannelCategory channel={{ ...cat, guild: guild }} children={guild ? guild.channels.filter(ch => ch.parent && ch.parent.id === cat.id) : []}></ChannelCategory>
+                                    <ChannelCategory channel={cat} children={guild ? guild.channels.filter(ch => ch.parent && ch.parent.id === cat.id) : []}></ChannelCategory>
                                 </div>
                             })}
                         </div>

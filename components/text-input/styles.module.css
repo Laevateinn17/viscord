@@ -26,10 +26,8 @@
 .input-transparent {
     width: 100%;
     background-color: transparent;
-    padding: 12px 10px;
     font-size: 16px;
-    border-radius: 8px;
-
+    padding: 0 4px;
     min-width: 0;
     outline: none;
 }

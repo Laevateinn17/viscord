@@ -209,7 +209,17 @@ export default function Page() {
     // const [channel, setChannel] = useState<Channel>(getChannel(channelId as string)!);
     const channel = useGetChannel(channelId as string);
     const { data: messages } = useMessagesQuery(channelId! as string);
-    const [groupedMessages, setGroupedMessages] = useState<Record<string, Message[]> | undefined>();
+    const groupedMessages = messages?.reduce((groups, message) => {
+        const key = message.createdAt.toLocaleDateString();
+
+        if (!groups[key]) {
+            groups[key] = [];
+        }
+
+        groups[key].push(message);
+
+        return groups;
+    }, {} as Record<string, Message[]>);
     const [isPageReady, setIsPageReady] = useState(false);
     const queryClient = useQueryClient();
     const { user } = useCurrentUserStore();
@@ -307,20 +317,6 @@ export default function Page() {
         document.title = `Viscord | @${channel.recipients[0].displayName}`
     }, [channel]);
 
-
-    useEffect(() => {
-        setGroupedMessages(messages?.reduce((groups, message) => {
-            const key = message.createdAt.toLocaleDateString();
-
-            if (!groups[key]) {
-                groups[key] = [];
-            }
-
-            groups[key].push(message);
-
-            return groups;
-        }, {} as Record<string, Message[]>))
-    }, [messages]);
 
     useEffect(() => {
         if (channel && messages && user) {

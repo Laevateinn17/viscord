@@ -17,7 +17,7 @@ import { ContextMenuProvider } from "@/contexts/context-menu.context";
 import AppStateProvider, { useAppState } from "@/contexts/app-state.context";
 import SocketProvider, { useSocket } from "@/contexts/socket.context";
 import { UserPresenceProvider, useUserPresence } from "@/contexts/user-presence.context";
-import { CLIENT_READY_EVENT, GET_USERS_STATUS_EVENT, GET_USERS_STATUS_RESPONSE_EVENT } from "@/constants/events";
+import { CLIENT_READY_EVENT, GET_USERS_PRESENCE_EVENT, GET_USERS_PRESENCE_RESPONSE_EVENT } from "@/constants/events";
 import { UserProfile } from "@/interfaces/user-profile";
 import { unique } from "next/dist/build/utils";
 import { useGetUserProfile, useUserProfileStore } from "../stores/user-profiles-store";
@@ -358,16 +358,21 @@ function AppInitializer({ children }: { children: ReactNode }) {
             setUserProfiles(map);
             setCurrentUser(currentUser);
 
+            const presenceMap: Map<string, boolean> = new Map();
+
+            for (const user of data.presences) {
+                presenceMap.set(user, true);
+            }
+
+            setPresenceMap(presenceMap);
+
             const usersToCheck = Array.from(uniqueUsers.values());
-            socket.emit(GET_USERS_STATUS_EVENT, usersToCheck.map(u => u.id));
+            // socket.emit(GET_USERS_PRESENCE_EVENT, usersToCheck.map(u => u.id), (payload: Record<string, boolean>) => {
 
-            socket.on(GET_USERS_STATUS_RESPONSE_EVENT, (payload: Record<string, boolean>) => {
-
-                setPresenceMap(payload);
-                setIsFriendsStatusLoaded(true);
-                setIsLoading(false);
-            });
-
+            //     setPresenceMap(payload);
+            //     setIsFriendsStatusLoaded(true);
+            //     setIsLoading(false);
+            // });
             setIsLoading(false);
         });
 

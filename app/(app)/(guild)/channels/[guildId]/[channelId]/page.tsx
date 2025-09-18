@@ -20,7 +20,9 @@ import { Channel } from "@/interfaces/channel";
 import { LINE_HEIGHT, MAX_LINE_COUNT, VERTICAL_PADDING } from "@/constants/user-interface";
 import { sendTypingStatus } from "@/services/channels/channels.service";
 import { LoadingIndicator } from "@/components/loading-indicator/loading-indicator";
-import { useTypingUsersFromChannel } from "@/app/stores/user-typing-store";
+import { useIsUserTyping, useTypingUsersFromChannel, useUserTypingStore } from "@/app/stores/user-typing-store";
+import UserAvatar from "@/components/user-avatar/user-avatar";
+import { useUserPresenceStore } from "@/app/stores/user-presence-store";
 
 const ChatContainer = styled.div`
     display: flex;
@@ -147,6 +149,49 @@ const LastReadDividerLine = styled.div`
     }
 `
 
+const MemberListContainer = styled.div`
+    width: 264px;
+    border-left: 1px solid var(--border-faint);
+    padding-bottom: 10px;
+
+    h3 {
+        padding-top: 20px;
+        padding-left: 16px;
+        padding-right: 4px;
+        padding-bottom: 4px;
+
+        font-size: var(--text-sm);
+        color: var(--channels-default);
+    }
+`
+
+const MemberItem = styled.div`
+    display: flex;
+    margin-left: 8px;
+    padding-left: 8px;
+    padding-right: 16px;
+    border-radius: 8px;
+    align-items: center;
+    height: 42px;
+    color: var(--interactive-normal);
+    cursor: pointer;
+
+    &:hover {
+        color: var(--interactive-hover);
+        background: var(--background-mod-subtle);
+    }
+
+    &.active {
+        background: var(--background-modifier-selected);
+        color: var(--text-default);
+    }
+`
+
+const MemberName = styled.p`
+    font-weight: 500;
+    margin-right: 4px;
+`
+
 function LastReadDivider() {
     return (
         <LastReadDividerLine>
@@ -202,15 +247,29 @@ export default function Page() {
     const { user } = useCurrentUserStore();
     const router = useRouter();
     const { isPending, data: guild } = useGuildDetailQuery(guildId ? guildId.toString() : '');
-    const channel = guild?.channels.find(ch => ch.id == channelId)!;
+    const channel = guild?.channels.find(ch => ch.id == channelId);
     const { data: messages } = useMessagesQuery(channelId! as string);
-    const [groupedMessages, setGroupedMessages] = useState<Record<string, Message[]> | undefined>();
+    const groupedMessages = messages?.reduce((groups, message) => {
+        const key = message.createdAt.toLocaleDateString();
+
+        if (!groups[key]) {
+            groups[key] = [];
+        }
+
+        groups[key].push(message);
+
+        return groups;
+    }, {} as Record<string, Message[]>);
     const { getUserProfile } = useUserProfileStore();
     const { getChannel, updateChannel } = useChannelsStore();
+    const [showMemberList, setShowMemberList] = useState(true);
+    const { userProfiles } = useUserProfileStore();
     const queryClient = useQueryClient();
-
     const typingUsers = useTypingUsersFromChannel(channelId as string);
-
+    const { isUserTyping } = useUserTypingStore();
+    const { isUserOnline } = useUserPresenceStore();
+    const onlineMembers = channel ? channel.recipients.filter(re => isUserOnline(re.id)) : [];
+    const offlineMembers = channel ? channel.recipients.filter(re => !isUserOnline(re.id)) : [];
 
     async function handleSubmit(dto: CreateMessageDto) {
         const id = `pending-${messages!.length}`
@@ -283,7 +342,7 @@ export default function Page() {
 
     useEffect(() => {
         if (!guild) return;
-        document.title = `Viscord | ${guild.name}`
+        document.title = `Viscord | #${guild.name}`
     }, [guild]);
 
     if (isPending) {
@@ -291,52 +350,82 @@ export default function Page() {
     }
 
     if (!channel) {
-        return <div></div>
+        return <div>bingbong</div>
     }
 
 
     return (
         <div className="h-full flex flex-col">
-            <GuildChannelHeader channel={channel} />
-            <ChatContainer>
-                <MessagesContainer>
-                    {groupedMessages && Object.keys(groupedMessages).map((key) => {
-                        const messages = groupedMessages[key];
-                        return (
-                            <Fragment key={key}>
-                                {messages?.map(message => {
-                                    const index = messages.findIndex(m => m.id === message.id)
-                                    const prev = messages.at(index - 1);
-                                    const isSubsequent = index !== 0 && (message.createdAt.getMinutes() - prev!.createdAt.getMinutes()) < 5 && message.senderId === prev!.senderId;
-                                    return (
-                                        <Fragment key={message.id}>
-                                            {message.id === channel.lastReadId && index !== messages.length - 1 && <LastReadDivider />}
-                                            <MessageItem
-                                                message={{ ...message }}
-                                                isSubsequent={isSubsequent}
-                                                sender={getUserProfile(message.senderId)!} />
-                                        </Fragment>
-                                    )
-                                }).reverse()}
-                                <MessageDivider><p>{dateToShortDate(messages[0].createdAt)}</p></MessageDivider>
-                            </Fragment>)
-                    }).reverse()}
-                </MessagesContainer>
-                <ChatInputWrapper>
-                    <InputContainer>
-                        <UploadItemContainer><FaCirclePlus size={20} /></UploadItemContainer>
-                        <TextInputItem channel={channel} onSubmit={handleSubmit} />
-                    </InputContainer>
-                    {typingUsers.length > 0 &&
-                        <div className="ml-2 text-[12px] h-[24px] items-center flex absolute w-full">
-                            <span className="mr-2">
-                                <LoadingIndicator></LoadingIndicator>
-                            </span>
+            <GuildChannelHeader
+                channel={channel}
+                showMemberList={showMemberList}
+                onToggleMemberList={() => setShowMemberList(!showMemberList)} />
+            <div className="flex h-full">
+                <ChatContainer>
+                    <MessagesContainer>
+                        {groupedMessages && Object.keys(groupedMessages).map((key) => {
+                            const messages = groupedMessages[key];
+                            return (
+                                <Fragment key={key}>
+                                    {messages?.map(message => {
+                                        const index = messages.findIndex(m => m.id === message.id)
+                                        const prev = messages.at(index - 1);
+                                        const isSubsequent = index !== 0 && (message.createdAt.getMinutes() - prev!.createdAt.getMinutes()) < 5 && message.senderId === prev!.senderId;
+                                        return (
+                                            <Fragment key={message.id}>
+                                                {message.id === channel.lastReadId && index !== messages.length - 1 && <LastReadDivider />}
+                                                <MessageItem
+                                                    message={{ ...message }}
+                                                    isSubsequent={isSubsequent}
+                                                    sender={getUserProfile(message.senderId)!} />
+                                            </Fragment>
+                                        )
+                                    }).reverse()}
+                                    <MessageDivider><p>{dateToShortDate(messages[0].createdAt)}</p></MessageDivider>
+                                </Fragment>)
+                        }).reverse()}
+                    </MessagesContainer>
+                    <ChatInputWrapper>
+                        <InputContainer>
+                            <UploadItemContainer><FaCirclePlus size={20} /></UploadItemContainer>
+                            <TextInputItem channel={channel} onSubmit={handleSubmit} />
+                        </InputContainer>
+                        {typingUsers.length > 0 &&
+                            <div className="ml-2 text-[12px] h-[24px] items-center flex absolute w-full">
+                                <span className="mr-2">
+                                    <LoadingIndicator></LoadingIndicator>
+                                </span>
 
-                            <span className="font-bold">{formatTyping(typingUsers.map(tu => getUserProfile(tu.userId)!.displayName))}</span>&nbsp;is typing...
-                        </div>}
-                </ChatInputWrapper>
-            </ChatContainer>
+                                <span className="font-bold">{formatTyping(typingUsers.map(tu => getUserProfile(tu.userId)!.displayName))}</span>&nbsp;is typing...
+                            </div>}
+                    </ChatInputWrapper>
+                </ChatContainer>
+                {showMemberList &&
+                    <MemberListContainer>
+                        {onlineMembers.length > 0 &&
+                            <>
+                                <h3>Online — {onlineMembers.length}</h3>
+                                {onlineMembers.map(re => {
+                                    const recipient = userProfiles[channel.recipients[0].id];
+
+                                    return (
+                                        <MemberItem key={re.id} onClick={() => router.push(`/channels/me/${channel.id}`)}>
+                                            <div className="mr-[12px]">
+                                                <UserAvatar user={recipient} showStatus={true} isTyping={isUserTyping(channel.id, recipient.id)} />
+                                            </div>
+                                            <MemberName>{recipient.displayName}</MemberName>
+                                            {recipient.id === guild?.ownerId &&
+                                                <span className="text-[var(--text-warning)]">
+                                                    <svg aria-label="Server Owner" aria-hidden="false" role="img" xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24"><path fill="currentColor" d="M5 18a1 1 0 0 0-1 1 3 3 0 0 0 3 3h10a3 3 0 0 0 3-3 1 1 0 0 0-1-1H5ZM3.04 7.76a1 1 0 0 0-1.52 1.15l2.25 6.42a1 1 0 0 0 .94.67h14.55a1 1 0 0 0 .95-.71l1.94-6.45a1 1 0 0 0-1.55-1.1l-4.11 3-3.55-5.33.82-.82a.83.83 0 0 0 0-1.18l-1.17-1.17a.83.83 0 0 0-1.18 0l-1.17 1.17a.83.83 0 0 0 0 1.18l.82.82-3.61 5.42-4.41-3.07Z"></path></svg>
+                                                </span>
+                                            }
+                                        </MemberItem>
+                                    );
+                                })}
+                            </>}
+                    </MemberListContainer>
+                }
+            </div>
         </div>
     )
 }

@@ -1,7 +1,7 @@
 "use client"
 import PrimaryButton from "@/components/buttons/primary-button";
 import styled from "styled-components";
-import { FormEvent, Fragment, ReactNode, useEffect, useState } from "react";
+import { FormEvent, Fragment, ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { UserStatus, UserStatusString } from "@/enums/user-status.enum";
 import Relationship from "@/interfaces/relationship";
 import { acceptFriendRequest, addFriend, declineFriendRequest, getRelationships } from "@/services/relationships/relationships.service";
@@ -99,7 +99,7 @@ const FriendListContainer = styled.div`
 `
 interface TabItem<T> {
     id: string
-    filter: (rel: Relationship) => boolean
+    // filter: (rel: Relationship) => boolean
     type: T
     show: () => boolean
     button: ReactNode
@@ -107,15 +107,11 @@ interface TabItem<T> {
 
 export default function FriendListPage() {
     const [searchText, setSearchText] = useState('');
-    const [filteredRelationships, setFilteredRelationships] = useState<Relationship[]>([]);
-    const {isUserOnline} = useUserPresenceStore();
+    const { presenceMap } = useUserPresenceStore();
     const { data: relationships } = useRelationshipsQuery();
-
-
     const filterButtons: TabItem<any>[] = [
         {
             id: "online",
-            filter: (rel: Relationship) => isUserOnline(rel.user.id) && rel.type === RelationshipType.Friends,
             show: () => true,
             type: FriendsFilterButton,
             button:
@@ -123,7 +119,6 @@ export default function FriendListPage() {
         },
         {
             id: "all",
-            filter: (rel: Relationship) => rel.type === RelationshipType.Friends,
             show: () => true,
             type: FriendsFilterButton,
             button: (
@@ -132,7 +127,6 @@ export default function FriendListPage() {
         },
         {
             id: "pending",
-            filter: (rel: Relationship) => rel.type === RelationshipType.Pending || rel.type === RelationshipType.PendingReceived,
             show: () => relationships !== undefined && relationships!.filter(rel => rel.type === RelationshipType.Pending || rel.type === RelationshipType.PendingReceived).length > 0,
             type: FriendsFilterButton,
             button: (
@@ -146,30 +140,51 @@ export default function FriendListPage() {
         },
         {
             id: "add-friend",
-            filter: (rel: Relationship) => false,
             show: () => true,
             type: PrimaryButton,
             button: <p className="whitespace-nowrap">Add Friend</p>
         }
-    ]
+    ];
 
     const [activeTab, setActiveTab] = useState<TabItem<any>>(filterButtons[0]);
 
-    useEffect(() => {
-        if (!relationships) return;
+    const filterFunction = useCallback((rel: Relationship) => {
+        if (activeTab.id === 'online') {
+            return presenceMap.has(rel.user.id) && rel.type === RelationshipType.Friends;
+        }
+        else if (activeTab.id === 'all') {
+            console.log(rel.type === RelationshipType.Friends);
+            return rel.type === RelationshipType.Friends;
+        }
+        else if (activeTab.id === 'pending') {
+            return rel.type === RelationshipType.Pending || rel.type === RelationshipType.PendingReceived;
+        }
+
+        return false;
+    }, [presenceMap, relationships, activeTab]);
+
+    const filteredRelationships = useMemo(() => {
+        if (!relationships) return [];
+
         let rels = relationships;
 
         if (activeTab) {
-            rels = rels.filter(activeTab.filter);
-        }
-        rels = rels.filter(rel => rel.user.displayName.includes(searchText));
-        setFilteredRelationships(rels);
-
-        if (activeTab.id === 'pending' && rels.length === 0) {
-            setActiveTab(filterButtons.find(f => f.id === 'all') || filterButtons[0]);
+            rels = rels.filter(filterFunction);
         }
 
-    }, [activeTab, searchText, relationships])
+        console.log('rsfdsfl', rels)
+
+        if (searchText) {
+            rels = rels.filter(rel => rel.user.displayName.includes(searchText));
+        }
+
+        if (activeTab.id === "pending" && rels.length === 0) {
+            const allTab = filterButtons.find(f => f.id === "all") || filterButtons[0];
+            setActiveTab(allTab);
+        }
+
+        return rels;
+    }, [relationships, activeTab, searchText, presenceMap]);
 
     useEffect(() => {
         document.title = "Viscord | Friends";
@@ -207,7 +222,7 @@ export default function FriendListPage() {
             <div className="flex flex-col min-h-0">
                 <div className="w-full flex flex-col min-h-0">
                     {activeTab.id === 'add-friend' ?
-                        <AddFriendTab/>
+                        <AddFriendTab />
                         :
                         <Fragment>
                             <SearchBarContainer>
@@ -220,15 +235,15 @@ export default function FriendListPage() {
                             <FriendListContainer>
                                 {activeTab.id === "online" &&
                                     (
-                                        <OnlineFriendsTab relationships={filteredRelationships}/>
+                                        <OnlineFriendsTab relationships={filteredRelationships} />
                                     )}
                                 {activeTab.id === "all" &&
                                     (
-                                        <AllFriendsTab relationships={filteredRelationships}/>
+                                        <AllFriendsTab relationships={filteredRelationships} />
                                     )}
                                 {activeTab.id === "pending" &&
                                     (
-                                        <PendingRequestsTab relationships={filteredRelationships}/>
+                                        <PendingRequestsTab relationships={filteredRelationships} />
                                     )}
                             </FriendListContainer>
                         </Fragment>

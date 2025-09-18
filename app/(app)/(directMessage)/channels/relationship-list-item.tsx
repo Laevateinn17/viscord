@@ -1,5 +1,6 @@
 "use client"
 import { useUserPresenceStore } from "@/app/stores/user-presence-store";
+import { useGetUserProfile, useUserProfileStore } from "@/app/stores/user-profiles-store";
 import Tooltip from "@/components/tooltip/tooltip";
 import UserAvatar from "@/components/user-avatar/user-avatar";
 import { useContextMenu } from "@/contexts/context-menu.context";
@@ -53,19 +54,20 @@ const UsernameText = styled.div`
 export default function RelationshipListItem({ relationship, children }: { relationship: Relationship, children: ReactNode }) {
     const { showMenu, hideMenu } = useContextMenu();
     const { isUserOnline } = useUserPresenceStore();
+    const user = useGetUserProfile(relationship.user.id);
     return (
         <UserListItemContainer onContextMenu={(e) => showMenu(e, ContextMenuType.USER, relationship)}>
             <UserListItemWrapper>
                 <div className="flex items-center flex-1">
                     <div className="mr-[12px] bg-inherit">
-                        <UserAvatar user={relationship.user} showStatus={relationship.type !== RelationshipType.PendingReceived && relationship.type !== RelationshipType.Pending} />
+                        <UserAvatar user={user} showStatus={relationship.type !== RelationshipType.PendingReceived && relationship.type !== RelationshipType.Pending} />
                     </div>
                     <UserInfoContainer>
                         <div className="flex items-center">
-                            <p className="text-base leading-[20px] font-semibold">{relationship.user.displayName}</p>
-                            <UsernameText>{relationship.user.username}</UsernameText>
+                            <p className="text-base leading-[20px] font-semibold">{user.displayName}</p>
+                            <UsernameText>{user.username}</UsernameText>
                         </div>
-                        <p>{isUserOnline(relationship.user.id) ? UserStatusString[relationship.user.status] : UserStatusString[UserStatus.Offline]}</p>
+                        <p>{isUserOnline(user.id) ? UserStatusString[user.status] : UserStatusString[UserStatus.Offline]}</p>
                     </UserInfoContainer>
                 </div>
                 {children}

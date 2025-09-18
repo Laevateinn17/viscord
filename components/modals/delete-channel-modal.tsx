@@ -169,7 +169,7 @@ export function DeleteChannelModal({ channel, onClose }: { channel: Channel, onC
     const router = useRouter();
     const queryClient = useQueryClient();
     const { closeModal } = useModal();
-
+    const {data: guild} = useGuildDetailQuery(channel.guildId);
 
     async function handleCreateChannel() {
         setIsLoading(true);
@@ -180,7 +180,7 @@ export function DeleteChannelModal({ channel, onClose }: { channel: Channel, onC
             return;
         }
 
-        queryClient.setQueryData<Guild>([GUILDS_CACHE, channel.guild!.id], (old) => {
+        queryClient.setQueryData<Guild>([GUILDS_CACHE, channel.guildId], (old) => {
             if (!old) return old;
 
             return {
@@ -188,12 +188,12 @@ export function DeleteChannelModal({ channel, onClose }: { channel: Channel, onC
                 channels: [...old.channels.filter(ch => ch.id !== channel.id)]
             };
         })
-        const remainingChannels = channel.guild!.channels.filter(ch => ch.id !== channel.id && ch.type === ChannelType.Text);
+        const remainingChannels = guild?.channels.filter(ch => ch.id !== channel.id && ch.type === ChannelType.Text) ?? [];
 
         if (remainingChannels.length > 0) {
-            router.push(`/channels/${channel.guild!.id}/${remainingChannels[0].id}`);
+            router.push(`/channels/${guild!.id}/${remainingChannels[0].id}`);
         } else {
-            router.push(`/channels/${channel.guild!.id}`);
+            router.push(`/channels/${channel.guildId}`);
         }
 
         onClose();

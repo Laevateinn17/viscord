@@ -68,7 +68,7 @@ export function ChannelCategory({ channel, children }: { channel: Channel, child
                 </CategoryToggleContainer>
                 <div className="relative">
                     <CreateChannelButton
-                        onClick={ () => openModal(ModalType.CREATE_CHANNEL, {category: channel, guildId: channel.guild!.id})}
+                        onClick={ () => openModal(ModalType.CREATE_CHANNEL, {category: channel, guildId: channel.guildId})}
                         onMouseEnter={() => setHoverAddChannel(true)}
                         onMouseLeave={() => setHoverAddChannel(false)}>
                         <FaPlus size={13} />
@@ -84,7 +84,7 @@ export function ChannelCategory({ channel, children }: { channel: Channel, child
             <ChildrenContainer>
                 {children.map(ch => {
                     return (
-                        <ChannelButton collapse={collapse && !pathname.includes(ch.id)} key={ch.id} channel={{...ch, guild: channel.guild}} />
+                        <ChannelButton collapse={collapse && !pathname.includes(ch.id)} key={ch.id} channel={ch} />
                     )
                 })}
             </ChildrenContainer>
