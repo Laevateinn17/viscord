@@ -1,10 +1,11 @@
+import { useGuildsStore } from "@/app/stores/guilds-store";
 import { useContextMenu } from "@/contexts/context-menu.context";
 import { useModal } from "@/contexts/modal.context";
 import { ContextMenuType } from "@/enums/context-menu-type.enum";
 import { ModalType } from "@/enums/modal-type.enum";
 import { RelationshipType } from "@/enums/relationship-type.enum";
 import { useDeleteRelationshipMutation } from "@/hooks/mutations";
-import { useDMChannelsQuery, useGuildsQuery } from "@/hooks/queries";
+import { useDMChannelsQuery } from "@/hooks/queries";
 import { Guild } from "@/interfaces/guild";
 import Relationship from "@/interfaces/relationship";
 import { createDMChannel } from "@/services/channels/channels.service";
@@ -51,7 +52,7 @@ const Separator = styled.div`
 `
 
 function UserContextMenu({ relationship }: { relationship: Relationship }) {
-    const { data: guilds } = useGuildsQuery();
+    const { guilds } = useGuildsStore();
     const [showGuilds, setShowGuilds] = useState(false);
     const { mutate: removeFriend } = useDeleteRelationshipMutation();
     const { data: channels } = useDMChannelsQuery();
@@ -79,7 +80,7 @@ function UserContextMenu({ relationship }: { relationship: Relationship }) {
                         <FaAngleRight className="" size={14} />
                         {showGuilds && guilds && (
                             <ContextMenuContainer className="absolute left-full">
-                                {guilds.map(guild => {
+                                {Array.from(guilds.values()).map(guild => {
                                     return <ListItem key={guild.id}>{guild.name}</ListItem>
                                 })}
                             </ContextMenuContainer>

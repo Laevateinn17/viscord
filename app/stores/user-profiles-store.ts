@@ -41,7 +41,6 @@ export const useUserProfileStore = create<UserProfileStoreState>((set, get) => (
                 ...currentProfiles,
                 [userId]: {
                     ...currentProfiles[userId],
-                    isOnline: isOnline
                 }
             }
         })

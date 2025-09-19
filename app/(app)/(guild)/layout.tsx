@@ -3,7 +3,6 @@
 import SidebarContentContainer from "@/components/guild-sidebar/sidebar-content-container";
 import SidebarHeader from "@/components/guild-sidebar/sidebar-header";
 import { ChannelType } from "@/enums/channel-type.enum";
-import { useGuildDetailQuery, useRelationshipsQuery } from "@/hooks/queries";
 import { Channel } from "@/interfaces/channel";
 import { useParams, useRouter } from "next/navigation";
 import { Fragment, ReactNode, useEffect, useState } from "react";
@@ -16,6 +15,7 @@ import { useCurrentUserStore } from "@/app/stores/current-user-store";
 import ChannelButton from "./channel-button";
 import { useContextMenu } from "@/contexts/context-menu.context";
 import { ContextMenuType } from "@/enums/context-menu-type.enum";
+import { useGuildsStore } from "@/app/stores/guilds-store";
 
 const HeaderContainer = styled.div`
     padding: 12px 8px 12px 16px;
@@ -53,23 +53,19 @@ const SidebarContainer = styled.div`
 
 export default function Page({ children }: { children: ReactNode }) {
     const { guildId } = useParams();
-    const { isPending, data: guild, isError } = useGuildDetailQuery(guildId ? guildId.toString() : '');
+    const { getGuild } = useGuildsStore();
+    const guild = getGuild(guildId as string)
     const [categories, setCategories] = useState<Channel[]>([]);
     const router = useRouter();
-    const { user } = useCurrentUserStore();
     const { showMenu } = useContextMenu();
-    // const [prevTitle, setPrevTitle] = useState(document.title);
     useEffect(() => {
-        if (!guild) return;
+        if (!guild) {
+            router.push('channels/me');
+            return;
+        }
 
         setCategories(guild.channels.filter(ch => ch.type === ChannelType.Category));
     }, [guild])
-
-    useEffect(() => {
-        if (isError) {
-            router.push('/channels/me')
-        }
-    }, [isError])
 
 
     return (

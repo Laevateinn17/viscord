@@ -20,6 +20,7 @@ import { Guild } from "@/interfaces/guild";
 import { useGuildDetailQuery } from "@/hooks/queries";
 import { ModalType } from "@/enums/modal-type.enum";
 import DangerButton from "../buttons/danger-button";
+import { useGetGuild, useGuildsStore } from "@/app/stores/guilds-store";
 
 const ContentContainer = styled.div`
     background: var(--modal-background);
@@ -167,9 +168,9 @@ export function DeleteChannelModal({ channel, onClose }: { channel: Channel, onC
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | undefined>(undefined);
     const router = useRouter();
-    const queryClient = useQueryClient();
     const { closeModal } = useModal();
-    const {data: guild} = useGuildDetailQuery(channel.guildId);
+    const { removeGuild } = useGuildsStore();
+    const guild = useGetGuild(channel.guildId);
 
     async function handleCreateChannel() {
         setIsLoading(true);
@@ -180,14 +181,7 @@ export function DeleteChannelModal({ channel, onClose }: { channel: Channel, onC
             return;
         }
 
-        queryClient.setQueryData<Guild>([GUILDS_CACHE, channel.guildId], (old) => {
-            if (!old) return old;
-
-            return {
-                ...old,
-                channels: [...old.channels.filter(ch => ch.id !== channel.id)]
-            };
-        })
+        removeGuild(guild!.id);
         const remainingChannels = guild?.channels.filter(ch => ch.id !== channel.id && ch.type === ChannelType.Text) ?? [];
 
         if (remainingChannels.length > 0) {

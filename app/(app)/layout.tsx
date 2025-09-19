@@ -5,7 +5,7 @@ import { createContext, Dispatch, Fragment, ReactNode, SetStateAction, useContex
 import UserArea from "@/components/user-area/user-area";
 import SettingsPage from "@/components/settings-page/settings-page";
 import { isSet } from "util/types";
-import { useGuildsQuery, useMessagesQuery, useRelationshipsQuery } from "@/hooks/queries";
+import { useMessagesQuery } from "@/hooks/queries";
 import { FaCirclePlus, FaCompass } from "react-icons/fa6";
 import { HiDownload } from "react-icons/hi";
 import Tooltip from "@/components/tooltip/tooltip";
@@ -35,6 +35,8 @@ import { PiGithubLogoBold } from "react-icons/pi";
 import { BsGithub } from "react-icons/bs";
 import { ModalProvider, useModal } from "@/contexts/modal.context";
 import { ModalType } from "@/enums/modal-type.enum";
+import { useGuildsStore } from "../stores/guilds-store";
+import { Guild } from "@/interfaces/guild";
 
 interface HomeLayoutProps {
     children: ReactNode
@@ -247,7 +249,8 @@ function UnreadDMChannel({ channel, unreadCount }: { channel: Channel, unreadCou
 
 function GuildListSidebar() {
     const { openModal } = useModal();
-    const { data: guilds } = useGuildsQuery();
+    const { guilds } = useGuildsStore();
+
     const pathname = usePathname();
     const dmChannels = useGetDMChannels();
     const messagesPerChannel = useAllDMsMessages(dmChannels);
@@ -281,7 +284,7 @@ function GuildListSidebar() {
             <DMButton active={dmPaths.find(path => pathname.startsWith(path)) ? true : false} />
             {unreadDMs.length > 0 && unreadDMs.map((ch) => <UnreadDMChannel key={ch.id} channel={ch} unreadCount={getUnreadCount(ch)} />)}
             <div className={styles["horizontal-divider"]}></div>
-            {guilds && guilds.map(guild => {
+            {guilds && Array.from(guilds.values()).map(guild => {
                 const initials = guild.name.split(' ').map(s => s[0]).join(' ');
                 return (
                     <GuildIcon key={guild.id} guild={guild}>
@@ -322,6 +325,7 @@ function AppInitializer({ children }: { children: ReactNode }) {
     const { setPresenceMap } = useUserPresenceStore();
     const { setChannels } = useChannelsStore();
     const { setCurrentUser } = useCurrentUserStore();
+    const { setGuilds } = useGuildsStore();
 
 
     useEffect(() => {
@@ -335,7 +339,7 @@ function AppInitializer({ children }: { children: ReactNode }) {
                 .filter(Boolean) : [];
 
             const uniqueUsers = new Map<string, UserProfile>();
-            [...userProfiles, ...dmRecipients].forEach(user => {
+            [...userProfiles, ...dmRecipients, currentUser.profile].forEach(user => {
                 if (!uniqueUsers.has(user.id)) {
                     uniqueUsers.set(user.id, user);
                 }
@@ -366,13 +370,15 @@ function AppInitializer({ children }: { children: ReactNode }) {
 
             setPresenceMap(presenceMap);
 
-            const usersToCheck = Array.from(uniqueUsers.values());
-            // socket.emit(GET_USERS_PRESENCE_EVENT, usersToCheck.map(u => u.id), (payload: Record<string, boolean>) => {
+            const guildsMap: Map<string, Guild> = new Map();
 
-            //     setPresenceMap(payload);
-            //     setIsFriendsStatusLoaded(true);
-            //     setIsLoading(false);
-            // });
+            if (data.guilds) {
+                for (const guild of data.guilds) {
+                    guildsMap.set(guild.id, guild);
+                }
+            }
+
+            setGuilds(guildsMap);
             setIsLoading(false);
         });
 

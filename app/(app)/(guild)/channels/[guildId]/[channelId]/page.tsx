@@ -1,5 +1,5 @@
 "use client"
-import { useGuildDetailQuery, useMessagesQuery } from "@/hooks/queries";
+import { useMessagesQuery } from "@/hooks/queries";
 import { useParams, useRouter } from "next/navigation";
 import { Fragment, KeyboardEvent, useEffect, useState } from "react";
 import styled from "styled-components";
@@ -23,6 +23,7 @@ import { LoadingIndicator } from "@/components/loading-indicator/loading-indicat
 import { useIsUserTyping, useTypingUsersFromChannel, useUserTypingStore } from "@/app/stores/user-typing-store";
 import UserAvatar from "@/components/user-avatar/user-avatar";
 import { useUserPresenceStore } from "@/app/stores/user-presence-store";
+import { useGuildsStore } from "@/app/stores/guilds-store";
 
 const ChatContainer = styled.div`
     display: flex;
@@ -246,7 +247,9 @@ export default function Page() {
     const { guildId, channelId } = useParams();
     const { user } = useCurrentUserStore();
     const router = useRouter();
-    const { isPending, data: guild } = useGuildDetailQuery(guildId ? guildId.toString() : '');
+    const { getGuild } = useGuildsStore();
+    const guild = getGuild(guildId as string);
+
     const channel = guild?.channels.find(ch => ch.id == channelId);
     const { data: messages } = useMessagesQuery(channelId! as string);
     const groupedMessages = messages?.reduce((groups, message) => {
@@ -261,15 +264,15 @@ export default function Page() {
         return groups;
     }, {} as Record<string, Message[]>);
     const { getUserProfile } = useUserProfileStore();
-    const { getChannel, updateChannel } = useChannelsStore();
     const [showMemberList, setShowMemberList] = useState(true);
     const { userProfiles } = useUserProfileStore();
     const queryClient = useQueryClient();
     const typingUsers = useTypingUsersFromChannel(channelId as string);
     const { isUserTyping } = useUserTypingStore();
-    const { isUserOnline } = useUserPresenceStore();
+    const { presenceMap, isUserOnline } = useUserPresenceStore();
     const onlineMembers = channel ? channel.recipients.filter(re => isUserOnline(re.id)) : [];
     const offlineMembers = channel ? channel.recipients.filter(re => !isUserOnline(re.id)) : [];
+    console.log('online', onlineMembers, offlineMembers, presenceMap)
 
     async function handleSubmit(dto: CreateMessageDto) {
         const id = `pending-${messages!.length}`
@@ -340,15 +343,6 @@ export default function Page() {
     }
 
 
-    useEffect(() => {
-        if (!guild) return;
-        document.title = `Viscord | #${guild.name}`
-    }, [guild]);
-
-    if (isPending) {
-        return <p>Loading...</p>;
-    }
-
     if (!channel) {
         return <div>bingbong</div>
     }
@@ -406,6 +400,27 @@ export default function Page() {
                             <>
                                 <h3>Online — {onlineMembers.length}</h3>
                                 {onlineMembers.map(re => {
+                                    const recipient = userProfiles[channel.recipients[0].id];
+
+                                    return (
+                                        <MemberItem key={re.id} onClick={() => router.push(`/channels/me/${channel.id}`)}>
+                                            <div className="mr-[12px]">
+                                                <UserAvatar user={recipient} showStatus={true} isTyping={isUserTyping(channel.id, recipient.id)} />
+                                            </div>
+                                            <MemberName>{recipient.displayName}</MemberName>
+                                            {recipient.id === guild?.ownerId &&
+                                                <span className="text-[var(--text-warning)]">
+                                                    <svg aria-label="Server Owner" aria-hidden="false" role="img" xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24"><path fill="currentColor" d="M5 18a1 1 0 0 0-1 1 3 3 0 0 0 3 3h10a3 3 0 0 0 3-3 1 1 0 0 0-1-1H5ZM3.04 7.76a1 1 0 0 0-1.52 1.15l2.25 6.42a1 1 0 0 0 .94.67h14.55a1 1 0 0 0 .95-.71l1.94-6.45a1 1 0 0 0-1.55-1.1l-4.11 3-3.55-5.33.82-.82a.83.83 0 0 0 0-1.18l-1.17-1.17a.83.83 0 0 0-1.18 0l-1.17 1.17a.83.83 0 0 0 0 1.18l.82.82-3.61 5.42-4.41-3.07Z"></path></svg>
+                                                </span>
+                                            }
+                                        </MemberItem>
+                                    );
+                                })}
+                            </>}
+                        {offlineMembers.length > 0 &&
+                            <>
+                                <h3>Offline — {offlineMembers.length}</h3>
+                                {offlineMembers.map(re => {
                                     const recipient = userProfiles[channel.recipients[0].id];
 
                                     return (

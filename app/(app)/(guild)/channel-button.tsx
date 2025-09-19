@@ -1,8 +1,8 @@
+import { useGuildsStore } from "@/app/stores/guilds-store";
 import Tooltip from "@/components/tooltip/tooltip";
 import { useModal } from "@/contexts/modal.context";
 import { ChannelType } from "@/enums/channel-type.enum";
 import { ModalType } from "@/enums/modal-type.enum";
-import { useGuildDetailQuery } from "@/hooks/queries";
 import { Channel } from "@/interfaces/channel";
 import { usePathname, useRouter } from "next/navigation";
 import { Fragment, MouseEvent, MouseEventHandler, useEffect, useState } from "react";
@@ -85,7 +85,8 @@ export default function ChannelButton({ channel, collapse }: { channel: Channel,
 
     const [active, setActive] = useState(false);
     const { openModal } = useModal();
-    const { data: guild } = useGuildDetailQuery(channel.guildId);
+    const { getGuild } = useGuildsStore();
+    const guild = getGuild(channel.guildId);
 
     useEffect(() => {
         setActive(pathname.includes(channel.id));

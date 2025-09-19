@@ -13,6 +13,7 @@ import { updateStatus } from "@/services/user-profiles/user-profiles.service";
 import { useUpdateCurrentUser } from "@/hooks/queries";
 import { IoIosCopy } from "react-icons/io";
 import Tooltip from "../tooltip/tooltip";
+import { useCurrentUserStore } from "@/app/stores/current-user-store";
 
 
 const Container = styled.div`
@@ -206,7 +207,7 @@ function Header({ user }: { user: UserProfile }) {
 export const CurrentUserProfileCard = ({ user }: { user: UserProfile }) => {
     const [showChangeStatusContainer, setShowChangeStatusContainer] = useState(false);
     const [showCopyUsernameButton, setShowCopyUsernameButton] = useState(false);
-    const updateCurrentUser = useUpdateCurrentUser();
+    const { updateStatus: updateCurrentUserStatus } = useCurrentUserStore();
     const changeStatusContainerRef = useRef<HTMLDivElement>(null!);
     const [pos, setPos] = useState({ x: 0, y: 0 });
 
@@ -242,11 +243,11 @@ export const CurrentUserProfileCard = ({ user }: { user: UserProfile }) => {
     async function handleUpdateStatus(status: UserStatus) {
         const prevStatus = user.status;
         if (status == user.status) return;
-        updateCurrentUser({ profile: { ...user, status: status } });
+        updateCurrentUserStatus(status);
         const response = await updateStatus(status);
 
         if (!response.success) {
-            updateCurrentUser({ profile: { ...user, status: prevStatus } });
+            updateCurrentUserStatus(prevStatus);
         }
 
         setShowChangeStatusContainer(false);
