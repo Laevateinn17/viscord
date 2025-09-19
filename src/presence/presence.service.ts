@@ -40,7 +40,7 @@ export class PresenceService {
         try {
             const client = await this.redisService.getClient();
             const presences = await client.mGet(userIds.map(id => this.getUserPresenceKey(id)));
-            return presences.map(p => p ? p as string : null);
+            return presences.filter(p => typeof(p) === 'string');
             
         } catch (error) {
             console.error(error);
