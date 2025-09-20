@@ -39,6 +39,7 @@ message Channel {
   Guild guild = 8;
   repeated UserProfile recipients = 9;
   string lastReadId = 10;
+  string guildId = 11;
 }
 
 enum ChannelType {

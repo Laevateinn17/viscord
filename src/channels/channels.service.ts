@@ -342,21 +342,30 @@ export class ChannelsService {
   }
 
   async getChannelRecipients(channelId: string): Promise<string[]> {
+    const channel = await this.channelsRepository.findOne({where: {id: channelId}, relations: ['recipients']});
+
+    if (!channel) return [];
+    if (channel.type === ChannelType.DM) {
+      return channel.recipients.map(r => r.userId);
+    }
+    
     const guild = await this.guildsRepository
       .createQueryBuilder('guild')
       .leftJoinAndSelect('guild.channels', 'channel')
       .leftJoinAndSelect('guild.members', 'member')
-      .where('channel.id = :channelId', { channelId: channelId })
+      .where('channel.id = :channelId', { channelId })
       .getOne();
 
-    const members = guild.members.map(m => m.userId);
+    if (!guild) return [];
 
+    const members = guild.members.map(m => m.userId);
     //TODO permission based filter
 
     return members;
   }
 
   async isUserChannelParticipant(userId: string, channelId: string): Promise<Result<any>> {
+    console.log('sfsfdsfs')
     const channelRecipients = await this.getChannelRecipients(channelId);
 
     if (!channelRecipients.includes(userId)) {
