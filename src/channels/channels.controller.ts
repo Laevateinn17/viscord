@@ -1,7 +1,6 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Headers, ValidationPipe, Res, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Headers, ValidationPipe, Res, HttpStatus, Header } from '@nestjs/common';
 import { ChannelsService } from './channels.service';
 import { CreateChannelDTO } from './dto/create-channel.dto';
-import { UpdateChannelDto } from './dto/update-channel.dto';
 import { CreateDMChannelDTO } from "./dto/create-dm-channel.dto";
 import { Response } from "express";
 import { GrpcMethod, MessagePattern } from "@nestjs/microservices";
@@ -13,6 +12,8 @@ import { VoiceEventType } from "./enums/voice-event-type";
 import { RTCOfferDTO } from "./dto/rtc-offer.dto";
 import { ProducerCreatedDTO } from "./dto/producer-created.dto";
 import { GetDMChannelsDTO } from "./dto/get-dm-channels.dto";
+import { CreateInviteDto } from "src/invites/dto/create-invite.dto";
+import { UpdateChannelDTO } from "./dto/update-channel.dto";
 
 @Controller('guilds/:guildId/channels')
 export class GuildChannelsController {
@@ -35,10 +36,6 @@ export class GuildChannelsController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateChannelDto: UpdateChannelDto) {
   }
 
   @Delete(':id')
@@ -139,6 +136,31 @@ export class ChannelsController {
 
     const result = await this.channelsService.delete(userId, channelId);
     const { status } = result;
+
+    return res.status(status).json(result);
+  }
+
+  @Patch(":channelId")
+  async updateChannel(@Headers('X-User-Id') userId: string, @Param('channelId') channelId: string, @Res() res: Response, @Body(new ValidationPipe({transform: true})) dto: UpdateChannelDTO) {
+    dto.channelId = channelId;
+    
+    const result = await this.channelsService.update(userId, dto);
+    const { status } = result;
+
+    return res.status(status).json(result);
+  }
+
+  @Post(':channelId/invites')
+  async createOrGetInvite(@Headers('X-User-Id') userId: string, @Param('channelId') channelId: string, @Res() res: Response, @Body(new ValidationPipe({transform: true})) dto: CreateInviteDto) {
+    if (!userId || userId.length === 0) {
+      return res.status(HttpStatus.UNAUTHORIZED).send();
+    }
+
+    dto.inviterId = userId;
+    dto.channelId = channelId;
+
+    const result = await this.channelsService.createOrGetInvite(dto);
+    const {status} = result;
 
     return res.status(status).json(result);
   }

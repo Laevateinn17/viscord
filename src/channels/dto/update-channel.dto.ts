@@ -1,4 +1,8 @@
-import { PartialType } from '@nestjs/mapped-types';
-import { CreateChannelDTO } from './create-channel.dto';
+import { AutoMap } from "@automapper/classes";
 
-export class UpdateChannelDto extends PartialType(CreateChannelDTO) {}
+export class UpdateChannelDTO {
+    @AutoMap()
+    channelId: string;
+    @AutoMap()
+    name: string;
+}

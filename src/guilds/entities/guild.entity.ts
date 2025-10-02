@@ -2,6 +2,7 @@ import { Channel } from "src/channels/entities/channel.entity";
 import { Column, CreateDateColumn, Entity, JoinColumn, JoinTable, OneToMany, OneToOne, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm"
 import { GuildMember } from "./guild-members.entity";
 import { AutoMap } from "@automapper/classes";
+import { Invite } from "src/invites/entities/invite.entity";
 
 @Entity()
 export class Guild {
@@ -41,4 +42,8 @@ export class Guild {
     @AutoMap()
     @OneToMany(() => Channel, (channel) => channel.guild)
     channels: Channel[]
+
+    @AutoMap()
+    @OneToMany(() => Invite, (invite) => invite.guild)
+    invites: Invite[];
 }

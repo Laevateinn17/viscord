@@ -17,7 +17,7 @@ import { response } from "express";
 import { UserProfileResponseDTO } from "src/user-profiles/dto/user-profile-response.dto";
 import { UserProfile } from "aws-sdk/clients/opsworks";
 import { ClientGrpc, ClientProxy, ClientProxyFactory, GrpcMethod, Transport } from "@nestjs/microservices";
-import { CHANNEL_CREATED, CHANNEL_DELETED, CREATE_CONSUMER, CREATE_PRODUCER, CREATE_RTC_ANSWER, CREATE_RTC_OFFER, CREATE_TRANSPORT, GATEWAY_QUEUE, GET_VOICE_RINGS_EVENT, GET_VOICE_STATES_EVENT, PRODUCER_CREATED, USER_TYPING_EVENT, VOICE_RING_DISMISS_EVENT, VOICE_RING_EVENT, VOICE_UPDATE_EVENT } from "src/constants/events";
+import { CHANNEL_CREATED, CHANNEL_DELETED, CHANNEL_UPDATED, CREATE_CONSUMER, CREATE_PRODUCER, CREATE_RTC_ANSWER, CREATE_RTC_OFFER, CREATE_TRANSPORT, GATEWAY_QUEUE, GET_VOICE_RINGS_EVENT, GET_VOICE_STATES_EVENT, PRODUCER_CREATED, USER_TYPING_EVENT, VOICE_RING_DISMISS_EVENT, VOICE_RING_EVENT, VOICE_UPDATE_EVENT } from "src/constants/events";
 import { Payload } from "src/interfaces/payload.dto";
 import { UserTypingDTO } from "src/channels/dto/user-typing.dto";
 import { UserReadState } from "./entities/user-read-state.entity";
@@ -34,6 +34,12 @@ import { RTCOfferDTO } from "./dto/rtc-offer.dto";
 import { ProducerCreatedDTO } from "./dto/producer-created.dto";
 import { Guild } from "src/guilds/entities/guild.entity";
 import { UserProfilesService } from "src/user-profiles/grpc/user-profiles.service";
+import { Invite } from "src/invites/entities/invite.entity";
+import { channel } from "diagnostics_channel";
+import { InviteResponseDTO } from "src/invites/dto/invite-response.dto";
+import { InvitesService } from "src/invites/invites.service";
+import { CreateInviteDto } from "src/invites/dto/create-invite.dto";
+import { UpdateChannelDTO } from "./dto/update-channel.dto";
 
 @Injectable()
 export class ChannelsService {
@@ -47,6 +53,7 @@ export class ChannelsService {
     @InjectRepository(Channel) private readonly channelsRepository: Repository<Channel>,
     @InjectRepository(ChannelRecipient) private readonly channelRecipientRepository: Repository<ChannelRecipient>,
     @InjectRepository(UserReadState) private readonly userReadStateRepository: Repository<UserReadState>,
+    private readonly invitesService: InvitesService,
     @Inject('USERS_SERVICE') private usersGRPCClient: ClientGrpc
   ) {
     this.gatewayMQ = ClientProxyFactory.create({
@@ -76,6 +83,14 @@ export class ChannelsService {
         data: null,
         message: 'User is not permitted to create a channel for this guild'
       }
+    }
+
+    if (dto.name.length === 0) {
+      return {
+        status: HttpStatus.BAD_REQUEST,
+        data: null,
+        message: 'Must be between 1 and 100 in length. Channel name cannot be ""'
+      };
     }
 
     const channelToSave = mapper.map(dto, CreateChannelDTO, Channel);
@@ -342,13 +357,13 @@ export class ChannelsService {
   }
 
   async getChannelRecipients(channelId: string): Promise<string[]> {
-    const channel = await this.channelsRepository.findOne({where: {id: channelId}, relations: ['recipients']});
+    const channel = await this.channelsRepository.findOne({ where: { id: channelId }, relations: ['recipients'] });
 
     if (!channel) return [];
     if (channel.type === ChannelType.DM) {
       return channel.recipients.map(r => r.userId);
     }
-    
+
     const guild = await this.guildsRepository
       .createQueryBuilder('guild')
       .leftJoinAndSelect('guild.channels', 'channel')
@@ -816,8 +831,121 @@ export class ChannelsService {
       data: newState
     }
 
-    console.log('d');
     this.gatewayMQ.emit(VOICE_UPDATE_EVENT, { recipients: recipients, data: payload } as Payload<VoiceEventDTO>)
+  }
+
+  async createOrGetInvite(dto: CreateInviteDto): Promise<Result<InviteResponseDTO>> {
+    const channel = await this.channelsRepository.findOne({ where: { id: dto.channelId }, relations: ['recipients'] });
+
+    if (!channel) {
+      return {
+        status: HttpStatus.BAD_REQUEST,
+        data: null,
+        message: 'Channel not found'
+      }
+    }
+
+    if (channel.type === ChannelType.DM) {
+      return {
+        status: HttpStatus.NOT_IMPLEMENTED,
+        data: null,
+        message: 'This feature has not been implemented for DM channels'
+      }
+    }
+
+    const guild = await this.guildsRepository.findOneBy({ id: channel.guildId });
+    if (!guild) {
+      return {
+        status: HttpStatus.BAD_REQUEST,
+        data: null,
+        message: 'Guild not found'
+      }
+    }
+
+    // only guild owner is allowed for now
+    if (guild.ownerId !== dto.inviterId) {
+      return {
+        status: HttpStatus.FORBIDDEN,
+        data: null,
+        message: 'Only guild owner is allowed to perform this action'
+      }
+    }
+
+    const recipients = await this.getChannelRecipients(dto.channelId);
+    if (!recipients.includes(dto.inviterId)) {
+      return {
+        status: HttpStatus.FORBIDDEN,
+        data: null,
+        message: 'User is not channel recipient'
+      }
+    }
+
+    const inviteResponse = await this.invitesService.create(dto);
+
+    return inviteResponse;
+  }
+
+  async update(userId: string, dto: UpdateChannelDTO) {
+    if (!userId || !dto.channelId) {
+      return {
+        status: HttpStatus.BAD_REQUEST,
+        data: null,
+        message: "Channel id is empty"
+      };
+    }
+
+    const channel = await this.channelsRepository.findOne({ where: { id: dto.channelId }, relations: ['recipients'] })
+
+    if (!channel) {
+      return {
+        status: HttpStatus.BAD_REQUEST,
+        data: null,
+        message: "Channel does not exist"
+      };
+    }
+
+    if (channel.ownerId !== userId) {
+      return {
+        status: HttpStatus.FORBIDDEN,
+        data: null,
+        message: "User is not allowed to update this channel"
+      }
+    }
+
+    if (dto.name.length === 0) {
+      return {
+        status: HttpStatus.BAD_REQUEST,
+        data: null,
+        message: 'Must be between 1 and 100 in length. Channel name cannot be ""'
+      };
+    }
+
+    channel.name = dto.name;
+
+    try {
+      await this.channelsRepository.save(channel);
+    } catch (error) {
+      console.error(error);
+      return {
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        data: null,
+        message: "An error occurred while updating channel"
+      };
+    }
+
+    try {
+      this.gatewayMQ.emit(CHANNEL_UPDATED, { recipients: channel.recipients.map(r => r.userId).filter(id => id !== userId), data: { channelId: channel.id, guildId: channel.guildId } } as Payload<{ guildId: string, channelId: string }>);
+    } catch (error) {
+      console.error("Failed emitting channel delete update");
+    }
+
+    const payload = mapper.map(channel, Channel, ChannelResponseDTO)
+
+    return {
+      status: HttpStatus.OK,
+      data: channel,
+      message: "Channel updated successfully"
+    };
   }
 
 

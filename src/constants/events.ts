@@ -43,3 +43,4 @@ export const CREATE_CONSUMER = 'create_consumer';
 
 export const CHANNEL_CREATED = 'channel_created';
 export const CHANNEL_DELETED = 'channel_deleted';
+export const CHANNEL_UPDATED = 'channel_updated';

@@ -4,6 +4,7 @@ import { ChannelType } from "../enums/channel-type.enum";
 import { ChannelRecipient } from "./channel-recipient.entity";
 import { AutoMap } from "@automapper/classes";
 import { UserReadState } from "./user-read-state.entity";
+import { Invite } from "src/invites/entities/invite.entity";
 
 @Entity()
 export class Channel {
@@ -63,4 +64,7 @@ export class Channel {
 
     @OneToMany(() => UserReadState, (userReadState) => userReadState.channel)
     userReadState: UserReadState[]
+
+    @OneToMany(() => Invite, (invite) => invite.channel)
+    invites: Invite[]
 }
