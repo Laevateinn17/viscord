@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation"
 import { useModal } from "@/contexts/modal.context"
 import { ChannelOverviewSection } from "./channel-overview-section"
 import { useGuildsStore } from "@/app/stores/guilds-store"
+import { ChannelInvitesSection } from "./channel-invites-section"
 
 interface ChannelSettingsPageProps {
     guildId: string;
@@ -50,13 +51,12 @@ export default function ChannelSettingsPage({ channelId, guildId, show, onClose 
         },
         {
             id: "invites",
-            page: undefined,
+            page: <ChannelInvitesSection channelId={channelId} guildId={guildId}/>,
             element: <p>Invites</p>,
         },
     ];
 
     const [activeItem, setActiveItem] = useState<string>(sidebarItems[0].id);
-    const router = useRouter();
 
     function getActivePage(): ReactNode {
         const item = sidebarItems.find(i => i.id === activeItem);

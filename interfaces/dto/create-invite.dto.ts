@@ -1,5 +1,5 @@
 export interface CreateInviteDto {
     channelId?: string;
     guildId: string;
-    maxAge: number;
+    maxAge: number | null;
 }

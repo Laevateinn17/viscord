@@ -98,6 +98,7 @@
   --font-weight-medium: 500;
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
+  
 }
 
 @media (prefers-color-scheme: dark) {
