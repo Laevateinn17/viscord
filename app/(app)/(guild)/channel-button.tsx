@@ -1,15 +1,25 @@
+import { useVoiceEvents } from "@/app/(auth)/hooks/socket-events";
+import { useAppSettingsStore } from "@/app/stores/app-settings-store";
 import { useGuildsStore } from "@/app/stores/guilds-store";
+import { useMediasoupStore } from "@/app/stores/mediasoup-store";
+import { useUserProfileStore } from "@/app/stores/user-profiles-store";
+import { useGetChannelVoiceStates, useVoiceStateStore } from "@/app/stores/voice-state-store";
 import Tooltip from "@/components/tooltip/tooltip";
+import UserAvatar from "@/components/user-avatar/user-avatar";
 import { useModal } from "@/contexts/modal.context";
 import { ChannelType } from "@/enums/channel-type.enum";
 import { ModalType } from "@/enums/modal-type.enum";
+import { VoiceEventType } from "@/enums/voice-event-type";
 import { Channel } from "@/interfaces/channel";
+import { VoiceState } from "@/interfaces/voice-state";
+import { ringChannelRecipients } from "@/services/channels/channels.service";
+import { getImageURL } from "@/services/storage/storage.service";
 import { usePathname, useRouter } from "next/navigation";
 import { Fragment, MouseEvent, MouseEventHandler, useEffect, useState } from "react";
 import { PiHash } from "react-icons/pi";
 import styled from "styled-components";
 
-const Container = styled.div`
+const ButtonContainer = styled.div`
     display: flex;
     color: var(--channels-default);
     cursor: pointer;
@@ -28,6 +38,10 @@ const Container = styled.div`
         background-color: var(--background-modifier-selected);
         color: var(--text-primary);
     }
+`
+
+const Container = styled.div`
+
 `
 
 const ChannelInfo = styled.div`
@@ -49,6 +63,34 @@ const ActionButtonContainer = styled.div`
         display: flex;
     }
 `
+
+const VoiceStateContainer = styled.div`
+    padding: 0px 0px 8px 36px;
+`
+
+const AvatarImage = styled.img`
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+    border-radius: 50%;
+`
+
+const VoiceStateInfo = styled.div`
+    padding: 4px 8px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+`
+
+const VoiceStateDisplayName = styled.p`
+    color: var(--text-muted);
+    font-weight: var(--font-weight-medium);
+    font-size: var(--text-sm);
+    &.active {
+        color: white;
+    }
+`
+
 
 function CreateInviteButton({ onClick }: { onClick: (e: MouseEvent<HTMLDivElement>) => void }) {
     const [hover, setHover] = useState(false)
@@ -91,52 +133,91 @@ export default function ChannelButton({ channel, collapse }: { channel: Channel,
 
     const [active, setActive] = useState(false);
     const { openModal } = useModal();
+    const voiceStates = useGetChannelVoiceStates(channel.id);
+    const { activeSpeakers } = useMediasoupStore();
+    const { emitVoiceEvent } = useVoiceEvents();
+    const { mediaSettings } = useAppSettingsStore();
+    const { getUserProfile } = useUserProfileStore();
+
+    async function handleJoinVoiceCall() {
+        emitVoiceEvent(channel.id, VoiceEventType.VOICE_JOIN, {
+            isMuted: mediaSettings.isMuted,
+            isDeafened: mediaSettings.isDeafened
+        } as VoiceState)
+    }
 
     useEffect(() => {
         setActive(pathname.includes(channel.id));
-    }, [pathname])
+    }, [pathname]);
+
+    function onClick() {
+        if (channel.type === ChannelType.Text) {
+            router.push(`/channels/${channel.guildId}/${channel.id}`)
+        }
+        else if (channel.type === ChannelType.Voice) {
+            handleJoinVoiceCall();
+        }
+    }
+
     return (
-        <Container
-            className={`${collapse ? 'hidden' : ''} ${active ? 'active' : ''}`}
-            onMouseEnter={() => setHover(true)}
-            onMouseLeave={() => setHover(false)}
-            onClick={() => router.push(`/channels/${channel.guildId}/${channel.id}`)}>
-            {
-                channel.type === ChannelType.Text ?
-                    <Fragment>
-                        <ChannelInfo>
-                            <PiHash size={20} strokeWidth={5} />
-                            <p>{channel.name}</p>
-                        </ChannelInfo>
-                        <ActionButtonContainer className={`${hover || active ? 'active' : ''}`}>
-                            <CreateInviteButton onClick={(e) => {
-                                e.stopPropagation();
-                                openModal(ModalType.CREATE_INVITE, {channelId: channel.id, guildId: channel.guildId});
-                            }} />
-                            <EditChannelButton onClick={(e) => {
-                                e.stopPropagation();
-                                openModal(ModalType.CHANNEL_SETTINGS, { channelId: channel.id, guildId: channel.guildId })
-                            }} />
-                        </ActionButtonContainer>
-                    </Fragment>
-                    :
-                    <Fragment>
-                        <ChannelInfo>
-                            <svg aria-hidden="true" role="img" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24"><path fill="currentColor" d="M12 3a1 1 0 0 0-1-1h-.06a1 1 0 0 0-.74.32L5.92 7H3a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h2.92l4.28 4.68a1 1 0 0 0 .74.32H11a1 1 0 0 0 1-1V3ZM15.1 20.75c-.58.14-1.1-.33-1.1-.92v-.03c0-.5.37-.92.85-1.05a7 7 0 0 0 0-13.5A1.11 1.11 0 0 1 14 4.2v-.03c0-.6.52-1.06 1.1-.92a9 9 0 0 1 0 17.5Z"></path><path fill="currentColor" d="M15.16 16.51c-.57.28-1.16-.2-1.16-.83v-.14c0-.43.28-.8.63-1.02a3 3 0 0 0 0-5.04c-.35-.23-.63-.6-.63-1.02v-.14c0-.63.59-1.1 1.16-.83a5 5 0 0 1 0 9.02Z"></path></svg>
-                            <p>{channel.name}</p>
-                        </ChannelInfo>
-                        <ActionButtonContainer className={`${hover || active ? 'active' : ''}`}>
-                            <CreateInviteButton onClick={(e) => {
-                                e.stopPropagation();
-                                openModal(ModalType.CREATE_INVITE, {channelId: channel.id, guildId: channel.guildId});
-                            }} />
-                            <EditChannelButton onClick={(e) => {
-                                e.stopPropagation();
-                                openModal(ModalType.CHANNEL_SETTINGS, { channelId: channel.id, guildId: channel.guildId })
-                            }} />
-                        </ActionButtonContainer>
-                    </Fragment>
-            }
+        <Container>
+            <ButtonContainer
+                className={`${collapse ? 'hidden' : ''} ${active ? 'active' : ''}`}
+                onMouseEnter={() => setHover(true)}
+                onMouseLeave={() => setHover(false)}
+                onClick={onClick}>
+                {
+                    channel.type === ChannelType.Text ?
+                        <Fragment>
+                            <ChannelInfo>
+                                <PiHash size={20} strokeWidth={5} />
+                                <p>{channel.name}</p>
+                            </ChannelInfo>
+                            <ActionButtonContainer className={`${hover || active ? 'active' : ''}`}>
+                                <CreateInviteButton onClick={(e) => {
+                                    e.stopPropagation();
+                                    openModal(ModalType.CREATE_INVITE, { channelId: channel.id, guildId: channel.guildId });
+                                }} />
+                                <EditChannelButton onClick={(e) => {
+                                    e.stopPropagation();
+                                    openModal(ModalType.CHANNEL_SETTINGS, { channelId: channel.id, guildId: channel.guildId })
+                                }} />
+                            </ActionButtonContainer>
+                        </Fragment>
+                        :
+                        <Fragment>
+                            <ChannelInfo>
+                                <svg aria-hidden="true" role="img" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24"><path fill="currentColor" d="M12 3a1 1 0 0 0-1-1h-.06a1 1 0 0 0-.74.32L5.92 7H3a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h2.92l4.28 4.68a1 1 0 0 0 .74.32H11a1 1 0 0 0 1-1V3ZM15.1 20.75c-.58.14-1.1-.33-1.1-.92v-.03c0-.5.37-.92.85-1.05a7 7 0 0 0 0-13.5A1.11 1.11 0 0 1 14 4.2v-.03c0-.6.52-1.06 1.1-.92a9 9 0 0 1 0 17.5Z"></path><path fill="currentColor" d="M15.16 16.51c-.57.28-1.16-.2-1.16-.83v-.14c0-.43.28-.8.63-1.02a3 3 0 0 0 0-5.04c-.35-.23-.63-.6-.63-1.02v-.14c0-.63.59-1.1 1.16-.83a5 5 0 0 1 0 9.02Z"></path></svg>
+                                <p>{channel.name}</p>
+                            </ChannelInfo>
+                            <ActionButtonContainer className={`${hover || active ? 'active' : ''}`}>
+                                <CreateInviteButton onClick={(e) => {
+                                    e.stopPropagation();
+                                    openModal(ModalType.CREATE_INVITE, { channelId: channel.id, guildId: channel.guildId });
+                                }} />
+                                <EditChannelButton onClick={(e) => {
+                                    e.stopPropagation();
+                                    openModal(ModalType.CHANNEL_SETTINGS, { channelId: channel.id, guildId: channel.guildId })
+                                }} />
+                            </ActionButtonContainer>
+                        </Fragment>
+                }
+
+            </ButtonContainer>
+            {voiceStates.map(vs => {
+                const user = getUserProfile(vs.userId);
+                const isSpeaking = (voiceStates.find(vs => vs.userId === vs.userId) && activeSpeakers.has(vs.userId)) ?? false;
+                const avatarURL = user ? (user.avatarURL ? getImageURL('avatars', user?.avatarURL) : getImageURL('assets', user?.defaultAvatarURL)) : '';
+
+                return (
+                    <VoiceStateContainer key={vs.userId}>
+                        <VoiceStateInfo>
+                            {user && <AvatarImage crossOrigin="anonymous" src={avatarURL} className={`${isSpeaking ? 'ring-2 ring-green-500 shadow-lg shadow-green-500/30' : ''}`} />}
+                            <VoiceStateDisplayName className={`${isSpeaking && 'active'}`}>{user?.displayName}</VoiceStateDisplayName>
+                        </VoiceStateInfo>
+                    </VoiceStateContainer>
+                );
+            })}
         </Container>
     )
 }

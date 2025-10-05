@@ -1,3 +1,4 @@
+import { useMediasoupStore } from "@/app/stores/mediasoup-store";
 import { VOICE_RING_DISMISS_EVENT, VOICE_UPDATE_EVENT } from "@/constants/events";
 import { useSocket } from "@/contexts/socket.context";
 import { VoiceEventType } from "@/enums/voice-event-type";
@@ -10,7 +11,7 @@ export function useVoiceEvents(): VoiceEventsState {
     const { socket } = useSocket();
 
     const emitVoiceEvent = (channelId: string, type: VoiceEventType, data?: any) => {
-        socket?.emit(VOICE_UPDATE_EVENT, { channelId, type, data});
+        socket?.emit(VOICE_UPDATE_EVENT, { channelId, type, data });
     }
 
     return {
@@ -25,7 +26,7 @@ interface VoiceRingEventsState {
 export function useVoiceRingEvents(): VoiceRingEventsState {
     const { socket } = useSocket();
     const emitDismissVoiceRing = (channelId: string, userId: string) => {
-        socket?.emit(VOICE_RING_DISMISS_EVENT, { channelId , userId});
+        socket?.emit(VOICE_RING_DISMISS_EVENT, { channelId, userId });
     }
 
     return {

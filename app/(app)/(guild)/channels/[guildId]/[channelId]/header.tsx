@@ -274,7 +274,6 @@ function CallHeader({ channel }: { channel: Channel }) {
     const { mediaSettings } = useAppSettingsStore();
 
     async function handleJoinVoiceCall() {
-        const voiceStates = useGetChannelVoiceStates(channel.id);
         if (voiceStates.length === 0) await ringChannelRecipients(channel.id);
         emitVoiceEvent(channel.id, VoiceEventType.VOICE_JOIN, {
             isMuted: mediaSettings.isMuted,

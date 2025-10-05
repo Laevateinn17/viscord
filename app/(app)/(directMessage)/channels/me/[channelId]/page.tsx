@@ -258,7 +258,6 @@ export default function Page() {
         if (!isPageReady) return;
 
         const lastMessageId = messages && messages.length > 0 ? messages.length > 1 ? messages[messages!.length - 1].id : messages[0].id : null;
-
         if (lastMessageId && lastMessageId !== channel?.lastReadId) handleAcknowledgeMessage(channel!.id, lastMessageId);
 
     }, [isPageReady])

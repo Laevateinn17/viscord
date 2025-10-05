@@ -275,56 +275,6 @@ export default function Page() {
     const onlineMembers = channel ? channel.recipients.filter(re => isUserOnline(re.id)) : [];
     const offlineMembers = channel ? channel.recipients.filter(re => !isUserOnline(re.id)) : [];
 
-    // async function handleSubmit(dto: CreateMessageDto) {
-
-    //     queryClient.setQueryData<Message[]>([MESSAGES_CACHE, channelId], (old) => {
-    //         if (!old) {
-    //             return [];
-    //         }
-
-    //         const newMessages = [...old, message];
-
-    //         return newMessages;
-    //     })
-    //     const response = await sendMessage(dto);
-
-    //     if (!response.success) {
-    //         queryClient.setQueryData<Message[]>([MESSAGES_CACHE, channelId], (old) => {
-    //             if (!old) {
-    //                 return [];
-    //             }
-
-    //             const newMessages = [...old].map(m => {
-    //                 if (m.id === message.id) {
-    //                     m.status = MessageStatus.Error;
-    //                 }
-    //                 return m;
-    //             });
-    //             return newMessages;
-    //         })
-    //         return;
-    //     }
-
-    //     queryClient.setQueryData<Message[]>([MESSAGES_CACHE, channelId], (old) => {
-    //         if (!old) {
-    //             return [];
-    //         }
-    //         const data = response.data!;
-    //         data.createdAt = new Date(data.createdAt);
-
-    //         const newMessages = [...old].map(m => {
-    //             if (m.id === message.id) {
-    //                 return response.data!;
-    //             }
-    //             return m;
-    //         });
-    //         return newMessages;
-    //     });
-    //     if (!channel) return;
-    //     updateChannelLastRead(guildId as string, channelId as string, response.data!.id);
-    // }
-
-
     if (!channel) {
         return <div>bingbong</div>
     }

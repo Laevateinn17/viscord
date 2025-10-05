@@ -188,8 +188,10 @@ export function PeerConnectionManager() {
         const socket = io(process.env.NEXT_PUBLIC_SFU_SERVER);
         const user = useCurrentUserStore.getState().user;
         setSocket(socket);
+        console.log('creating socket', socket);
 
         const onRoomJoined = async ({ rtpCapabilities }: { rtpCapabilities: RtpCapabilities }) => {
+            console.log('setting device', channelId);
             startVAD();
             const device = new Device();
             await device.load({ routerRtpCapabilities: rtpCapabilities });
@@ -201,6 +203,7 @@ export function PeerConnectionManager() {
 
         socket.on('connect_error', (e) => console.log('connect error', e));
         socket.on('connect', () => {
+            console.log('peer socket connected')
             socket.emit(JOIN_ROOM, { channelId, userId: user.id }, onRoomJoined);
         });
     }
@@ -215,14 +218,24 @@ export function PeerConnectionManager() {
     const handleVoiceStateUpdate = async (event: VoiceEventDTO) => {
         const voiceStates = useGetChannelVoiceStates(event.channelId);
         const user = useCurrentUserStore.getState().user;
+        const { channelId: currentChannelId } = useMediasoupStore.getState();
+
         if (event.type == VoiceEventType.VOICE_LEAVE) {
-            if (event.userId === user?.id) {
+            if (event.userId === user?.id && event.channelId === currentChannelId) {
                 closeClient();
             }
             usePlaySound('voice-leave');
         }
         else if (event.type === VoiceEventType.VOICE_JOIN) {
             if (event.userId === user?.id) {
+                if (currentChannelId && currentChannelId != event.channelId) {
+                    const socket = useSocketStore.getState().socket;
+                    socket?.emit(VOICE_UPDATE_EVENT, {
+                        channelId: currentChannelId,
+                        type: VoiceEventType.VOICE_LEAVE
+                    } as VoiceEventDTO)
+                    await closeClient();
+                }
                 setupJoinCall(event.channelId);
             }
 
@@ -364,11 +377,11 @@ export function PeerConnectionManager() {
         }
     }
 
-    const closeClient = () => {
+    const closeClient = async () => {
         const { socket, cleanup } = useMediasoupStore.getState();
 
         socket?.emit(CLOSE_SFU_CLIENT);
-        cleanup();
+        await cleanup();
     }
 
     const handleCloseProducer = ({ producerId }: { producerId: string }) => {

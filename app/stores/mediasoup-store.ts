@@ -28,7 +28,7 @@ interface MediasoupStoreState {
   stopScreenShare: () => Promise<boolean>;
   resumeConsumer: (consumerId: string) => void;
   pauseConsumer: (consumerId: string) => void;
-  cleanup: () => void;
+  cleanup: () => Promise<void>;
 }
 
 export const useMediasoupStore = create<MediasoupStoreState>((set, get) => ({
@@ -144,5 +144,6 @@ export const useMediasoupStore = create<MediasoupStoreState>((set, get) => ({
       consumers: new Map(),
       channelId: undefined
     });
+    console.log('peer socket is now undefined');
   },
 }));
