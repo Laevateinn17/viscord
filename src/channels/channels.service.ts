@@ -115,11 +115,11 @@ export class ChannelsService {
 
     const payload = mapper.map(channelWithParent, Channel, ChannelResponseDTO);
 
-    const recipientResponse = await firstValueFrom(this.usersServiceGrpc.getUserProfiles({userIds: guild.members.map(m => m.userId)}));
+    const recipientResponse = await firstValueFrom(this.usersServiceGrpc.getUserProfiles({ userIds: guild.members.map(m => m.userId) }));
     if (recipientResponse.status === HttpStatus.OK) {
       payload.recipients = recipientResponse.data;
     }
-    
+
     try {
       this.gatewayMQ.emit(CHANNEL_CREATED, { recipients: guild.members.map(g => g.userId).filter(id => id !== userId), data: { guildId: guild.id, channel: payload } } as Payload<{ guildId: string, channel: ChannelResponseDTO }>);
     } catch (error) {
@@ -387,7 +387,6 @@ export class ChannelsService {
   }
 
   async isUserChannelParticipant(userId: string, channelId: string): Promise<Result<any>> {
-    console.log('sfsfdsfs')
     const channelRecipients = await this.getChannelRecipients(channelId);
 
     if (!channelRecipients.includes(userId)) {
@@ -648,11 +647,11 @@ export class ChannelsService {
 
 
   async handleVoiceJoin(dto: VoiceEventDTO) {
-    let channel = await this.channelsRepository
+    const channel: Channel = await this.channelsRepository
       .createQueryBuilder('channel')
-      .innerJoinAndSelect('channel.recipients', 'channel_recipient')
       .where('channel.id = :channelId', { channelId: dto.channelId })
       .getOne();
+
     if (!channel) {
       return {
         status: HttpStatus.BAD_REQUEST,
@@ -661,7 +660,9 @@ export class ChannelsService {
       };
     }
 
-    if (!channel.recipients.find(r => r.userId === dto.userId)) {
+    const recipients: string[] = await this.getChannelRecipients(channel.id)
+
+    if (!recipients.find(id => id === dto.userId)) {
       return {
         status: HttpStatus.FORBIDDEN,
         data: null,
@@ -675,14 +676,12 @@ export class ChannelsService {
     await client.sAdd(this.getVoiceChannelKey(dto.channelId), dto.userId);
     await this.handleDismissVoiceRing(dto.userId, dto.channelId);
 
-    const recipients = channel.recipients.map(r => r.userId);
     const payload: VoiceEventDTO = {
       channelId: state.channelId,
       userId: state.userId,
       type: VoiceEventType.VOICE_JOIN,
       data: state as VoiceStateDTO
     };
-    console.log('5')
 
     this.gatewayMQ.emit(VOICE_UPDATE_EVENT, { recipients: recipients, data: payload } as Payload<VoiceEventDTO>);
   }
@@ -690,7 +689,6 @@ export class ChannelsService {
   async handleVoiceLeave(dto: VoiceEventDTO) {
     let channel = await this.channelsRepository
       .createQueryBuilder('channel')
-      .innerJoinAndSelect('channel.recipients', 'channel_recipient')
       .where('channel.id = :channelId', { channelId: dto.channelId })
       .getOne();
     if (!channel) {
@@ -701,7 +699,9 @@ export class ChannelsService {
       };
     }
 
-    if (!channel.recipients.find(r => r.userId === dto.userId)) {
+    const recipients: string[] = await this.getChannelRecipients(channel.id);
+
+    if (!recipients.find(id => id === dto.userId)) {
       return {
         status: HttpStatus.FORBIDDEN,
         data: null,
@@ -719,7 +719,6 @@ export class ChannelsService {
       await this.clearChannelVoiceRings(dto.channelId);
     }
 
-    const recipients = channel.recipients.map(r => r.userId);
     const payload: VoiceEventDTO = {
       channelId: dto.channelId,
       userId: dto.userId,
@@ -930,7 +929,7 @@ export class ChannelsService {
     }
 
     const invites = await this.invitesService.getChannelInvites(channelId);
-    
+
     return invites;
   }
 
