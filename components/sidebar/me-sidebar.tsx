@@ -99,9 +99,13 @@ const Divider = styled.div`
     margin: 12px 8px;
 `
 
+const DMItemWrapper = styled.div`
+    padding-left: 8px;
+    position: relative;
+`
+
 const DMItemContainer = styled.div`
     display: flex;
-    margin-left: 8px;
     padding-left: 8px;
     padding-right: 16px;
     border-radius: 8px;
@@ -109,7 +113,6 @@ const DMItemContainer = styled.div`
     height: 42px;
     color: var(--interactive-normal);
     cursor: pointer;
-
     &:hover {
         color: var(--interactive-hover);
         background: var(--background-mod-subtle);
@@ -117,20 +120,55 @@ const DMItemContainer = styled.div`
 
     &.active {
         background: var(--background-modifier-selected);
-        color: var(--text-default);
+        color: var(--text-primary);
+    }
+
+    &.unread {
+        color: var(--text-primary);
     }
 `
 
 const DMRecipientName = styled.p`
     font-weight: 500;
+`
 
+const PillWrapper = styled.div`
+    position: absolute;
+    min-width: 8px;
+    display: flex;
+    align-items: center;
+    left: 0;
+    height: 100%;
+`
+const Pill = styled.div`
+    width: 4px;
+    background-color: white;
+    height: 20px;
+    border-top-right-radius: 8px;
+    border-bottom-right-radius: 8px;
+    transform: scale(0);
+    transition: all 150ms ease-in;
+
+    &.active {
+        height: 40px;
+        transform: scale(1);
+    }
+
+    &.hover {
+        transform: scale(1);
+    }
+
+    &.minimal {
+        transform: scale(1);
+        height: 10px;
+    }
 `
 export default function MeSidebarContent() {
     const pathname = usePathname();
     const router = useRouter();
     const { userProfiles } = useUserProfileStore();
     const { isUserTyping } = useUserTypingStore();
-    const {channels} = useChannelsStore();
+    const { channels } = useChannelsStore();
     const dmChannels = Array.from(channels.values()).filter(c => c.type === ChannelType.DM);
 
 
@@ -198,14 +236,22 @@ export default function MeSidebarContent() {
                         <DMListWrapper>
                             {dmChannels?.map((channel) => {
                                 const recipient = userProfiles[channel.recipients[0].id];
-
+                                const isActive = pathname === `/channels/me/${channel.id}`;
+                                const hasNewMessage = channel.userChannelState.unreadCount > 0;
                                 return (
-                                    <DMItemContainer className={`${pathname === `/channels/me/${channel.id}` ? "active" : ""}`} key={channel.id} onClick={() => router.push(`/channels/me/${channel.id}`)}>
-                                        <div className="mr-[12px]">
-                                            <UserAvatar user={recipient} showStatus={true} isTyping={isUserTyping(channel.id, recipient.id)}/>
-                                        </div>
-                                        <DMRecipientName>{recipient.displayName}</DMRecipientName>
-                                    </DMItemContainer>);
+                                    <DMItemWrapper>
+                                        <DMItemContainer className={`${isActive && 'active'} ${!isActive && hasNewMessage && 'unread'}`} key={channel.id} onClick={() => router.push(`/channels/me/${channel.id}`)}>
+                                            {!isActive && hasNewMessage &&
+                                                <PillWrapper>
+                                                    <Pill className="minimal" />
+                                                </PillWrapper>
+                                            }
+                                            <div className="mr-[12px]">
+                                                <UserAvatar user={recipient} showStatus={true} isTyping={isUserTyping(channel.id, recipient.id)} />
+                                            </div>
+                                            <DMRecipientName>{recipient.displayName}</DMRecipientName>
+                                        </DMItemContainer>
+                                    </DMItemWrapper>);
                             })}
                         </DMListWrapper>
                     </DMListContainer>
