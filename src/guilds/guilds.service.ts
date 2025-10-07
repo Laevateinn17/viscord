@@ -114,8 +114,20 @@ export class GuildsService {
       .leftJoinAndSelect('guild.members', 'member')
       .leftJoinAndSelect('guild.channels', 'channel')
       .leftJoinAndSelect('channel.parent', 'parent_channel')
-      .where('member.userId = :userId', { userId })
+      .where(qb => {
+        const subQuery = qb
+          .subQuery()
+          .select('gm.guildId')
+          .from('guild_member', 'gm')
+          .where('gm.userId = :userId')
+          .getQuery();
+
+        return 'guild.id IN ' + subQuery;
+      })
+      .setParameter('userId', userId)
       .getMany();
+
+    console.log(guilds[0].id, guilds[0].members)
 
     const result = await Promise.all(
       guilds.map(async (guild) => {
@@ -227,7 +239,7 @@ export class GuildsService {
       return {
         status: HttpStatus.INTERNAL_SERVER_ERROR,
         data: null,
-        message: 'An error occurred while saving new member' 
+        message: 'An error occurred while saving new member'
       };
     }
 
