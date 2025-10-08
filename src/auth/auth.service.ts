@@ -145,7 +145,7 @@ export class AuthService {
 
     if (!user) {
       return {
-        status: HttpStatus.BAD_REQUEST,
+        status: HttpStatus.UNAUTHORIZED,
         message: 'Login or password is invalid.',
         data: null
       };
