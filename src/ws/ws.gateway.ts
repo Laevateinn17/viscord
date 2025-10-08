@@ -4,7 +4,7 @@ import { RelationshipResponseDTO } from "src/relationships/dto/relationship-resp
 import { Body, Controller, HttpStatus, Inject, Injectable, OnModuleInit, ValidationPipe } from "@nestjs/common";
 import { Payload } from "../interfaces/payload.dto";
 import { ClientGrpc, ClientProxy, ClientProxyFactory, EventPattern, MessagePattern, Transport } from "@nestjs/microservices";
-import { CLIENT_READY_EVENT, FRIEND_ADDED_EVENT, FRIEND_REMOVED_EVENT, FRIEND_REQUEST_RECEIVED_EVENT, GET_DM_CHANNELS_EVENT, GET_USERS_PRESENCE_EVENT, GET_GUILDS_EVENT, GET_RELATIONSHIPS_EVENT, MESSAGE_RECEIVED_EVENT, USER_OFFLINE_EVENT, USER_ONLINE_EVENT, USER_QUEUE, USER_STATUS_UPDATE_EVENT, USER_TYPING_EVENT, VOICE_RING_EVENT, CHANNEL_QUEUE, VOICE_UPDATE_EVENT, GET_VOICE_STATES_EVENT, GET_VOICE_RINGS_EVENT, VOICE_RING_DISMISS_EVENT, CREATE_RTC_OFFER, CREATE_RTC_ANSWER, ICE_CANDIDATE, CREATE_SEND_TRANSPORT, CREATE_PRODUCER, CREATE_CONSUMER, CREATE_RECV_TRANSPORT, RESUME_CONSUMER, CONNECT_TRANSPORT, CLOSE_SFU_CLIENT, VOICE_MUTE, GET_USERS_PRESENCE_RESPONSE_EVENT } from "src/constants/events";
+import { CLIENT_READY_EVENT, FRIEND_ADDED_EVENT, FRIEND_REMOVED_EVENT, FRIEND_REQUEST_RECEIVED_EVENT, GET_DM_CHANNELS_EVENT, GET_GUILDS_EVENT, GET_RELATIONSHIPS_EVENT, MESSAGE_RECEIVED_EVENT, USER_OFFLINE_EVENT, USER_ONLINE_EVENT, USER_QUEUE, USER_STATUS_UPDATE_EVENT, USER_TYPING_EVENT, VOICE_RING_EVENT, CHANNEL_QUEUE, VOICE_UPDATE_EVENT, GET_VOICE_STATES_EVENT, GET_VOICE_RINGS_EVENT, VOICE_RING_DISMISS_EVENT, VOICE_MUTE, GUILD_UPDATE_EVENT } from "src/constants/events";
 import { UserStatusUpdateDTO } from "src/user-profiles/dto/user-status-update.dto";
 import { UserTypingDTO } from "src/guilds/dto/user-typing.dto";
 import { VoiceEventDTO } from "src/channels/dto/voice-event.dto";
@@ -149,13 +149,6 @@ export class WsGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayD
     if (recipients.length > 0) this.server.to(recipients).emit(MESSAGE_RECEIVED_EVENT, payload.data);
   }
 
-  @SubscribeMessage(GET_USERS_PRESENCE_EVENT)
-  async handleGetFriendsPresence(@ConnectedSocket() client: Socket) {
-    const userId = client.handshake.headers['x-user-id'] as string;
-
-    this.userMQ.emit(GET_USERS_PRESENCE_EVENT, userId);
-  }
-
   async handleUserStatusUpdate(payload: Payload<UserStatusUpdateDTO>) {
     const recipients = [];
     for (const recipient of payload.recipients) {
@@ -192,9 +185,8 @@ export class WsGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayD
   }
 
   @SubscribeMessage(VOICE_UPDATE_EVENT)
-  async handleVoiceJoin(@MessageBody() payload: any, @ConnectedSocket() client: Socket) {
+  async handleVoiceUpdate(@MessageBody() payload: any, @ConnectedSocket() client: Socket) {
     const userId = client.handshake.headers['x-user-id'] as string;
-    console.log('user ', userId, payload);
 
     this.channelMQ.emit(VOICE_UPDATE_EVENT, { ...payload, userId: userId });
   }
@@ -226,7 +218,7 @@ export class WsGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayD
       let userPresence: string[] = [];
 
       if (userIds.length > 0) {
-       userPresence = await this.presenceService.getUserPresence(userIds);
+        userPresence = await this.presenceService.getUserPresence(userIds);
       }
 
       this.channelMQ.emit(GET_VOICE_STATES_EVENT, userId);
@@ -293,11 +285,16 @@ export class WsGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayD
     if (response.status !== HttpStatus.OK) return;
   }
 
-  async handleForwardUserPresence(payload: Payload<string[]>) {
-    const recipient = payload.recipients[0];
-    const socketId = this.users.get(recipient);
+  async handleGuildUpdate(payload: Payload<any>) {
+    const recipients = payload.recipients;
+    for (const recipient of payload.recipients) {
+      const socketId = this.users.get(recipient);
+      if (socketId) {
+        recipients.push(socketId);
+      }
+    }
 
-    if (socketId) this.server.to(socketId).emit(GET_USERS_PRESENCE_RESPONSE_EVENT);
+    if (recipients.length > 0) this.server.to(recipients).emit(GUILD_UPDATE_EVENT, payload.data);
   }
 
   onModuleInit() {

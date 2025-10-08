@@ -25,7 +25,14 @@ message Guild {
   repeated Channel channels = 5;
   string createdAt = 6;
   string updatedAt = 7;
-  repeated UserProfile members = 8;
+  repeated GuildMember members = 8;
+  repeated Role roles = 9;
+}
+
+message UserChannelState {
+  string lastReadId = 1;
+  int32 unreadCount = 2;
+  int32 mentionCount = 3;
 }
 
 message Channel {
@@ -40,6 +47,9 @@ message Channel {
   repeated UserProfile recipients = 9;
   string lastReadId = 10;
   string guildId = 11;
+  UserChannelState userChannelState = 12;
+  repeated PermissionOverwrite permissionOverwrites = 13;
+  bool isSynced = 14;
 }
 
 enum ChannelType {
@@ -68,4 +78,28 @@ message UserProfile {
   string defaultAvatarURL = 8;
   string createdAt = 9;
   string updatedAt = 10;
+}
+
+message Role {
+  string id = 1;
+  string name = 2;
+  string permissions = 3;
+  int32 position = 4;
+  bool isHoisted = 5;
+  string guildId = 6;
+}
+
+message GuildMember {
+  string userId = 1;
+  repeated string roles = 2;
+  UserProfile profile = 3;
+}
+
+message PermissionOverwrite {
+  string id = 1;
+  string allow = 2;
+  string deny = 3;
+  string targetId = 4;
+  string targetType = 5;
+  string channelId = 6;
 }

@@ -1,6 +1,7 @@
 import { UserProfileResponseDTO } from "src/user-profiles/dto/user-profile-response.dto";
 import { AutoMap } from "@automapper/classes";
 import { ChannelType } from "../enums/channel-type.enum";
+import { UserChannelStateResponseDTO } from "./user-channel-state-response.dto";
 
 export class ChannelResponseDTO {
     @AutoMap()
@@ -27,7 +28,13 @@ export class ChannelResponseDTO {
     @AutoMap()
     guildId: string;
 
+    @AutoMap()
     recipients: UserProfileResponseDTO[];
 
-    lastReadId?: string;
+    @AutoMap()
+    lastMessageId?: string;
+
+    @AutoMap()
+    userChannelState?: UserChannelStateResponseDTO;
+
 }
