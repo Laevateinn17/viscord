@@ -1161,7 +1161,6 @@ export class ChannelsService {
   async updateChannelPermissionOverwrite(dto: UpdateChannelPermissionOverwriteDTO): Promise<Result<PermissionOverwriteResponseDTO>> {
     const channel = await this.channelsRepository.findOne({ where: { id: dto.channelId } });
 
-    console.log('1')
     if (!channel) {
       return {
         status: HttpStatus.BAD_REQUEST,
@@ -1169,9 +1168,18 @@ export class ChannelsService {
         message: 'Channel does not exist'
       }
     }
+
+    if (!channel.guildId) {
+      return {
+        status: HttpStatus.BAD_REQUEST,
+        data: null,
+        message: 'Cannot set permission for this channel'
+      }
+
+    }
+
     const basePermission = await this.guildsService.getBasePermission(dto.userId, channel.guildId);
 
-    console.log('2')
     if (!((basePermission & Permissions.MANAGE_CHANNELS) === Permissions.MANAGE_CHANNELS)) {
       return {
         status: HttpStatus.FORBIDDEN,
@@ -1180,8 +1188,28 @@ export class ChannelsService {
       };
     }
 
+    const guild = await this.guildsRepository.findOne({ where: { id: channel.guildId }, relations: ['roles', 'members'] });
+
+    if (dto.targetType === PermissionOverwriteTargetType.MEMBER) {
+      if (!guild.members.find(m => m.userId === dto.targetId)) {
+        return {
+          status: HttpStatus.BAD_REQUEST,
+          data: null,
+          message: 'Target user is not a member of this guild'
+        };
+      }
+    }
+    else {
+      if (!guild.roles.find(role => role.id === dto.targetId)) {
+        return {
+          status: HttpStatus.BAD_REQUEST,
+          data: null,
+          message: 'Invalid role'
+        };
+      }
+    }
+
     let overwrite = await this.permissionOverwritesRepository.findOneBy({ targetId: dto.targetId, channelId: dto.channelId });
-    console.log('3')
 
     if (!overwrite) {
       overwrite = new PermissionOverwrite();
@@ -1192,7 +1220,6 @@ export class ChannelsService {
     overwrite.allow = dto.allow;
     overwrite.deny = dto.deny;
 
-    console.log('4')
     try {
       await this.permissionOverwritesRepository.save(overwrite);
     } catch (error) {
@@ -1207,7 +1234,6 @@ export class ChannelsService {
     const overwrites = await this.permissionOverwritesRepository.findBy({ channelId: dto.channelId });
     const recipients = (await this.getMembersWithChannelPermissions(channel.guildId, channel.id, Permissions.VIEW_CHANNELS)).filter(m => m.userId === dto.userId).map(m => m.userId);
 
-    console.log('5')
     const overwritesDTO = overwrites.map(ow => mapper.map(ow, PermissionOverwrite, PermissionOverwriteResponseDTO));
 
     try {
