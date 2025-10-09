@@ -15,9 +15,6 @@ export class ChannelResponseDTO {
     type: ChannelType;
 
     @AutoMap()
-    isPrivate: boolean
-
-    @AutoMap()
     createdAt: Date;
 
     @AutoMap()

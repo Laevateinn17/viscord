@@ -25,13 +25,15 @@ import { Payload } from "src/interfaces/payload.dto";
 import { GuildUpdateDTO } from "./dto/guild-update.dto";
 import { GuildUpdateType } from "./enums/guild-update-type.enum";
 import { Role } from "src/roles/entities/role.entity";
-import { ALL_PERMISSIONS, Permissions } from "src/channels/enums/permissions.enum";
+import { ALL_PERMISSIONS, Permissions } from "src/guilds/enums/permissions.enum";
 import { RoleResponseDTO } from "src/channels/dto/role-response.dto";
 import { allowPermission } from "src/channels/helpers/permission.helper";
 import { UpdateRoleDTO } from "./dto/update-role.dto";
 import { AssignRoleDTO } from "./dto/assign-role.dto";
 import { GuildMemberResponseDTO } from "./dto/guild-member-response.dto";
 import { stat } from "fs";
+import { CheckPermissionDTO } from "./dto/check-permission.dto";
+import { deadlineToString } from "@grpc/grpc-js/build/src/deadline";
 
 @Injectable()
 export class GuildsService {
@@ -649,6 +651,21 @@ export class GuildsService {
       data: roleDTO,
       message: 'Role created successfully'
     }
+  }
+
+  async checkPermission(dto: CheckPermissionDTO) {
+    try {
+      const effectivePermission = await (dto.channelId ?
+        this.channelsService.getEffectivePermission(dto.userId, dto.guildId, dto.channelId) :
+        this.getBasePermission(dto.userId, dto.guildId));
+      console.log(effectivePermission & BigInt(dto.permission));
+      console.log((effectivePermission & BigInt(dto.permission)) === BigInt(dto.permission));
+      return (effectivePermission & BigInt(dto.permission)) === BigInt(dto.permission);
+    } catch (error) {
+      console.error(error)
+    }
+
+    return false;
   }
 
 

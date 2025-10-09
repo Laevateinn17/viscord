@@ -1,6 +1,7 @@
 import { Role } from "src/roles/entities/role.entity";
 import { PermissionOverwrite } from "../entities/permission-overwrite.entity";
 import { PermissionOverwriteTargetType } from "../enums/permission-overwrite-target-type.enum";
+import { every } from "rxjs";
 
 
 export function allowPermission(basePermission: bigint, permission: bigint) {

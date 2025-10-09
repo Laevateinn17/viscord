@@ -6,6 +6,8 @@ import { Response } from "express";
 import { GrpcMethod } from "@nestjs/microservices";
 import { UpdateRoleDTO } from "./dto/update-role.dto";
 import { AssignRoleDTO } from "./dto/assign-role.dto";
+import { CheckPermissionDTO } from "./dto/check-permission.dto";
+import { CheckPermissionResponseDTO } from "./dto/check-permission-response.dto";
 
 @Controller('guilds')
 export class GuildsController {
@@ -30,7 +32,7 @@ export class GuildsController {
   }
 
   @GrpcMethod('GuildsService', 'FindAll')
-  async findAllGrpc({userId}: {userId: string}) {
+  async findAllGrpc({ userId }: { userId: string }) {
     return await this.guildsService.findAll(userId);
   }
 
@@ -43,7 +45,7 @@ export class GuildsController {
   }
 
   @Post(':guildId/leave')
-  async leaveGuild(@Headers('X-User-Id') userId: string, @Param('guildId')guildId: string, @Res() res: Response) {
+  async leaveGuild(@Headers('X-User-Id') userId: string, @Param('guildId') guildId: string, @Res() res: Response) {
     const result = await this.guildsService.leaveGuild(userId, guildId);
     const { status } = result;
 
@@ -53,14 +55,14 @@ export class GuildsController {
   @Post('/:guildId/roles')
   async createRole(@Headers('X-User-Id') userId: string, @Param('guildId') guildId: string, @Res() res: Response) {
 
-    const result = await this.guildsService.createRole(userId, guildId  );
+    const result = await this.guildsService.createRole(userId, guildId);
     const { status } = result;
 
     return res.status(status).json(result);
   }
 
   @Patch('/:guildId/roles/:roleId')
-  async updateRole(@Headers('X-User-Id') userId: string, @Param('guildId') guildId: string, @Param('roleId') roleId: string, @Body(new ValidationPipe({transform: true})) dto: UpdateRoleDTO, @Res() res: Response) {
+  async updateRole(@Headers('X-User-Id') userId: string, @Param('guildId') guildId: string, @Param('roleId') roleId: string, @Body(new ValidationPipe({ transform: true })) dto: UpdateRoleDTO, @Res() res: Response) {
     dto.guildId = guildId;
     dto.id = roleId;
     dto.userId = userId;
@@ -71,7 +73,7 @@ export class GuildsController {
   }
 
   @Patch('/:guildId/roles/:roleId/members')
-  async assignRole(@Headers('X-User-Id') userId: string, @Param('guildId') guildId: string, @Param('roleId') roleId: string, @Body(new ValidationPipe({transform: true})) dto: AssignRoleDTO, @Res() res: Response) {
+  async assignRole(@Headers('X-User-Id') userId: string, @Param('guildId') guildId: string, @Param('roleId') roleId: string, @Body(new ValidationPipe({ transform: true })) dto: AssignRoleDTO, @Res() res: Response) {
     dto.guildId = guildId;
     dto.roleId = roleId;
     dto.assignerId = userId;
@@ -79,6 +81,10 @@ export class GuildsController {
     const { status } = result;
 
     return res.status(status).json(result);
+  }
 
+  @GrpcMethod('GuildsService', 'CheckPermission')
+  async checkPermission(dto: CheckPermissionDTO): Promise<CheckPermissionResponseDTO> {
+    return { isAllowed: await this.guildsService.checkPermission(dto) };
   }
 }

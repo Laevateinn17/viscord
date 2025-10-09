@@ -29,10 +29,6 @@ export class Channel {
     type: ChannelType;
 
     @AutoMap()
-    @Column({ default: false })
-    isPrivate: boolean;
-
-    @AutoMap()
     @Column({ name: 'parent_id', nullable: true })
     parentId?: string;
 

@@ -6,18 +6,18 @@ export class PermissionOverwriteResponseDTO {
     id: string;
 
     @AutoMap()
-    allow: bigint;
+    allow: string;
 
     @AutoMap()
-    deny: bigint;
+    deny: string;
 
     @AutoMap()
-    targetId: string
+    targetId: string;
 
     @AutoMap()
-    targetType: PermissionOverwriteTargetType
+    targetType: PermissionOverwriteTargetType;
 
     @AutoMap()
-    channelId: string
+    channelId: string;
 
 }

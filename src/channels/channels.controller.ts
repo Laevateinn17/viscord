@@ -16,6 +16,7 @@ import { CreateInviteDto } from "src/invites/dto/create-invite.dto";
 import { UpdateChannelDTO } from "./dto/update-channel.dto";
 import { MessageCreatedDTO } from "./dto/message-created.dto";
 import { UpdateChannelPermissionOverwriteDTO } from "./dto/update-channel-permission.dto";
+import { MessageResponseDTO } from "src/messages/dto/message-response.dto";
 
 @Controller('guilds/:guildId/channels')
 export class GuildChannelsController {
@@ -203,8 +204,8 @@ export class ChannelsController {
   }
 
   @GrpcMethod('ChannelsService', 'GetChannelById')
-  async getChannelById({ channelId }: { channelId: string }) {
-    return await this.channelsService.getChannelById(channelId);
+  async getChannelById({ userId, channelId }: {userId: string, channelId: string }) {
+    return await this.channelsService.getChannelById(userId, channelId);
   }
 
   @GrpcMethod('ChannelsService', 'IsUserChannelParticipant')
@@ -213,7 +214,7 @@ export class ChannelsController {
   }
 
   @MessagePattern(MESSAGE_CREATED)
-  async incrementUnreadCount(@Body(new ValidationPipe({ transform: true })) dto: MessageCreatedDTO) {
+  async incrementUnreadCount(@Body(new ValidationPipe({ transform: true })) dto: MessageResponseDTO) {
     await this.channelsService.onMessageCreated(dto);
   }
 }

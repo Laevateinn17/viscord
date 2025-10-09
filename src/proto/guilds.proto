@@ -5,6 +5,7 @@ package guilds;
 
 service GuildsService {
     rpc FindAll(FindAllRequest) returns (FindAllResponse);
+    rpc CheckPermission(CheckPermissionRequest) returns (CheckPermissionResponse);
 }
 
 message FindAllRequest {
@@ -14,6 +15,17 @@ message FindAllRequest {
 message FindAllResponse {
     int32 status = 1;
     repeated Guild data = 2;
+}
+
+message CheckPermissionRequest {
+  string userId = 1;
+  string guildId = 2;
+  string channelId = 3;
+  string permission = 4;
+}
+
+message CheckPermissionResponse {
+  bool isAllowed = 1;
 }
 
 
@@ -39,7 +51,6 @@ message Channel {
   string id = 1;
   string name = 2;
   ChannelType type = 3;
-  bool isPrivate = 4;
   string createdAt = 5;
   string updatedAt = 6;
   Channel parent = 7;
