@@ -11,7 +11,7 @@ import { Channel } from "./entities/channel.entity";
 import { InjectRepository } from "@nestjs/typeorm";
 import { ChannelRecipient } from "./entities/channel-recipient.entity";
 import { mapper } from "src/mappings/mappers";
-import { createMap } from "@automapper/core";
+import { createMap, forMember, mapFrom } from "@automapper/core";
 import { ChannelType } from "./enums/channel-type.enum";
 import { UserProfileResponseDTO } from "src/user-profiles/dto/user-profile-response.dto";
 import { ClientGrpc, ClientProxy, ClientProxyFactory, GrpcMethod, Transport } from "@nestjs/microservices";
@@ -40,7 +40,7 @@ import { MessageCreatedDTO } from "./dto/message-created.dto";
 import { GuildUpdateDTO } from "src/guilds/dto/guild-update.dto";
 import { GuildUpdateType } from "src/guilds/enums/guild-update-type.enum";
 import { Role } from "src/roles/entities/role.entity";
-import { RoleResponseDTO } from "./dto/role-response.dto";
+import { RoleResponseDTO } from "../guilds/dto/role-response.dto";
 import { PermissionOverwrite } from "./entities/permission-overwrite.entity";
 import { PermissionOverwriteResponseDTO } from "./dto/permission-overwrite-response.dto";
 import { GuildsService } from "src/guilds/guilds.service";
@@ -517,6 +517,26 @@ export class ChannelsService {
   }
 
   async acknowledgeMessage(dto: AcknowledgeMessageDTO): Promise<Result<null>> {
+    const channel = await this.channelsRepository.findOneBy({id: dto.channelId});
+
+    if (!channel) {
+      return {
+        status: HttpStatus.BAD_REQUEST,
+        data: null,
+        message: 'Channel does not exist'
+      }
+    }
+
+    const effectivePermission = await this.getEffectivePermission(dto.userId, dto.channelId, channel.guildId);
+
+    if (!((effectivePermission & Permissions.VIEW_CHANNELS) === Permissions.VIEW_CHANNELS)) {
+      return {
+        status: HttpStatus.FORBIDDEN,
+        data: null,
+        message: 'User does not have permission to read message'
+      };
+    }
+    
     let userReadState = await this.userChannelStatesRepository.findOne({ where: { userId: dto.userId, channelId: dto.channelId } })
 
     if (!userReadState) {
@@ -1082,8 +1102,8 @@ export class ChannelsService {
 
     let recipients: string[] = [];
 
-    if (channel.type === ChannelType.DM) recipients = channel.recipients.map(r => r.userId);
-    else recipients = (await this.getMembersWithChannelPermissions(channel.guildId, channel.id, Permissions.VIEW_CHANNELS)).map(m => m.userId);
+    if (channel.type === ChannelType.DM) recipients = channel.recipients.map(r => r.userId).filter(userId => userId !== dto.senderId);
+    else recipients = (await this.getMembersWithChannelPermissions(channel.guildId, channel.id, Permissions.VIEW_CHANNELS)).map(m => m.userId).filter(userId => userId !== dto.senderId);
 
     const redisClient = await this.redisService.getClient();
     for (const userId of recipients) {
@@ -1286,7 +1306,15 @@ export class ChannelsService {
     createMap(mapper, CreateChannelDTO, Channel);
     createMap(mapper, Channel, ChannelResponseDTO);
     createMap(mapper, UserChannelState, UserChannelStateResponseDTO);
-    createMap(mapper, Role, RoleResponseDTO);
-    createMap(mapper, PermissionOverwrite, PermissionOverwriteResponseDTO);
+    createMap(mapper, PermissionOverwrite, PermissionOverwriteResponseDTO,
+      forMember(
+        dest => dest.allow,
+        mapFrom(src => src.allow.toString())
+      ),
+      forMember(
+        dest => dest.deny,
+        mapFrom(src => src.deny.toString())
+      )
+    );
   }
 }

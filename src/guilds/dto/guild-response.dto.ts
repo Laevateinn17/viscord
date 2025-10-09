@@ -1,6 +1,6 @@
 import { AutoMap } from "@automapper/classes";
 import { ChannelResponseDTO } from "src/channels/dto/channel-response.dto";
-import { RoleResponseDTO } from "src/channels/dto/role-response.dto";
+import { RoleResponseDTO } from "src/guilds/dto/role-response.dto";
 import { GuildMemberResponseDTO } from "./guild-member-response.dto";
 
 export class GuildResponseDTO {

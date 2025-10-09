@@ -10,7 +10,7 @@ export class Role {
 
     @AutoMap()
     @Column()
-    name: string
+    name: string;
 
     @AutoMap()
     @Column({

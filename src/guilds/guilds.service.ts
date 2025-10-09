@@ -26,7 +26,7 @@ import { GuildUpdateDTO } from "./dto/guild-update.dto";
 import { GuildUpdateType } from "./enums/guild-update-type.enum";
 import { Role } from "src/roles/entities/role.entity";
 import { ALL_PERMISSIONS, Permissions } from "src/guilds/enums/permissions.enum";
-import { RoleResponseDTO } from "src/channels/dto/role-response.dto";
+import { RoleResponseDTO } from "src/guilds/dto/role-response.dto";
 import { allowPermission } from "src/channels/helpers/permission.helper";
 import { UpdateRoleDTO } from "./dto/update-role.dto";
 import { AssignRoleDTO } from "./dto/assign-role.dto";
@@ -34,6 +34,8 @@ import { GuildMemberResponseDTO } from "./dto/guild-member-response.dto";
 import { stat } from "fs";
 import { CheckPermissionDTO } from "./dto/check-permission.dto";
 import { deadlineToString } from "@grpc/grpc-js/build/src/deadline";
+import { PermissionOverwrite } from "src/channels/entities/permission-overwrite.entity";
+import { PermissionOverwriteResponseDTO } from "src/channels/dto/permission-overwrite-response.dto";
 
 @Injectable()
 export class GuildsService {
@@ -149,11 +151,12 @@ export class GuildsService {
   async findAll(userId: string): Promise<Result<GuildResponseDTO[]>> {
     const guilds = await this.guildsRepository
       .createQueryBuilder('guild')
-      .leftJoinAndSelect('guild.members', 'member')
-      .leftJoinAndSelect('member.roles', 'member_roles')
+      .leftJoinAndSelect('guild.members', 'members')
+      .leftJoinAndSelect('members.roles', 'member_roles')
       .leftJoinAndSelect('guild.channels', 'channel')
       .leftJoinAndSelect('guild.roles', 'roles')
       .leftJoinAndSelect('channel.parent', 'parent_channel')
+      .leftJoinAndSelect('channel.permissionOverwrites', 'permission_overwrites')
       .where(qb => {
         const subQuery = qb
           .subQuery()
@@ -193,17 +196,18 @@ export class GuildsService {
 
             const userChannelStateResponse = await this.channelsService.getUserChannelState(userId, channel.id);
             channel.userChannelState = userChannelStateResponse.data;
+            channel.permissionOverwrites = ch.permissionOverwrites.map(ow => mapper.map(ow, PermissionOverwrite, PermissionOverwriteResponseDTO))
 
             return channel;
           }),
         );
-
 
         data.roles = guild.roles.map(role => mapper.map(role, Role, RoleResponseDTO));
 
         return data;
       }),
     );
+
 
     return {
       status: HttpStatus.OK,
@@ -658,8 +662,6 @@ export class GuildsService {
       const effectivePermission = await (dto.channelId ?
         this.channelsService.getEffectivePermission(dto.userId, dto.guildId, dto.channelId) :
         this.getBasePermission(dto.userId, dto.guildId));
-      console.log(effectivePermission & BigInt(dto.permission));
-      console.log((effectivePermission & BigInt(dto.permission)) === BigInt(dto.permission));
       return (effectivePermission & BigInt(dto.permission)) === BigInt(dto.permission);
     } catch (error) {
       console.error(error)
@@ -674,12 +676,9 @@ export class GuildsService {
   }
 
   onModuleInit() {
-
     this.usersServiceGrpc = this.usersGRPCClient.getService<UserProfilesService>('UserProfilesService');
-
     createMap(mapper, CreateGuildDto, Guild);
     createMap(mapper, Guild, GuildResponseDTO);
-
     createMap(mapper, Role, RoleResponseDTO, forMember(
       dest => dest.permissions,
       mapFrom(src => src.permissions.toString())

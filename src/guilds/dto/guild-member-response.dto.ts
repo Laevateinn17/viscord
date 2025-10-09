@@ -7,7 +7,7 @@ export class GuildMemberResponseDTO {
 
     @AutoMap()
     roles: string[];
-    
+
     @AutoMap()
     profile: UserProfileResponseDTO;
 }
