@@ -16,6 +16,7 @@
   --background-surface-higher: oklab(0.278867 0.00249027 -0.00875303);
   --background-surface-high: oklab(0.262384 0.00252247 -0.00889932);
   --modal-background: oklab(0.339495 0.00330827 -0.0116803);
+  --card-primary-bg: oklab(0.262384 0.00252247 -0.00889932);
 
   --border-container: oklab(0.678888 0.00325716 -0.011175 / 0.121569);
   --border-faint: oklab(0.678888 0.00325716 -0.011175 / 0.160784);
@@ -68,6 +69,7 @@
   /* --button-primary-disabled: rgb(88, 101, 242) */
   --status-danger: 	hsl(359, 87%, 60%);
   --status-danger-hover: 	hsl(359, 87%, 50%);
+  --background-danger-hover: oklab(0.565918 0.183664 0.078399 / 0.0784314);
   --status-positive: hsl(134, 41%, 45%);
   --status-positive-hover: hsl(134, 41%, 35%);
   --channels-default: oklab(0.75264 0.00240251 -0.00813961);
@@ -83,6 +85,7 @@
   --rounded-sm: 4px;
   --rounded-md: 6px;
   --rounded-lg: 8px;
+  --rounded-full: 50%;
 
   --text-xs: 12px;
   --text-sm: 14px;
@@ -98,6 +101,9 @@
   --font-weight-medium: 500;
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
+
+  --role-default: #99aab5;
+
   
 }
 

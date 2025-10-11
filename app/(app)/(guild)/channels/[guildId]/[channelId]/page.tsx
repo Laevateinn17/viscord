@@ -25,6 +25,8 @@ import UserAvatar from "@/components/user-avatar/user-avatar";
 import { useUserPresenceStore } from "@/app/stores/user-presence-store";
 import { useGuildsStore } from "@/app/stores/guilds-store";
 import { useSendMessageGuildMutation } from "@/hooks/mutations";
+import { checkPermission, getEffectivePermission } from "@/helpers/permissions.helper";
+import { Permissions } from "@/enums/permissions.enum";
 
 const ChatContainer = styled.div`
     display: flex;
@@ -233,7 +235,7 @@ function TextInputItem({ channel, onSubmit }: { channel: Channel, onSubmit: (mes
 
     const [text, setText] = useState('');
     return (
-        <TextInput value={text} onKeyDown={handleKeyDown} style={{ height: inputHeight }} onChange={(e) => onInputChanged(e.target.value)} placeholder={`Message @${channel.recipients[0].displayName}`} />
+        <TextInput value={text} onKeyDown={handleKeyDown} style={{ height: inputHeight }} onChange={(e) => onInputChanged(e.target.value)} placeholder={`Message #${channel.name}`} />
 
     )
 }
@@ -272,15 +274,20 @@ export default function Page() {
     const typingUsers = useTypingUsersFromChannel(channelId as string);
     const { isUserTyping } = useUserTypingStore();
     const { presenceMap, isUserOnline } = useUserPresenceStore();
-    const onlineMembers = channel ? channel.recipients.filter(re => isUserOnline(re.id)) : [];
-    const offlineMembers = channel ? channel.recipients.filter(re => !isUserOnline(re.id)) : [];
+    const allowedMembers = guild?.members.filter(member => {
+        const effectivePermission = getEffectivePermission(member, guild, channel);
+        return checkPermission(effectivePermission, Permissions.VIEW_CHANNELS);
+    }) ?? [];
+    const onlineMembers = allowedMembers?.filter(re => isUserOnline(re.userId)) ?? [];
+    const offlineMembers = allowedMembers?.filter(re => !isUserOnline(re.userId)) ?? [];
 
     if (!channel) {
         return <div>bingbong</div>
     }
 
-    console.log('recipients', channel.recipients.filter( re => isUserOnline(re.id)))
-    console.log('recipients2', channel.recipients.filter( re => !isUserOnline(re.id)))
+    if (!allowedMembers.find(m => m.userId === user.id)) {
+        return <div>Not allowed</div>
+    }
 
 
     return (
@@ -335,10 +342,10 @@ export default function Page() {
                             <>
                                 <h3>Online — {onlineMembers.length}</h3>
                                 {onlineMembers.map(re => {
-                                    const recipient = getUserProfile(re.id)!;
+                                    const recipient = getUserProfile(re.userId)!;
 
                                     return (
-                                        <MemberItem key={re.id}>
+                                        <MemberItem key={re.userId}>
                                             <div className="mr-[12px]">
                                                 <UserAvatar user={recipient} showStatus={true} isTyping={isUserTyping(channel.id, recipient.id)} />
                                             </div>
@@ -356,10 +363,10 @@ export default function Page() {
                             <>
                                 <h3>Offline — {offlineMembers.length}</h3>
                                 {offlineMembers.map(re => {
-                                    const recipient = getUserProfile(re.id)!;
+                                    const recipient = getUserProfile(re.userId)!;
 
                                     return (
-                                        <MemberItem key={re.id}>
+                                        <MemberItem key={re.userId}>
                                             <div className="mr-[12px]">
                                                 <UserAvatar user={recipient} showStatus={true} isTyping={isUserTyping(channel.id, recipient.id)} />
                                             </div>

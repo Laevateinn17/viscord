@@ -6,7 +6,7 @@ import ButtonDanger from "../buttons/button-danger";
 import { useGetUserProfile, useUserProfileStore } from "@/app/stores/user-profiles-store";
 import UserAvatar from "../user-avatar/user-avatar";
 import { IoMdClose } from "react-icons/io";
-import { MdClose } from "react-icons/md";
+import { MdClose, MdDragIndicator } from "react-icons/md";
 import { deleteInvite } from "@/services/invites/invites.service";
 import { ModalType } from "@/enums/modal-type.enum";
 import { useModal } from "@/contexts/modal.context";
@@ -102,11 +102,6 @@ const InviteCodeColumn = styled.div`
     flex: 1;
 `
 
-const UsesColumn = styled.div`
-    display: flex;
-    align-items: center;
-    flex: 1;
-`
 const ExpiresColumn = styled.div`
     display: flex;
     align-items: center;

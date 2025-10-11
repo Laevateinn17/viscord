@@ -10,7 +10,8 @@ import { useRouter } from "next/navigation";
 import { ModalType } from "@/enums/modal-type.enum";
 import ButtonDanger from "../buttons/button-danger";
 import { useGetGuild } from "@/app/stores/guilds-store";
-import { useDeleteGuildChannelMutation } from "@/hooks/mutations";
+import { useDeleteGuildChannelMutation, useLeaveGuildMutation } from "@/hooks/mutations";
+import { leaveGuild } from "@/services/guild/guild.service";
 
 const ContentContainer = styled.div`
     background: var(--modal-background);
@@ -155,27 +156,21 @@ function RadioButton({ children, isSelected, onClick }: { children: ReactNode, i
     );
 }
 
-export function DeleteChannelModal({ channel, onClose }: { channel: Channel, onClose: () => void }) {
+export function LeaveGuildModal({ guildId, onClose }: { guildId: string, onClose: () => void }) {
     const [error, setError] = useState<string | undefined>(undefined);
     const router = useRouter();
     const { closeModal } = useModal();
-    const guild = useGetGuild(channel.guildId);
-    const { mutateAsync: deleteChannel, isPending } = useDeleteGuildChannelMutation(channel.guildId);
+    const guild = useGetGuild(guildId)!;
+    const { mutateAsync: leaveGuild, isPending } = useLeaveGuildMutation();
 
-    async function handleCreateChannel() {
-        const response = await deleteChannel(channel.id);
+    async function handleLeaveGuild() {
+        const response = await leaveGuild(guildId);
         if (!response.success) {
             setError(response.message as string);
             return;
         }
 
-        const remainingChannels = guild?.channels.filter(ch => ch.id !== channel.id && ch.type === ChannelType.Text) ?? [];
-
-        if (remainingChannels.length > 0) {
-            router.push(`/channels/${guild!.id}/${remainingChannels[0].id}`);
-        } else {
-            router.push(`/channels/${channel.guildId}`);
-        }
+        router.push(`/channels/me`);
 
         onClose();
         closeModal(ModalType.CHANNEL_SETTINGS);
@@ -186,18 +181,18 @@ export function DeleteChannelModal({ channel, onClose }: { channel: Channel, onC
             <ContentContainer>
                 <ContentHeader>
                     <div className="flex flex-col">
-                        <h1>Delete Channel</h1>
+                        <h1>Leave '{guild.name}'</h1>
                     </div>
                     <button onClick={onClose}><MdClose size={24} /></button>
                 </ContentHeader>
                 <ContentBody>
                     <ContentSection>
-                        <p>Are you sure you want to delete <b>{channel.type === ChannelType.Text ? `#${channel.name}` : channel.name}</b>? this cannot be undone.</p>
+                        <p>Are you sure you want to leave <b>{guild.name}</b>? You won't be able to rejoin this server unless you are re-invited</p>
                     </ContentSection>
                 </ContentBody>
                 <ContentFooter>
                     <ButtonSecondary onClick={onClose} size="lg">Cancel</ButtonSecondary>
-                    <ButtonDanger disabled={isPending} onClick={handleCreateChannel} size="lg">Delete Channel</ButtonDanger>
+                    <ButtonDanger disabled={isPending} onClick={handleLeaveGuild} size="lg">Leave Server</ButtonDanger>
                 </ContentFooter>
             </ContentContainer>
         </Modal>

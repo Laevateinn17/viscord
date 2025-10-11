@@ -3,7 +3,7 @@ import { createContext, ReactNode, useCallback, useContext, useEffect, useRef, u
 import { io, Socket } from "socket.io-client";
 import { useQueryClient } from "@tanstack/react-query";
 import Relationship from "@/interfaces/relationship";
-import { FRIEND_ADDED_EVENT, FRIEND_REMOVED_EVENT, FRIEND_REQUEST_RECEIVED_EVENT, GET_USERS_PRESENCE_EVENT, GET_VOICE_RINGS_EVENT, GET_VOICE_STATES_EVENT, MESSAGE_RECEIVED_EVENT, USER_OFFLINE_EVENT, USER_ONLINE_EVENT, USER_STATUS_UPDATE_EVENT, USER_TYPING_EVENT, VOICE_RING_CANCEL, VOICE_RING_DISMISS_EVENT, VOICE_RING_EVENT, VOICE_UPDATE_EVENT } from "@/constants/events";
+import { FRIEND_ADDED_EVENT, FRIEND_REMOVED_EVENT, FRIEND_REQUEST_RECEIVED_EVENT, GET_VOICE_STATES_EVENT, GUILD_UPDATE_EVENT, MESSAGE_RECEIVED_EVENT, USER_OFFLINE_EVENT, USER_ONLINE_EVENT, USER_STATUS_UPDATE_EVENT, USER_TYPING_EVENT, VOICE_RING_CANCEL, VOICE_RING_DISMISS_EVENT, VOICE_RING_EVENT, VOICE_UPDATE_EVENT } from "@/constants/events";
 import { MESSAGES_CACHE, RELATIONSHIPS_CACHE } from "@/constants/query-keys";
 import { Message } from "@/interfaces/message";
 import { HttpStatusCode } from "axios";
@@ -19,6 +19,9 @@ import { useMediasoupStore } from "@/app/stores/mediasoup-store";
 import { useSocketStore } from "@/app/stores/socket-store";
 import { useUserPresenceStore } from "@/app/stores/user-presence-store";
 import { useChannelsStore } from "@/app/stores/channels-store";
+import { GuildUpdateDTO } from "@/interfaces/dto/guild-update.dto";
+import { GuildUpdateType } from "@/enums/guild-update-type.enum";
+import { useGuildsStore } from "@/app/stores/guilds-store";
 
 export interface SocketContextType {
     socket: Socket | undefined;
@@ -87,7 +90,7 @@ export default function SocketProvider({ children }: { children: ReactNode }) {
         const { getChannel, updateChannel } = useChannelsStore.getState();
         const channel = getChannel(payload.channelId);
         console.log('message received', channel, payload)
-        if (channel) updateChannel({ ...channel, lastMessageId: payload.id, userChannelState: {...channel.userChannelState, unreadCount: channel.userChannelState.unreadCount + 1} });
+        if (channel) updateChannel({ ...channel, lastMessageId: payload.id, userChannelState: { ...channel.userChannelState, unreadCount: channel.userChannelState.unreadCount + 1 } });
 
         queryClient.setQueryData<Message[]>([MESSAGES_CACHE, payload.channelId], (old) => {
             if (!old) {
@@ -125,6 +128,17 @@ export default function SocketProvider({ children }: { children: ReactNode }) {
         }
         setVoiceStates(map);
     }, [setVoiceStates]);
+
+    function handleGuildUpdate(dto: GuildUpdateDTO) {
+        const { addChannel, deleteChannel, upsertMember: addMember, removeMember, updateChannel } = useGuildsStore.getState();
+        switch (dto.type) {
+            case GuildUpdateType.MEMBER_JOIN: addMember(dto.guildId, dto.data); break;
+            case GuildUpdateType.MEMBER_LEAVE: removeMember(dto.guildId, dto.data); break;
+            case GuildUpdateType.CHANNEL_DELETE: deleteChannel(dto.guildId, dto.data); break;
+            case GuildUpdateType.CHANNEL_UPDATE: updateChannel(dto.guildId, dto.data.channelId, dto.data);
+        }
+
+    }
 
     useEffect(() => {
         // const socket = io(process.env.NEXT_PUBLIC_WS_GATEWAY!, {
@@ -165,6 +179,7 @@ export default function SocketProvider({ children }: { children: ReactNode }) {
         socket!.on(USER_STATUS_UPDATE_EVENT, handleUserStatusUpdate);
         socket!.on(VOICE_UPDATE_EVENT, handleVoiceStateUpdate);
         socket!.on(GET_VOICE_STATES_EVENT, handleGetVoiceStates);
+        socket.on(GUILD_UPDATE_EVENT, handleGuildUpdate);
 
         const handleBeforeUnload = () => {
             socket?.disconnect();

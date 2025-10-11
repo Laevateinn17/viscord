@@ -8,4 +8,6 @@ export enum ModalType {
     GUILD_SETTINGS,
     DELETE_CHANNEL,
     CREATE_INVITE,
+    LEAVE_GUILD,
+    ADD_ROLE_MEMBERS
 }

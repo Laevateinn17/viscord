@@ -219,7 +219,7 @@ export default function SettingsPage({ show, onClose }: SettingsPageProps) {
                         </div>
                         <div>
                             <SidebarItem isActive={false} onClick={() => handleLogout()}>
-                                <div className="flex justify-between">
+                                <div className="flex justify-between text-[var(--text-danger)]">
                                     <p>Log out</p>
                                     <LuLogOut />
                                 </div>

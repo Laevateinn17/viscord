@@ -1,5 +1,8 @@
 import { Channel } from "@/interfaces/channel";
 import { Guild } from "@/interfaces/guild";
+import { GuildMember } from "@/interfaces/guild-member";
+import { Role } from "@/interfaces/role";
+import { UserProfile } from "@/interfaces/user-profile";
 import { IoMdReturnLeft } from "react-icons/io";
 import { create } from "zustand";
 
@@ -16,6 +19,10 @@ interface GuildStoreState {
     updateChannel: (guildId: string, channelId: string, channel: Channel) => void;
     deleteChannel: (guildId: string, channelId: string) => void;
     updateChannelLastRead: (guildId: string, channelId: string, messageId: string) => void;
+    upsertMember: (guildId: string, member: GuildMember) => void;
+    removeMember: (guildId: string, memberId: string) => void;
+    upsertRole: (guildId: string, role: Role) => void;
+    removeRole: (guildId: string, roleId: string) => void;
 }
 
 export const useGuildsStore = create<GuildStoreState>((set, get) => ({
@@ -93,6 +100,49 @@ export const useGuildsStore = create<GuildStoreState>((set, get) => ({
             return { guilds: newGuilds };
         })
     },
+    upsertMember: (guildId, member) => {
+        set(state => {
+            const guild = state.guilds.get(guildId);
+            if (!guild) return state;
+
+            const existingMember = guild.members.find(m => m.userId === member.userId);
+            const updatedMember = existingMember
+                ? {
+                    ...existingMember,
+                    ...Object.fromEntries(
+                        Object.entries(member).filter(([_, v]) => v !== undefined)
+                    ),
+                }
+                : member;
+
+
+            const updatedGuild: Guild = {
+                ...guild,
+                members: [...guild.members.filter(m => m.userId !== member.userId), updatedMember],
+            };
+
+            const newGuilds = new Map(state.guilds);
+            newGuilds.set(guildId, updatedGuild);
+
+            return { guilds: newGuilds }
+        });
+    },
+    removeMember: (guildId, memberId) => {
+        set(state => {
+            const guild = state.guilds.get(guildId);
+            if (!guild) return state;
+
+            const updatedGuild: Guild = {
+                ...guild,
+                members: guild.members.filter(m => m.userId !== memberId),
+            };
+
+            const newGuilds = new Map(state.guilds);
+            newGuilds.set(guildId, updatedGuild);
+
+            return { guilds: newGuilds }
+        });
+    },
     updateChannelLastRead: (guildId, channelId, messageId) => {
         set((state) => {
             const guild = state.guilds.get(guildId);
@@ -111,6 +161,50 @@ export const useGuildsStore = create<GuildStoreState>((set, get) => ({
 
             return { guilds: newGuilds };
         })
+    },
+    upsertRole: (guildId, role) => {
+        set(state => {
+            const guild = state.guilds.get(guildId);
+            if (!guild) return state;
+
+            const existingRole = guild.roles.find(r => r.id === role.id);
+            const updatedRole = existingRole
+                ? {
+                    ...existingRole,
+                    ...Object.fromEntries(
+                        Object.entries(role).filter(([_, v]) => v !== undefined)
+                    ),
+                }
+                : role;
+
+
+            const updatedGuild: Guild = {
+                ...guild,
+                roles: [...guild.roles.filter(r => r.id !== role.id), updatedRole],
+            };
+
+            const newGuilds = new Map(state.guilds);
+            newGuilds.set(guildId, updatedGuild);
+
+            return { guilds: newGuilds }
+        });
+    },
+    removeRole: (guildId, roleId) => {
+        set(state => {
+            const guild = state.guilds.get(guildId);
+            if (!guild) return state;
+
+            const updatedGuild: Guild = {
+                ...guild,
+                roles: guild.roles.filter(r => r.id !== roleId),
+            };
+
+            const newGuilds = new Map(state.guilds);
+            newGuilds.set(guildId, updatedGuild);
+
+            return { guilds: newGuilds }
+        });
+
     }
 }))
 

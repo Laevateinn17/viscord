@@ -5,8 +5,8 @@ import SidebarHeader from "@/components/guild-sidebar/sidebar-header";
 import { ChannelType } from "@/enums/channel-type.enum";
 import { Channel } from "@/interfaces/channel";
 import { useParams, useRouter } from "next/navigation";
-import { Fragment, ReactNode, useEffect, useState } from "react";
-import { FaAngleDown } from "react-icons/fa6";
+import { Fragment, ReactNode, useEffect, useRef, useState } from "react";
+import { FaAngleDown, FaGear } from "react-icons/fa6";
 import styled from "styled-components";
 import { Router } from "next/router";
 import { ChannelCategory } from "./channel-category";
@@ -16,6 +16,12 @@ import ChannelButton from "./channel-button";
 import { useContextMenu } from "@/contexts/context-menu.context";
 import { ContextMenuType } from "@/enums/context-menu-type.enum";
 import { useGuildsStore } from "@/app/stores/guilds-store";
+import { Guild } from "@/interfaces/guild";
+import { LuLogOut } from "react-icons/lu";
+import { useLeaveGuildMutation } from "@/hooks/mutations";
+import { useModal } from "@/contexts/modal.context";
+import { ModalType } from "@/enums/modal-type.enum";
+import { UserPresenceProvider } from "@/contexts/user-presence.context";
 
 const HeaderContainer = styled.div`
     padding: 12px 8px 12px 16px;
@@ -24,10 +30,11 @@ const HeaderContainer = styled.div`
     justify-content: space-between;
     width: 100%;
     cursor: pointer;
+    position: relative;
 
     transition: background-color 100ms linear;
 
-    &:hover {
+    &:hover:not(:has(:hover)) {
         background-color: var(--background-modifier-hover);
     }
 `
@@ -51,6 +58,108 @@ const SidebarContainer = styled.div`
     flex: 1;
 `
 
+const GuildMenuContainer = styled.div`
+    position: absolute;
+    background-color: var(--background-surface-higher);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    padding: 8px;
+    box-shadow: var(--shadow-high);
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 220px;
+    z-index: 10;
+`
+
+const ListItem = styled.div`
+    padding: 8px;
+    border-radius: 2px;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    &:hover {
+        background-color: var(--background-mod-subtle);
+        
+        svg {
+            color: white;
+        }
+    }
+    svg {
+        color: var(--text-muted);
+        
+    }
+
+    &.danger {
+        color: var(--text-danger);
+
+        svg {
+            color: var(--text-danger);
+        }
+    }
+`
+
+const Separator = styled.div`
+    border-bottom: 1px solid var(--border-subtle);
+    margin: 8px;
+`
+
+
+function Header({ guild }: { guild: Guild }) {
+    const { user } = useCurrentUserStore();
+    const [showMenu, setShowMenu] = useState(false);
+    const menuRef = useRef<HTMLDivElement>(null!);
+    const menuButtonRef = useRef<HTMLDivElement>(null!);
+    const { openModal } = useModal();
+
+    useEffect(() => {
+        const handleClickOutside = (evt: MouseEvent) => {
+            if (showMenu && menuRef.current && evt.target !== menuButtonRef.current && !menuRef.current.contains(evt.target as Node)) {
+                setShowMenu(false);
+            }
+        };
+
+        if (showMenu) window.addEventListener('mousedown', handleClickOutside);
+        return () => window.removeEventListener('mousedown', handleClickOutside);
+    }, [showMenu]);
+
+    function openGuildSettings() {
+        openModal(ModalType.GUILD_SETTINGS, { guildId: guild.id });
+        setShowMenu(false);
+    }
+
+    function openLeaveGuildModal() {
+        openModal(ModalType.LEAVE_GUILD, { guildId: guild.id });
+        setShowMenu(false);
+    }
+
+    return (
+        <HeaderContainer onClick={() => setShowMenu(prev => !prev)} ref={menuButtonRef}>
+            <HeaderText>{guild?.name}</HeaderText>
+            <MoreButton>
+                <FaAngleDown />
+            </MoreButton>
+            {showMenu && <GuildMenuContainer ref={menuRef} onClick={(e) => e.stopPropagation()}>
+                <ListItem>
+                    <p>Invite People</p>
+                    <svg aria-hidden="true" role="img" xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24"><path fill="currentColor" d="M14.5 8a3 3 0 1 0-2.7-4.3c-.2.4.06.86.44 1.12a5 5 0 0 1 2.14 3.08c.01.06.06.1.12.1ZM16.62 13.17c-.22.29-.65.37-.92.14-.34-.3-.7-.57-1.09-.82-.52-.33-.7-1.05-.47-1.63.11-.27.2-.57.26-.87.11-.54.55-1 1.1-.92 1.6.2 3.04.92 4.15 1.98.3.27-.25.95-.65.95a3 3 0 0 0-2.38 1.17ZM15.19 15.61c.13.16.02.39-.19.39a3 3 0 0 0-1.52 5.59c.2.12.26.41.02.41h-8a.5.5 0 0 1-.5-.5v-2.1c0-.25-.31-.33-.42-.1-.32.67-.67 1.58-.88 2.54a.2.2 0 0 1-.2.16A1.5 1.5 0 0 1 2 20.5a7.5 7.5 0 0 1 13.19-4.89ZM9.5 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM15.5 22Z"></path><path fill="currentColor" d="M19 14a1 1 0 0 1 1 1v3h3a1 1 0 0 1 0 2h-3v3a1 1 0 0 1-2 0v-3h-3a1 1 0 1 1 0-2h3v-3a1 1 0 0 1 1-1Z"></path></svg>
+                </ListItem>
+                {user.id === guild.ownerId && <ListItem onClick={openGuildSettings}><p>Server Settings</p><FaGear size={16} /></ListItem>}
+                {guild.ownerId !== user.id &&
+                    <>
+                        <Separator />
+                        <ListItem className="danger" onClick={openLeaveGuildModal}><p>Leave Server</p><LuLogOut /></ListItem>
+                    </>
+                }
+            </GuildMenuContainer>}
+        </HeaderContainer>
+    );
+}
+
 export default function Page({ children }: { children: ReactNode }) {
     const { guildId } = useParams();
     const { getGuild } = useGuildsStore();
@@ -67,18 +176,17 @@ export default function Page({ children }: { children: ReactNode }) {
         setCategories(guild.channels.filter(ch => ch.type === ChannelType.Category));
     }, [guild])
 
+    if (!guild) {
+        return <div></div>
+    }
+
 
     return (
         <Fragment>
             <div className={`${styles["guild-sidebar-container"]}`}>
                 <SidebarContainer onContextMenu={(e) => showMenu(e, ContextMenuType.GUILD_SIDEBAR, guild)} >
                     <SidebarHeader>
-                        <HeaderContainer>
-                            <HeaderText>{guild?.name}</HeaderText>
-                            <MoreButton>
-                                <FaAngleDown />
-                            </MoreButton>
-                        </HeaderContainer>
+                        <Header guild={guild} />
                     </SidebarHeader>
                     <SidebarContentContainer>
                         <div className="py-[8px]">

@@ -7,7 +7,7 @@ import { CreateMessageDto } from "@/interfaces/dto/create-message.dto";
 const ENDPOINT = process.env.NEXT_PUBLIC_API_URL;
 export async function getMessages(channelId: string): Promise<Response<Message[]>> {
     try {
-        const response = await api.get(`${ENDPOINT}/channels/${channelId}/messages`, {
+        const response = await api.get(`${ENDPOINT}/channels/${channelId}/messages/`, {
             withCredentials: true
         });
         if (response.status === HttpStatusCode.Ok) {
@@ -45,7 +45,7 @@ export async function sendMessage(dto: CreateMessageDto): Promise<Response<Messa
     }
 
     try {
-        const response = await api.post(`${ENDPOINT}/messages`, formData, {
+        const response = await api.post(`${ENDPOINT}/channels/${dto.channelId}/messages/`, formData, {
             withCredentials: true
         });
         if (response.status === HttpStatusCode.Created) {

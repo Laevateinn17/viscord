@@ -23,6 +23,7 @@ const Container = styled.div`
     display: flex;
     align-items: center;
     height: 100%;
+    padding-left: 4px;
 
     &.focus {
         outline: 1px solid var(--input-focused);

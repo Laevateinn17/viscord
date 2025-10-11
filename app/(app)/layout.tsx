@@ -17,7 +17,7 @@ import { ContextMenuProvider } from "@/contexts/context-menu.context";
 import AppStateProvider, { useAppState } from "@/contexts/app-state.context";
 import SocketProvider, { useSocket } from "@/contexts/socket.context";
 import { UserPresenceProvider, useUserPresence } from "@/contexts/user-presence.context";
-import { CLIENT_READY_EVENT, GET_USERS_PRESENCE_EVENT, GET_USERS_PRESENCE_RESPONSE_EVENT } from "@/constants/events";
+import { CLIENT_READY_EVENT} from "@/constants/events";
 import { UserProfile } from "@/interfaces/user-profile";
 import { unique } from "next/dist/build/utils";
 import { useGetUserProfile, useUserProfileStore } from "../stores/user-profiles-store";
@@ -212,7 +212,7 @@ const UnreadDMWrapper = styled.div`
 `
 
 function UnreadDMChannel({ channel }: { channel: Channel }) {
-    const recipient = useGetUserProfile(channel.recipients[0].id);
+    const recipient = useGetUserProfile(channel.recipients![0].id);
     const router = useRouter();
     const [isHovering, setIsHovering] = useState(false);
     if (!recipient) {
@@ -323,11 +323,11 @@ function AppInitializer({ children }: { children: ReactNode }) {
 
             const userProfiles: UserProfile[] = [currentUser.profile].concat(data.relationships?.map(rel => rel.user) ?? []);
             const dmRecipients = data.dmChannels ? data.dmChannels
-                .map(channel => channel.recipients.find(rep => rep.id !== currentUser.id)!)
+                .map(channel => channel.recipients?.find(rep => rep.id !== currentUser.id)!)
                 .filter(Boolean) : [];
 
             const uniqueUsers = new Map<string, UserProfile>();
-            [...userProfiles, ...dmRecipients, currentUser.profile, ...Array.from(guildsMap.values()).flatMap(guild => guild.members)].forEach(user => {
+            [...userProfiles, ...dmRecipients, currentUser.profile, ...Array.from(guildsMap.values()).flatMap(guild => guild.members.map(m => m.profile))].forEach(user => {
                 if (!uniqueUsers.has(user.id)) {
                     uniqueUsers.set(user.id, user);
                 }

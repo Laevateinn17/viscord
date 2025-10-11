@@ -16,6 +16,8 @@ import { CreateChannelDTO } from "@/interfaces/dto/create-channel.dto";
 import { Guild } from "@/interfaces/guild";
 import { joinGuild } from "@/services/invites/invites.service";
 import { useUserProfileStore } from "@/app/stores/user-profiles-store";
+import { assignRoleMembers, createRole, leaveGuild } from "@/services/guild/guild.service";
+import { AssignRoleDTO } from "@/interfaces/dto/assign-role.dto";
 
 
 
@@ -288,14 +290,51 @@ export function useJoinGuildMutation() {
     return useMutation({
         mutationFn: (inviteCode: string) => joinGuild(inviteCode),
         onSuccess: (response) => {
-            if (!response.success) return;
+            if (!response.success) throw new Error(response.message as string);
 
-            const { addGuild } = useGuildsStore();
-            const { addUserProfile } = useUserProfileStore();
+            const { addGuild } = useGuildsStore.getState();
+            const { addUserProfile } = useUserProfileStore.getState();
             const guild = response.data!;
 
             addGuild(guild);
-            for (const member of guild.members) addUserProfile(member);
+            for (const member of guild.members) addUserProfile(member.profile);
         }
     });
+}
+
+export function useLeaveGuildMutation() {
+    return useMutation({
+        mutationFn: (guildId: string) => leaveGuild(guildId),
+        onSuccess: (response, guildId) => {
+            if (!response.success) throw new Error(response.message as string);
+
+            const { removeGuild } = useGuildsStore.getState();
+            removeGuild(guildId);
+        }
+    });
+}
+
+export function useAssignRoleMembers() {
+    return useMutation({
+        mutationFn: (dto: AssignRoleDTO) => assignRoleMembers(dto),
+        onSuccess: (response, dto) => {
+            if (!response.success) throw new Error(response.message as string);
+
+            const { upsertMember } = useGuildsStore.getState();
+
+
+            for (const member of response.data!) upsertMember(dto.guildId, member)
+        }
+    })
+}
+
+export function useCreateRole(guildId: string) {
+    return useMutation({
+        mutationFn: () => createRole(guildId),
+        onSuccess: (response) => {
+            if (!response.success) return;
+            const { upsertRole } = useGuildsStore.getState();
+            upsertRole(guildId, response.data!);
+        }
+    })
 }

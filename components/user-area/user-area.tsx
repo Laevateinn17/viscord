@@ -44,10 +44,11 @@ const Container = styled.div`
 `
 
 const UserContainer = styled.div`
-  width: 100%;
-  min-height: 56px;
-  display: flex;
-  align-items: center;
+    width: 100%;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    padding: 12px 12px;
 `
 
 const UserInfo = styled.div`

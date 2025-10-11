@@ -2,6 +2,7 @@ import { ChannelType } from "@/enums/channel-type.enum";
 import { Guild } from "./guild";
 import { UserProfile } from "./user-profile";
 import { UserChannelState } from "./user-channel-state";
+import { PermissionOverwrite } from "./permission-ovewrite";
 
 export interface Channel {
     id: string;
@@ -12,7 +13,8 @@ export interface Channel {
     updatedAt: Date;
     parent?: Channel;
     guildId: string;
-    recipients: UserProfile[];
+    recipients?: UserProfile[];
     lastMessageId?: string;
     userChannelState: UserChannelState;
+    permissionOverwrites: PermissionOverwrite[];
 }

@@ -26,7 +26,7 @@ export const useUserProfileStore = create<UserProfileStoreState>((set, get) => (
             const updatedUser: UserProfile = { ...user, status };
 
             const newMap = new Map(state.userProfiles);
-            newMap.set(user.id, user);
+            newMap.set(user.id, updatedUser);
 
             return { userProfiles: newMap };
         });
