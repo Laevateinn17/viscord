@@ -16,7 +16,7 @@ import ButtonSuccess from "../buttons/button-success";
 import ButtonPrimary from "../buttons/button-primary";
 import { Invite } from "@/interfaces/invite";
 import { createOrGetInvite } from "@/services/channels/channels.service";
-import { getInviteKeyByValue, INVITE_DURATIONS, isKeyOfInviteDuration } from "@/constants/invite-duration";
+import { getInviteKeyByValue, INVITE_DURATIONS, isKeyOfInviteDuration } from "@/constants/guilds";
 import { MINUTE_IN_SECONDS } from "@/constants/time";
 import { sendMessage } from "@/services/messages/messages.service";
 import { Channel } from "@/interfaces/channel";

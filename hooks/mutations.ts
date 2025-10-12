@@ -16,9 +16,10 @@ import { CreateChannelDTO } from "@/interfaces/dto/create-channel.dto";
 import { Guild } from "@/interfaces/guild";
 import { joinGuild } from "@/services/invites/invites.service";
 import { useUserProfileStore } from "@/app/stores/user-profiles-store";
-import { assignRoleMembers, createRole, leaveGuild, updateMember } from "@/services/guild/guild.service";
+import { assignRoleMembers, createRole, leaveGuild, updateMember, updateRole } from "@/services/guild/guild.service";
 import { AssignRoleDTO } from "@/interfaces/dto/assign-role.dto";
 import { UpdateMemberDTO } from "@/interfaces/dto/update-member.dto";
+import { Role } from "@/interfaces/role";
 
 
 
@@ -351,5 +352,17 @@ export function useUpdateMember() {
             upsertMember(dto.guildId, response.data!);
         }
     })
+}
 
+export function useUpdateRole() {
+    return useMutation({
+        mutationFn: (dto: Role) => updateRole(dto),
+        onSuccess: (response, dto) => {
+            if (!response.success) throw new Error(response.message as string);
+
+            const { upsertRole } = useGuildsStore.getState();
+            console.log('updating store', response.data);
+            upsertRole(dto.guildId, response.data!);
+        }
+    })
 }

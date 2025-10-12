@@ -1,3 +1,4 @@
+import { ROLE_COLOR_DEFAULT } from "@/constants/guilds";
 
 
 export function numberToHex(color: number) {
@@ -7,4 +8,8 @@ export function numberToHex(color: number) {
 export function hexToNumber(colorHex: string) {
     const [_, color] = colorHex.split("#")
     return parseInt(color, 16);
+}
+
+export function getRoleColor(color: number | null) {
+    return color ? numberToHex(color) : ROLE_COLOR_DEFAULT;
 }

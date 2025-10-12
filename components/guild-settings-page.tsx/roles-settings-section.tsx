@@ -1,8 +1,8 @@
 import { useGuildsStore } from "@/app/stores/guilds-store";
-import { FaAngleRight, FaPlus, FaTrash } from "react-icons/fa6";
+import { FaAngleRight, FaCheck, FaPlus, FaTrash } from "react-icons/fa6";
 import styled from "styled-components";
 import TextInputSecondary from "../text-input/text-input-secondary";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import ButtonPrimary from "../buttons/button-primary";
 import { HiMagnifyingGlass } from "react-icons/hi2";
 import { IoMdArrowBack } from "react-icons/io";
@@ -10,7 +10,7 @@ import { Guild } from "@/interfaces/guild";
 import { MdClose, MdDragIndicator } from "react-icons/md";
 import { Role } from "@/interfaces/role";
 import { useStopSound } from "@/app/stores/audio-store";
-import { numberToHex } from "@/helpers/color.helper";
+import { getRoleColor, hexToNumber, numberToHex } from "@/helpers/color.helper";
 import Checkbox from "../checkbox/checkbox";
 import { Permissions } from "@/enums/permissions.enum";
 import { checkPermission } from "@/helpers/permissions.helper";
@@ -18,8 +18,11 @@ import { useUserProfileStore } from "@/app/stores/user-profiles-store";
 import UserAvatar from "../user-avatar/user-avatar";
 import { useModal } from "@/contexts/modal.context";
 import { ModalType } from "@/enums/modal-type.enum";
-import { useCreateRole, useUpdateMember } from "@/hooks/mutations";
+import { useCreateRole, useUpdateMember, useUpdateRole } from "@/hooks/mutations";
 import { GuildMember } from "@/interfaces/guild-member";
+import ButtonTertiary from "../buttons/button-tertiary";
+import ButtonSuccess from "../buttons/button-success";
+import { ROLE_COLOR_DEFAULT, ROLE_COLORS } from "@/constants/guilds";
 
 
 const Header = styled.h2`
@@ -202,6 +205,7 @@ const RoleListItem = styled.div`
     align-items: center;
     cursor: pointer;
     transition: all 100ms linear;
+    gap: 8px;
 
     &:hover {
         background-color: var(--background-modifier-hover);
@@ -299,6 +303,17 @@ const RoleColorHighlight = styled.div`
     min-height: 50px;
     border-radius: var(--rounded-sm);
     border: 1px solid var(--border-container);
+    cursor: pointer;
+    position: relative;
+`
+
+const RoleColorSelectedOverlay = styled.div`
+    position: absolute;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
 `
 
 const SelectRoleColorContainer = styled.div`
@@ -317,6 +332,8 @@ const RoleColorSelection = styled.div`
     width: 20px;
     height: 20px;
     border-radius: var(--rounded-sm);
+    cursor: pointer;
+    position: relative;
 `
 
 const RoleNameInputContainer = styled.div`
@@ -373,11 +390,22 @@ const RemoveMemberButton = styled.div`
     }
 `
 
+const RoleColorIndicator = styled.div`
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+`
+
 interface RoleSettingsSectionProps {
     guildId: string;
 }
 
 function RoleDisplayTab({ role, onUpdateRole }: { role: Role, onUpdateRole: (role: Role) => void }) {
+
+    function updateRoleColor(color: string | null) {
+        const colorNumber = color ? hexToNumber(color) : null;
+        onUpdateRole({ ...role, color: colorNumber });
+    }
     return (
         <div>
             <Section>
@@ -393,30 +421,23 @@ function RoleDisplayTab({ role, onUpdateRole }: { role: Role, onUpdateRole: (rol
                 <Label>Role Color <span className="text-[var(--text-danger)]">*</span></Label>
                 <SectionDescription>Members use the color of the highest role they have on the roles list.</SectionDescription>
                 <SelectRoleColorContainer>
-                    <RoleColorHighlight style={{ backgroundColor: 'var(--role-default)' }} />
+                    <RoleColorHighlight style={{ backgroundColor: ROLE_COLOR_DEFAULT }} onClick={() => updateRoleColor(null)}>
+                        {!role.color && <RoleColorSelectedOverlay>
+                            <FaCheck className="" size={22} />
+                        </RoleColorSelectedOverlay>}
+                    </RoleColorHighlight>
                     <RoleColorHighlight style={{ backgroundColor: `${role.color ? numberToHex(role.color) : 'transparent'}` }} />
                     <RoleColorSelectionContainer>
-                        <RoleColorSelection style={{ backgroundColor: `var(--role-default)` }} />
-                        <RoleColorSelection style={{ backgroundColor: `var(--role-default)` }} />
-                        <RoleColorSelection style={{ backgroundColor: `var(--role-default)` }} />
-                        <RoleColorSelection style={{ backgroundColor: `var(--role-default)` }} />
-                        <RoleColorSelection style={{ backgroundColor: `var(--role-default)` }} />
-                        <RoleColorSelection style={{ backgroundColor: `var(--role-default)` }} />
-                        <RoleColorSelection style={{ backgroundColor: `var(--role-default)` }} />
-                        <RoleColorSelection style={{ backgroundColor: `var(--role-default)` }} />
-                        <RoleColorSelection style={{ backgroundColor: `var(--role-default)` }} />
-                        <RoleColorSelection style={{ backgroundColor: `var(--role-default)` }} />
-
-                        <RoleColorSelection style={{ backgroundColor: `var(--role-default)` }} />
-                        <RoleColorSelection style={{ backgroundColor: `var(--role-default)` }} />
-                        <RoleColorSelection style={{ backgroundColor: `var(--role-default)` }} />
-                        <RoleColorSelection style={{ backgroundColor: `var(--role-default)` }} />
-                        <RoleColorSelection style={{ backgroundColor: `var(--role-default)` }} />
-                        <RoleColorSelection style={{ backgroundColor: `var(--role-default)` }} />
-                        <RoleColorSelection style={{ backgroundColor: `var(--role-default)` }} />
-                        <RoleColorSelection style={{ backgroundColor: `var(--role-default)` }} />
-                        <RoleColorSelection style={{ backgroundColor: `var(--role-default)` }} />
-                        <RoleColorSelection style={{ backgroundColor: `var(--role-default)` }} />
+                        {Object.keys(ROLE_COLORS).map(key => {
+                            const color = ROLE_COLORS[key as keyof typeof ROLE_COLORS];
+                            return (
+                                <RoleColorSelection onClick={() => updateRoleColor(color)} key={key} style={{ backgroundColor: color }}>
+                                    {role.color === hexToNumber(color) && <RoleColorSelectedOverlay>
+                                        <FaCheck className="" size={12} />
+                                    </RoleColorSelectedOverlay>}
+                                </RoleColorSelection>
+                            );
+                        })}
                     </RoleColorSelectionContainer>
                 </SelectRoleColorContainer>
             </Section>
@@ -580,6 +601,47 @@ function RoleMembersTab({ role, guild }: { role: Role, guild: Guild }) {
     );
 }
 
+
+const SaveChangesOverlay = styled.div`
+    position: absolute;
+    visibility: hidden;
+    width: 100%;
+    bottom: 0;
+    padding: 0 20px;
+    left: 0;
+    padding-bottom: 20px;
+    transform: translateY(50%);
+    transition: all 200ms cubic-bezier(0.68, -1.0, 0.27, 2.6);
+
+    &.active {
+        transform: translateY(0);
+        visibility: visible;
+    }
+`
+
+const SaveChangesContainer = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-radius: 8px;
+    background-color: var(--modal-background);
+    box-shadow: var(--shadow-high);
+    border: 1px solid var(--border-container);
+    padding: 10px;
+    padding-left: 16px;
+
+    p {
+        line-height: 20px;
+        font-weight: var(--font-weight-medium);
+    }
+`
+
+const SaveChangesButtonLayout = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+`
+
 type Tab = 'display' | 'permissions' | 'manage-members'
 
 function EditRolesScreen({ guild, initialRoleId, onScreenBack }: { guild: Guild, initialRoleId?: string, onScreenBack: () => void }) {
@@ -590,13 +652,34 @@ function EditRolesScreen({ guild, initialRoleId, onScreenBack }: { guild: Guild,
     const [updatedRole, setUpdatedRole] = useState<Role>(selectedRole);
     const [selectedTab, setSelectedTab] = useState<Tab>('display');
     const members = guild.members.filter(m => m.roles.find(roleId => roleId === selectedRole.id));
+    const { mutateAsync: updateRole, isPending } = useUpdateRole();
+    const haveChanges = useMemo(() => {
+        let ret = false;
+        if (updatedRole.name !== selectedRole.name) ret = true;
+        else if (updatedRole.isHoisted !== selectedRole.isHoisted) ret = true;
+        else if (updatedRole.permissions !== selectedRole.permissions) ret = true;
+        else if (updatedRole.position !== selectedRole.position) ret = true;
+        else if (updatedRole.color !== selectedRole.color) ret = true;
+
+        return ret;
+    }, [updatedRole, selectedRole]);
+
+    useEffect(() => {
+        const latest = guild.roles.find(role => role.id === selectedRole.id);
+        if (latest) setSelectedRole(latest);
+    }, [guild.roles])
+
+    function resetChanges() {
+        setUpdatedRole(selectedRole);
+    }
 
     useEffect(() => {
         if (selectedRole.id === guild.id) {
             if (selectedTab === 'manage-members' || selectedTab === 'display') setSelectedTab('permissions')
         }
-    }, [selectedRole])
 
+        setUpdatedRole(selectedRole);
+    }, [selectedRole]);
     return (
         <div className="flex gap-[16px] w-full relative">
             <EditRolesSidebar>
@@ -609,8 +692,12 @@ function EditRolesScreen({ guild, initialRoleId, onScreenBack }: { guild: Guild,
                 </SidebarHeader>
                 <RoleListContainer>
                     {guild.roles.map(role => {
+                        const color = getRoleColor(role.color);
                         return (
-                            <RoleListItem key={role.id} className={role.id === selectedRole.id ? 'active' : ''} onClick={() => setSelectedRole(role)}>{role.name}</RoleListItem>
+                            <RoleListItem key={role.id} className={role.id === selectedRole.id ? 'active' : ''} onClick={() => setSelectedRole(role)}>
+                                <RoleColorIndicator style={{backgroundColor: color}}/>
+                                <p>{role.name}</p>
+                            </RoleListItem>
                         )
                     })}
                 </RoleListContainer>
@@ -632,6 +719,15 @@ function EditRolesScreen({ guild, initialRoleId, onScreenBack }: { guild: Guild,
                     {selectedTab === 'permissions' && <RolePermissionsTab role={updatedRole} onUpdateRole={setUpdatedRole} />}
                     {selectedTab === 'manage-members' && <RoleMembersTab role={selectedRole} guild={guild} />}
                 </ContentBody>
+                <SaveChangesOverlay className={haveChanges ? 'active' : ''}>
+                    <SaveChangesContainer>
+                        <p>Careful — you have unsaved changes!</p>
+                        <SaveChangesButtonLayout>
+                            <ButtonTertiary size="sm" onClick={resetChanges} disabled={isPending}>Reset</ButtonTertiary>
+                            <ButtonSuccess size="sm" isLoading={isPending} onClick={() => updateRole(updatedRole)}>Save Changes</ButtonSuccess>
+                        </SaveChangesButtonLayout>
+                    </SaveChangesContainer>
+                </SaveChangesOverlay>
             </EditRolesContent>
         </div>
     )
@@ -671,7 +767,7 @@ export function RoleSettingsSection({ guildId }: RoleSettingsSectionProps) {
                 <DefaultPermissionButton>
                     <div className="flex-grow flex items-center">
                         <svg aria-hidden="true" role="img" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24"><path fill="currentColor" d="M14.5 8a3 3 0 1 0-2.7-4.3c-.2.4.06.86.44 1.12a5 5 0 0 1 2.14 3.08c.01.06.06.1.12.1ZM18.44 17.27c.15.43.54.73 1 .73h1.06c.83 0 1.5-.67 1.5-1.5a7.5 7.5 0 0 0-6.5-7.43c-.55-.08-.99.38-1.1.92-.06.3-.15.6-.26.87-.23.58-.05 1.3.47 1.63a9.53 9.53 0 0 1 3.83 4.78ZM12.5 9a3 3 0 1 1-6 0 3 3 0 0 1 6 0ZM2 20.5a7.5 7.5 0 0 1 15 0c0 .83-.67 1.5-1.5 1.5a.2.2 0 0 1-.2-.16c-.2-.96-.56-1.87-.88-2.54-.1-.23-.42-.15-.42.1v2.1a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-2.1c0-.25-.31-.33-.42-.1-.32.67-.67 1.58-.88 2.54a.2.2 0 0 1-.2.16A1.5 1.5 0 0 1 2 20.5Z"></path></svg>
-                        {defaultPermissionsRole && <DefaultPermissionDescription>
+                        {defaultPermissionsRole && <DefaultPermissionDescription onClick={() => openEditRolesScreen(defaultPermissionsRole.id)}>
                             <h2>Default Permissions</h2>
                             <p>{defaultPermissionsRole.name} • applies to all members</p>
                         </DefaultPermissionDescription>
@@ -703,11 +799,12 @@ export function RoleSettingsSection({ guildId }: RoleSettingsSectionProps) {
                     </TableRow>
                     {guild && filteredAndSortedRoles.map(role => {
                         const members = guild.members.filter(m => m.roles.find(roleId => roleId === role.id));
+                        const color = getRoleColor(role.color);
                         return (
                             <DataRowContainer key={role.id}>
                                 <TableRow className="data" onClick={() => openEditRolesScreen(role.id)}>
                                     <RoleNameColumn>
-                                        <RoleIconContainer><svg className="mr-[4px]" aria-hidden="true" role="img" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path fill="#99aab5" d="M20.3 5.41h-.39c-.84 0-1.52-.65-1.52-1.46v-.3c0-.9-.77-1.65-1.71-1.65H7.31c-.94 0-1.71.74-1.71 1.65v.3c0 .81-.68 1.46-1.52 1.46H3.7c-.94 0-1.7.73-1.7 1.64v3.52l.01.49c.05 3.11.94 4.69 2.92 6.63C6.72 19.46 11.58 22 11.99 22c.41 0 5.27-2.54 7.06-4.31 1.98-1.95 2.92-3.53 2.92-6.63L22 7.05c0-.9-.76-1.64-1.7-1.64Zm-8.32.03a3.15 3.15 0 1 1-.01 6.3 3.15 3.15 0 0 1 .01-6.3Zm4.52 11.67c-.97.68-2.86 1.62-3.87 2.11-.42.2-.91.2-1.33 0a40.17 40.17 0 0 1-3.82-2.1.87.87 0 0 1-.37-.85c.42-2.69 2.46-3.21 4.89-3.21 2.43 0 4.4.68 4.87 3.08a.97.97 0 0 1-.38.98l.01-.01Z"></path></svg></RoleIconContainer>
+                                        <RoleIconContainer style={{color}} ><svg className="mr-[4px]" aria-hidden="true" role="img" fill="currentColor" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M20.3 5.41h-.39c-.84 0-1.52-.65-1.52-1.46v-.3c0-.9-.77-1.65-1.71-1.65H7.31c-.94 0-1.71.74-1.71 1.65v.3c0 .81-.68 1.46-1.52 1.46H3.7c-.94 0-1.7.73-1.7 1.64v3.52l.01.49c.05 3.11.94 4.69 2.92 6.63C6.72 19.46 11.58 22 11.99 22c.41 0 5.27-2.54 7.06-4.31 1.98-1.95 2.92-3.53 2.92-6.63L22 7.05c0-.9-.76-1.64-1.7-1.64Zm-8.32.03a3.15 3.15 0 1 1-.01 6.3 3.15 3.15 0 0 1 .01-6.3Zm4.52 11.67c-.97.68-2.86 1.62-3.87 2.11-.42.2-.91.2-1.33 0a40.17 40.17 0 0 1-3.82-2.1.87.87 0 0 1-.37-.85c.42-2.69 2.46-3.21 4.89-3.21 2.43 0 4.4.68 4.87 3.08a.97.97 0 0 1-.38.98l.01-.01Z"></path></svg></RoleIconContainer>
                                         {role.name}
                                     </RoleNameColumn>
                                     <MembersColumn>{members.length}</MembersColumn>

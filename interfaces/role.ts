@@ -6,5 +6,5 @@ export interface Role {
     position: number;
     isHoisted: boolean;
     guildId: string;
-    color?: number;
+    color: number | null;
 }

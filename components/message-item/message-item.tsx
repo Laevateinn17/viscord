@@ -9,6 +9,7 @@ import { MessageStatus } from "@/enums/message-status.enum";
 import { useContextMenu } from "@/contexts/context-menu.context";
 import { useRelationshipsQuery } from "@/hooks/queries";
 import { ContextMenuType } from "@/enums/context-menu-type.enum";
+import { Guild } from "@/interfaces/guild";
 
 const Container = styled.div`
     display: flex;
@@ -117,11 +118,17 @@ function Time({ date, children, className }: { date: Date, children: ReactNode, 
 }
 
 
-export default function MessageItem({ sender, message, isSubsequent = false }: { sender: UserProfile, message: Message, isSubsequent?: boolean }) {
+export default function MessageItem({ sender, message, isSubsequent = false, guild }: { sender: UserProfile, guild?: Guild, message: Message, isSubsequent?: boolean }) {
     const time = dateToAMPM(message.createdAt);
     const [hover, setHover] = useState(false);
     const { data: relationships } = useRelationshipsQuery();
     const { showMenu } = useContextMenu();
+    const senderColor = guild?.roles.filter(role => {
+        const member = guild?.members.find(m => m.userId === sender.id);
+
+        return member?.roles.find(roleId => roleId === role.id);
+    }).sort(position);
+
 
     return (
         <Container className={`${!isSubsequent ? 'mt-[17px]' : ''} ${hover ? 'active' : ''}`} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
@@ -140,11 +147,11 @@ export default function MessageItem({ sender, message, isSubsequent = false }: {
                 {!isSubsequent &&
                     <SubsequentMessageHelper>
                         <SenderNameText onContextMenu={(e) => {
-                        const relationship = relationships?.find(rel => rel.user.id === sender.id)
-                        if (relationship) {
-                            showMenu(e, ContextMenuType.USER, relationship)
-                        }
-                    }}>{sender.displayName}</SenderNameText>
+                            const relationship = relationships?.find(rel => rel.user.id === sender.id)
+                            if (relationship) {
+                                showMenu(e, ContextMenuType.USER, relationship)
+                            }
+                        }}>{sender.displayName}</SenderNameText>
                         <Time date={message.createdAt} className="active">{getTimePoint(message.createdAt)} {time}</Time>
                     </SubsequentMessageHelper>
                 }

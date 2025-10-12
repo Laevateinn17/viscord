@@ -1,7 +1,7 @@
 "use client"
 import { useMessagesQuery } from "@/hooks/queries";
 import { useParams, useRouter } from "next/navigation";
-import { Fragment, KeyboardEvent, useEffect, useState } from "react";
+import { Fragment, KeyboardEvent, useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import { GuildChannelHeader } from "./header";
 import { CreateMessageDto } from "@/interfaces/dto/create-message.dto";
@@ -27,6 +27,11 @@ import { useGuildsStore } from "@/app/stores/guilds-store";
 import { useSendMessageGuildMutation } from "@/hooks/mutations";
 import { checkPermission, getEffectivePermission } from "@/helpers/permissions.helper";
 import { Permissions } from "@/enums/permissions.enum";
+import { Role } from "@/interfaces/role";
+import { GuildMember } from "@/interfaces/guild-member";
+import { UserProfile } from "@/interfaces/user-profile";
+import { Guild } from "@/interfaces/guild";
+import { getRoleColor } from "@/helpers/color.helper";
 
 const ChatContainer = styled.div`
     display: flex;
@@ -214,7 +219,7 @@ function TextInputItem({ channel, onSubmit }: { channel: Channel, onSubmit: (mes
     function handleKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
-            const dto: CreateMessageDto = { channelId: channel.id as string, content: text, attachments: attachments, mentions: [] as string[]};
+            const dto: CreateMessageDto = { channelId: channel.id as string, content: text, attachments: attachments, mentions: [] as string[] };
             onSubmit(dto);
             onInputChanged('');
         }
@@ -249,7 +254,6 @@ function formatTyping(names: string[]) {
 export default function Page() {
     const { guildId, channelId } = useParams();
     const { user } = useCurrentUserStore();
-    const router = useRouter();
     const { getGuild, updateChannelLastRead } = useGuildsStore();
     const guild = getGuild(guildId as string);
 
@@ -269,8 +273,6 @@ export default function Page() {
     }, {} as Record<string, Message[]>);
     const { getUserProfile } = useUserProfileStore();
     const [showMemberList, setShowMemberList] = useState(true);
-    const { userProfiles } = useUserProfileStore();
-    const queryClient = useQueryClient();
     const typingUsers = useTypingUsersFromChannel(channelId as string);
     const { isUserTyping } = useUserTypingStore();
     const { presenceMap, isUserOnline } = useUserPresenceStore();
@@ -278,9 +280,34 @@ export default function Page() {
         const effectivePermission = getEffectivePermission(member, guild, channel);
         return checkPermission(effectivePermission, Permissions.VIEW_CHANNELS);
     }) ?? [];
-    const onlineMembers = allowedMembers?.filter(re => isUserOnline(re.userId)) ?? [];
     const offlineMembers = allowedMembers?.filter(re => !isUserOnline(re.userId)) ?? [];
+    const roleGroups = useMemo(() => {
+        const hoistedRoles = guild?.roles.filter(role => role.isHoisted).sort((a, b) => b.position - a.position) ?? [];
+        const groups: { role: Role | null, members: GuildMember[] }[] = [];
 
+        for (const role of hoistedRoles) {
+            const members = allowedMembers.filter(member => {
+                const memberRoles = hoistedRoles.filter(role => member.roles.includes(role.id)).sort((a, b) => b.position - a.position);
+                const highestRole = memberRoles.length > 0 ? memberRoles[0] : null;
+                
+                return highestRole?.id === role.id && member.roles.find(roleId => roleId === role.id) && isUserOnline(member.userId)
+        });
+
+            if (members.length > 0) groups.push({ role, members });
+        }
+
+        const noHoistedRoleMembers = guild?.members.filter(member => {
+            const roles = member.roles.map(roleId => guild.roles.find(role => roleId === role.id)).filter(role => role !== undefined);
+
+            return isUserOnline(member.userId) && !roles.some(role => role.isHoisted);
+        }) ?? [];
+
+        if (noHoistedRoleMembers.length > 0) groups.push({ role: null, members: noHoistedRoleMembers });
+
+        return groups;
+    }, [allowedMembers, guild]);
+
+    console.log(roleGroups)
     if (!channel) {
         return <div>bingbong</div>
     }
@@ -338,40 +365,41 @@ export default function Page() {
                 </ChatContainer>
                 {showMemberList &&
                     <MemberListContainer>
-                        {onlineMembers.length > 0 &&
-                            <>
-                                <h3>Online — {onlineMembers.length}</h3>
-                                {onlineMembers.map(re => {
-                                    const recipient = getUserProfile(re.userId)!;
-
-                                    return (
-                                        <MemberItem key={re.userId}>
-                                            <div className="mr-[12px]">
-                                                <UserAvatar user={recipient} showStatus={true} isTyping={isUserTyping(channel.id, recipient.id)} />
-                                            </div>
-                                            <MemberName>{recipient.displayName}</MemberName>
-                                            {recipient.id === guild?.ownerId &&
-                                                <span className="text-[var(--text-warning)]">
-                                                    <svg aria-label="Server Owner" aria-hidden="false" role="img" xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24"><path fill="currentColor" d="M5 18a1 1 0 0 0-1 1 3 3 0 0 0 3 3h10a3 3 0 0 0 3-3 1 1 0 0 0-1-1H5ZM3.04 7.76a1 1 0 0 0-1.52 1.15l2.25 6.42a1 1 0 0 0 .94.67h14.55a1 1 0 0 0 .95-.71l1.94-6.45a1 1 0 0 0-1.55-1.1l-4.11 3-3.55-5.33.82-.82a.83.83 0 0 0 0-1.18l-1.17-1.17a.83.83 0 0 0-1.18 0l-1.17 1.17a.83.83 0 0 0 0 1.18l.82.82-3.61 5.42-4.41-3.07Z"></path></svg>
-                                                </span>
-                                            }
-                                        </MemberItem>
-                                    );
-                                })}
-                            </>}
+                        {roleGroups.length > 0 && roleGroups.map(({ role, members }) => {
+                            const roleColor = role ? getRoleColor(role?.color) : "";
+                            return (
+                                <div>
+                                    <h3>{role ? role.name : 'Online'} — {members.length}</h3>
+                                    {members.map(member => {
+                                        const user = getUserProfile(member.userId);
+                                        return (
+                                            <MemberItem>
+                                                <div className="mr-[12px]">
+                                                    {user && <UserAvatar user={user} showStatus={true} isTyping={isUserTyping(channel.id, user.id)} />}
+                                                </div>
+                                                <MemberName style={{ color: roleColor }}>{user?.displayName}</MemberName>
+                                                {user?.id === guild?.ownerId &&
+                                                    <span className="text-[var(--text-warning)]">
+                                                        <svg aria-label="Server Owner" aria-hidden="false" role="img" xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24"><path fill="currentColor" d="M5 18a1 1 0 0 0-1 1 3 3 0 0 0 3 3h10a3 3 0 0 0 3-3 1 1 0 0 0-1-1H5ZM3.04 7.76a1 1 0 0 0-1.52 1.15l2.25 6.42a1 1 0 0 0 .94.67h14.55a1 1 0 0 0 .95-.71l1.94-6.45a1 1 0 0 0-1.55-1.1l-4.11 3-3.55-5.33.82-.82a.83.83 0 0 0 0-1.18l-1.17-1.17a.83.83 0 0 0-1.18 0l-1.17 1.17a.83.83 0 0 0 0 1.18l.82.82-3.61 5.42-4.41-3.07Z"></path></svg>
+                                                    </span>
+                                                }
+                                            </MemberItem>
+                                        );
+                                    })}
+                                </div>);
+                        })}
                         {offlineMembers.length > 0 &&
                             <>
                                 <h3>Offline — {offlineMembers.length}</h3>
-                                {offlineMembers.map(re => {
-                                    const recipient = getUserProfile(re.userId)!;
-
+                                {offlineMembers.map(member => {
+                                    const user = getUserProfile(member.userId);
                                     return (
-                                        <MemberItem key={re.userId}>
+                                        <MemberItem>
                                             <div className="mr-[12px]">
-                                                <UserAvatar user={recipient} showStatus={true} isTyping={isUserTyping(channel.id, recipient.id)} />
+                                                {user && <UserAvatar user={user} showStatus={true} isTyping={isUserTyping(channel.id, user.id)} />}
                                             </div>
-                                            <MemberName>{recipient.displayName}</MemberName>
-                                            {recipient.id === guild?.ownerId &&
+                                            <MemberName>{user?.displayName}</MemberName>
+                                            {user?.id === guild?.ownerId &&
                                                 <span className="text-[var(--text-warning)]">
                                                     <svg aria-label="Server Owner" aria-hidden="false" role="img" xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24"><path fill="currentColor" d="M5 18a1 1 0 0 0-1 1 3 3 0 0 0 3 3h10a3 3 0 0 0 3-3 1 1 0 0 0-1-1H5ZM3.04 7.76a1 1 0 0 0-1.52 1.15l2.25 6.42a1 1 0 0 0 .94.67h14.55a1 1 0 0 0 .95-.71l1.94-6.45a1 1 0 0 0-1.55-1.1l-4.11 3-3.55-5.33.82-.82a.83.83 0 0 0 0-1.18l-1.17-1.17a.83.83 0 0 0-1.18 0l-1.17 1.17a.83.83 0 0 0 0 1.18l.82.82-3.61 5.42-4.41-3.07Z"></path></svg>
                                                 </span>
