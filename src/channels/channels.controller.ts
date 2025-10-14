@@ -18,6 +18,7 @@ import { MessageCreatedDTO } from "./dto/message-created.dto";
 import { UpdateChannelPermissionOverwriteDTO } from "./dto/update-channel-permission.dto";
 import { MessageResponseDTO } from "src/messages/dto/message-response.dto";
 import { InvitesService } from "src/invites/invites.service";
+import { channel } from "diagnostics_channel";
 
 @Controller('guilds/:guildId/channels')
 export class GuildChannelsController {
@@ -183,6 +184,22 @@ export class ChannelsController {
     dto.targetId = targetId;
 
     const result = await this.channelsService.updateChannelPermissionOverwrite(dto);
+    const { status } = result;
+
+    return res.status(status).json(result);
+  }
+
+  @Delete(':channelId/permissions/:targetId')
+  async deletePermissionOverwrite(@Headers('X-User-Id') userId: string, @Res() res: Response, @Param('channelId') channelId: string, @Param('targetId') targetId: string, @Body() dto: UpdateChannelPermissionOverwriteDTO) {
+    const result = await this.channelsService.deleteChannelPermissionOverwrite(channelId, targetId, userId);
+    const { status } = result;
+
+    return res.status(status).json(result);
+  }
+
+  @Post(':channelId/sync')
+  async syncChannelPermissions(@Headers('X-User-Id') userId: string, @Res() res: Response, @Param('channelId') channelId: string) {
+    const result = await this.channelsService.syncChannel(userId, channelId);
     const { status } = result;
 
     return res.status(status).json(result);

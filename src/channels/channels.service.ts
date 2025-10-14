@@ -110,15 +110,40 @@ export class ChannelsService {
 
     const channelToSave = mapper.map(dto, CreateChannelDTO, Channel);
     channelToSave.ownerId = userId;
-    channelToSave.isSynced = true;
-
-    if (dto.type === ChannelType.Category) {
+    if (!dto.parentId) {
       channelToSave.isSynced = false;
       channelToSave.parentId = null;
+      channelToSave.permissionOverwrites = [
+        {
+          targetId: guild.id,
+          targetType: PermissionOverwriteTargetType.ROLE,
+          allow: 0n,
+          deny: 0n
+        } as PermissionOverwrite
+      ];
+    } else if (dto.isPrivate) {
+      channelToSave.isSynced = false;
+      channelToSave.permissionOverwrites = [
+        {
+          targetId: guild.id,
+          targetType: PermissionOverwriteTargetType.ROLE,
+          allow: 0n,
+          deny: Permissions.VIEW_CHANNELS
+        } as PermissionOverwrite
+      ];
+    } else {
+      channelToSave.isSynced = true;
     }
 
     try {
       await this.channelsRepository.save(channelToSave);
+      if (channelToSave.permissionOverwrites) {
+        channelToSave.permissionOverwrites = channelToSave.permissionOverwrites.map(ow => {
+          ow.channelId = channelToSave.id;
+          return ow;
+        });
+        await this.permissionOverwritesRepository.save(channelToSave.permissionOverwrites);
+      }
     } catch (error) {
       console.error(error)
       return {
@@ -128,20 +153,22 @@ export class ChannelsService {
       };
     }
 
-    const channelWithParent = await this.channelsRepository.findOne({
+    const channelWithRelations = await this.channelsRepository.findOne({
       where: { id: channelToSave.id },
-      relations: ['parent',],
+      relations: ['parent', 'permissionOverwrites'],
     });
 
-    const payload = mapper.map(channelWithParent, Channel, ChannelResponseDTO);
+    const payload = mapper.map(channelWithRelations, Channel, ChannelResponseDTO);
 
     const recipientResponse = await firstValueFrom(this.usersService.getUserProfiles({ userIds: guild.members.map(m => m.userId) }));
     if (recipientResponse.status === HttpStatus.OK) {
       payload.recipients = recipientResponse.data;
     }
 
+    payload.permissionOverwrites = channelWithRelations.permissionOverwrites.map(ow => mapper.map(ow, PermissionOverwrite, PermissionOverwriteResponseDTO));
+
     try {
-      this.gatewayMQ.emit(GUILD_UPDATE_EVENT, { recipients: guild.members.map(g => g.userId).filter(id => id !== userId), data: { guildId: guild.id, type: GuildUpdateType.CHANNEL_DELETE, data: payload } } as Payload<GuildUpdateDTO>);
+      this.gatewayMQ.emit(GUILD_UPDATE_EVENT, { recipients: guild.members.map(g => g.userId).filter(id => id !== userId), data: { guildId: guild.id, type: GuildUpdateType.CHANNEL_UPDATE, data: payload } } as Payload<GuildUpdateDTO>);
     } catch (error) {
       console.error("Failed emitting channel delete update");
     }
@@ -530,7 +557,7 @@ export class ChannelsService {
       }
     }
 
-    const effectivePermission = await this.getEffectivePermission(dto.userId, dto.channelId, channel.guildId);
+    const effectivePermission = await this.getEffectivePermission({ userId: dto.userId, channelId: dto.channelId, guildId: channel.guildId });
 
     if (!((effectivePermission & Permissions.VIEW_CHANNELS) === Permissions.VIEW_CHANNELS)) {
       return {
@@ -1139,7 +1166,7 @@ export class ChannelsService {
     }
   }
 
-  async getEffectivePermission(userId: string, guildId: string, channelId: string): Promise<bigint> {
+  async getEffectivePermission({ userId, guildId, channelId }: { userId: string, guildId: string, channelId: string }): Promise<bigint> {
     let effective = await this.guildsService.getBasePermission(userId, guildId);
 
     const channel = await this.channelsRepository.findOne({ where: { id: channelId }, relations: ['permissionOverwrites', 'parent', 'guild', 'parent.permissionOverwrites'] });
@@ -1207,9 +1234,9 @@ export class ChannelsService {
       }
     }
 
-    const effectivePermission = await this.getEffectivePermission(dto.userId, channel.id, channel.guildId);
+    const effectivePermission = await this.getEffectivePermission({ userId: dto.userId, channelId: channel.id, guildId: channel.guildId });
 
-    if (!((effectivePermission & Permissions.MANAGE_CHANNELS) === Permissions.MANAGE_CHANNELS)) {
+    if ((effectivePermission & Permissions.MANAGE_CHANNELS) !== Permissions.MANAGE_CHANNELS) {
       return {
         status: HttpStatus.FORBIDDEN,
         data: null,
@@ -1238,27 +1265,78 @@ export class ChannelsService {
       }
     }
 
-    channel.isSynced = false;
 
-    let overwrite = await this.permissionOverwritesRepository.findOneBy({ targetId: dto.targetId, channelId: dto.channelId });
-    if (!overwrite) {
-      overwrite = new PermissionOverwrite();
-      overwrite.targetId = dto.targetId;
-      overwrite.targetType = dto.targetType;
-      overwrite.channelId = dto.channelId;
-    }
-    overwrite.allow = dto.allow;
-    overwrite.deny = dto.deny;
 
+    let overwrite: PermissionOverwrite = null!;
     try {
+      if (channel.isSynced && channel.parentId) {
+        channel.isSynced = false;
+        console.log('unsyncing')
+        const parentOverwrites = await this.permissionOverwritesRepository.findBy({
+          channelId: channel.parentId,
+        });
+
+        const clonedOverwrites = parentOverwrites.map((ow) => {
+          const clone = new PermissionOverwrite();
+          clone.channelId = channel.id;
+          clone.targetId = ow.targetId;
+          clone.targetType = ow.targetType;
+          clone.allow = ow.allow;
+          clone.deny = ow.deny;
+          return clone;
+        });
+
+        const existing = clonedOverwrites.find(
+          (ow) => ow.targetId === dto.targetId,
+        );
+        if (existing) {
+          existing.allow = dto.allow;
+          existing.deny = dto.deny;
+          overwrite = existing;
+        } else {
+          overwrite = new PermissionOverwrite();
+          overwrite.channelId = channel.id;
+          overwrite.targetId = dto.targetId;
+          overwrite.targetType = dto.targetType;
+          overwrite.allow = dto.allow;
+          overwrite.deny = dto.deny;
+          clonedOverwrites.push(overwrite);
+        }
+        await this.permissionOverwritesRepository.save(clonedOverwrites);
+        console.log(clonedOverwrites)
+
+      } else {
+        overwrite = await this.permissionOverwritesRepository.findOneBy({
+          channelId: dto.channelId,
+          targetId: dto.targetId,
+        });
+
+        if (!overwrite) {
+          overwrite = new PermissionOverwrite();
+          overwrite.channelId = dto.channelId;
+          overwrite.targetId = dto.targetId;
+          overwrite.targetType = dto.targetType;
+        }
+
+        overwrite.allow = dto.allow;
+        overwrite.deny = dto.deny;
+
+      }
+
+      const cleanedAllow = overwrite.allow & ~overwrite.deny;
+      const cleanedDeny = overwrite.deny & ~overwrite.allow;
+      overwrite.allow = cleanedAllow;
+      overwrite.deny = cleanedDeny;
+
       await this.channelsRepository.save(channel);
       await this.permissionOverwritesRepository.save(overwrite);
     } catch (error) {
+      // TODO: ROLLBACK transaction
       console.error(error);
       return {
         status: HttpStatus.INTERNAL_SERVER_ERROR,
         data: null,
-        message: 'An error occurred while updating permission'
+        message: 'An error occurred while updating permission',
       };
     }
 
@@ -1307,14 +1385,6 @@ export class ChannelsService {
       }
     }
 
-    if (channel.type === ChannelType.Category) {
-      return {
-        status: HttpStatus.BAD_REQUEST,
-        data: null,
-        message: 'Cannot sync category'
-      };
-    }
-
     if (!channel.parentId) {
       return {
         status: HttpStatus.BAD_REQUEST,
@@ -1323,7 +1393,7 @@ export class ChannelsService {
       };
     }
 
-    const effectivePermission = await this.getEffectivePermission(userId, channel.id, channel.guildId);
+    const effectivePermission = await this.getEffectivePermission({ userId, channelId: channel.id, guildId: channel.guildId });
 
     if (!((effectivePermission & Permissions.MANAGE_CHANNELS) === Permissions.MANAGE_CHANNELS)) {
       return {
@@ -1338,8 +1408,7 @@ export class ChannelsService {
     delete channel.permissionOverwrites;
 
     try {
-      const overwriteIds = overwrites.map(ow => ow.id);
-      await this.permissionOverwritesRepository.delete({ id: In(overwriteIds) });
+      await this.permissionOverwritesRepository.delete({ targetId: In(overwrites.map(ow => ow.targetId)), channelId: In(overwrites.map(ow => ow.channelId)) });
     } catch (error) {
       console.error(error);
       return {
@@ -1381,6 +1450,92 @@ export class ChannelsService {
       status: HttpStatus.OK,
       data: channelDTO,
       message: 'Permission updated successfully'
+    };
+  }
+
+  async deleteChannelPermissionOverwrite(channelId: string, targetId: string, userId: string): Promise<Result<null>> {
+    const channel = await this.channelsRepository.findOne({ where: { id: channelId }, relations: ['permissionOverwrites'] });
+
+    if (!channel) {
+      return {
+        status: HttpStatus.BAD_REQUEST,
+        data: null,
+        message: 'Channel doesnt exist'
+      };
+    }
+
+    if (!channel.guildId) {
+      return {
+        status: HttpStatus.BAD_REQUEST,
+        data: null,
+        message: 'Cannot perform this action for this channel'
+      };
+    }
+    const overwrite = await this.permissionOverwritesRepository.findOneBy({ channelId, targetId });
+
+    if (!overwrite) {
+      return {
+        status: HttpStatus.BAD_REQUEST,
+        data: null,
+        message: 'There are no permissions for this role/member'
+      };
+    }
+
+    const effectivePermission = await this.getEffectivePermission({ userId, channelId, guildId: channel.guildId });
+
+    if ((effectivePermission & Permissions.MANAGE_ROLES) !== Permissions.MANAGE_ROLES) {
+      return {
+        status: HttpStatus.FORBIDDEN,
+        data: null,
+        message: 'User is not allowed to manage channel permissions'
+      }
+    }
+
+    if (targetId === channel.guildId) {
+      return {
+        status: HttpStatus.BAD_REQUEST,
+        data: null,
+        message: 'Cannot delete this permissions'
+      };
+    }
+
+
+    try {
+      await this.permissionOverwritesRepository.delete({targetId: overwrite.targetId, channelId: overwrite.channelId});
+      channel.permissionOverwrites = channel.permissionOverwrites.filter(ow => ow.targetId !== targetId);
+    } catch (error) {
+      console.error(error)
+      return {
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        data: null,
+        message: 'An error occurred while deleting permissions'
+      };
+    }
+
+    const guild = await this.guildsRepository.findOne({ where: { id: channel.guildId }, relations: ['members'] })
+
+    const channelDTO = mapper.map(channel, Channel, ChannelResponseDTO);
+    channelDTO.permissionOverwrites = channel.permissionOverwrites.map(ow => mapper.map(ow, PermissionOverwrite, PermissionOverwriteResponseDTO));
+
+    const recipients = guild.members.map(m => m.userId).filter(id => id !== userId);
+
+    try {
+      this.gatewayMQ.emit(GUILD_UPDATE_EVENT, {
+        recipients,
+        data: {
+          type: GuildUpdateType.CHANNEL_UPDATE,
+          guildId: guild.id,
+          data: channelDTO,
+        }
+      } as Payload<GuildUpdateDTO>)
+    } catch (error) {
+      console.error(error);
+    }
+
+    return {
+      status: HttpStatus.NO_CONTENT,
+      data: null,
+      message: 'Permissions deleted successfully'
     };
   }
 

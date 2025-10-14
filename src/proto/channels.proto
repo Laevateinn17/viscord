@@ -131,7 +131,6 @@ message GuildMember {
 }
 
 message PermissionOverwrite {
-  string id = 1;
   string allow = 2;
   string deny = 3;
   string targetId = 4;

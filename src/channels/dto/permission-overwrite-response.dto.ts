@@ -3,9 +3,6 @@ import { PermissionOverwriteTargetType } from "../enums/permission-overwrite-tar
 
 export class PermissionOverwriteResponseDTO {
     @AutoMap()
-    id: string;
-
-    @AutoMap()
     allow: string;
 
     @AutoMap()

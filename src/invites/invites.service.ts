@@ -57,7 +57,7 @@ export class InvitesService {
     }
 
     const effectivePermission = await (dto.channelId ?
-      this.channelsService.getEffectivePermission(dto.inviterId, dto.guildId, dto.channelId) :
+      this.channelsService.getEffectivePermission({ userId: dto.inviterId, guildId: dto.guildId, channelId: dto.channelId }) :
       this.guildsService.getBasePermission(dto.inviterId, dto.guildId));
 
     if ((effectivePermission & Permissions.CREATE_INVITES) !== Permissions.CREATE_INVITES) {

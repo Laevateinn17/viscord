@@ -118,13 +118,13 @@ export class GuildsService {
 
       await this.rolesRepository.save(everyoneRole);
 
-      const response = await this.channelsService.create(userId, { guildId: guild.id, name: 'Text Channels', type: ChannelType.Category });
+      const response = await this.channelsService.create(userId, { guildId: guild.id, name: 'Text Channels', type: ChannelType.Category, isPrivate: false });
       if (response.status !== HttpStatus.CREATED) throw new Error(response.message);
-      const textChannelResponse = await this.channelsService.create(userId, { guildId: guild.id, name: 'general', type: ChannelType.Text, parentId: response.data.id });
+      const textChannelResponse = await this.channelsService.create(userId, { guildId: guild.id, name: 'general', type: ChannelType.Text, parentId: response.data.id, isPrivate: false });
 
-      const voiceCategoryResponse = await this.channelsService.create(userId, { guildId: guild.id, name: 'Voice Channels', type: ChannelType.Category });
+      const voiceCategoryResponse = await this.channelsService.create(userId, { guildId: guild.id, name: 'Voice Channels', type: ChannelType.Category, isPrivate: false });
       if (voiceCategoryResponse.status !== HttpStatus.CREATED) throw new Error(voiceCategoryResponse.message);
-      const voiceChannelResponse = await this.channelsService.create(userId, { guildId: guild.id, name: 'General', type: ChannelType.Voice, parentId: voiceCategoryResponse.data.id });
+      const voiceChannelResponse = await this.channelsService.create(userId, { guildId: guild.id, name: 'General', type: ChannelType.Voice, parentId: voiceCategoryResponse.data.id, isPrivate: false });
 
 
       await this.guildsRepository.save(guild);
@@ -661,7 +661,7 @@ export class GuildsService {
   async checkPermission(dto: CheckPermissionDTO) {
     try {
       const effectivePermission = await (dto.channelId ?
-        this.channelsService.getEffectivePermission(dto.userId, dto.guildId, dto.channelId) :
+        this.channelsService.getEffectivePermission({ userId: dto.userId, guildId: dto.guildId, channelId: dto.channelId }) :
         this.getBasePermission(dto.userId, dto.guildId));
       return (effectivePermission & BigInt(dto.permission)) === BigInt(dto.permission);
     } catch (error) {
@@ -680,7 +680,7 @@ export class GuildsService {
       };
     }
 
-    const guild = await this.guildsRepository.findOne({where: {id: dto.guildId}, relations: ['members', 'roles']});
+    const guild = await this.guildsRepository.findOne({ where: { id: dto.guildId }, relations: ['members', 'roles'] });
 
     if (!guild) {
       return {
@@ -712,7 +712,7 @@ export class GuildsService {
 
     member.roles = guild.roles.filter(role => dto.roleIds.find(id => id === role.id));
 
-    try{
+    try {
       await this.guildMembersRepository.save(member);
     } catch (error) {
       console.error(error);

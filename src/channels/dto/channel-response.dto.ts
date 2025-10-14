@@ -30,7 +30,7 @@ export class ChannelResponseDTO {
     guildId: string;
 
     @AutoMap()
-    recipients: UserProfileResponseDTO[];
+    recipients?: UserProfileResponseDTO[];
 
     @AutoMap()
     lastMessageId?: string;

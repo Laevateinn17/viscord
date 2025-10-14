@@ -1,15 +1,11 @@
 import { AutoMap } from "@automapper/classes";
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, Unique } from "typeorm";
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryColumn, PrimaryGeneratedColumn, Unique } from "typeorm";
 import { PermissionOverwriteTargetType } from "../enums/permission-overwrite-target-type.enum";
 import { Channel } from "./channel.entity";
 
 @Unique(['channelId', 'targetId'])
 @Entity()
 export class PermissionOverwrite {
-    @AutoMap()
-    @PrimaryGeneratedColumn('uuid')
-    id: string;
-
     @AutoMap()
     @Column({
         type: 'bigint',
@@ -45,7 +41,7 @@ export class PermissionOverwrite {
     deny: bigint;
 
     @AutoMap()
-    @Column({ name: 'target_id' })
+    @PrimaryColumn({ name: 'target_id' })
     targetId: string
 
     @AutoMap()
@@ -53,11 +49,11 @@ export class PermissionOverwrite {
     targetType: PermissionOverwriteTargetType
 
     @AutoMap()
-    @Column({ name: 'channel_id' })
+    @PrimaryColumn  ({ name: 'channel_id' })
     channelId: string
 
     @AutoMap()
-    @ManyToOne(() => Channel, (channel) => channel.permissionOverwrites, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+    @ManyToOne(() => Channel, (channel) => channel.permissionOverwrites, { onDelete: 'CASCADE', onUpdate: 'CASCADE'})
     @JoinColumn({ name: 'channel_id' })
     channel: Channel;
 
