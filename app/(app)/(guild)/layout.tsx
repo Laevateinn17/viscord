@@ -171,17 +171,25 @@ export default function Page({ children }: { children: ReactNode }) {
     const guild = getGuild(guildId as string);
     const { user } = useCurrentUserStore();
     const member = guild?.members.find(member => member.userId === user.id);
+    const channelsWithoutParent = guild?.channels.filter(channel => {
+        if (channel.parent || channel.type === ChannelType.Category || !member) return false;
+
+        const permission = getEffectivePermission(member, guild, channel);
+
+        return checkPermission(permission, Permissions.VIEW_CHANNELS);
+    }) ?? [];
     const parents = guild?.channels.filter(channel => {
-        const permission = member ? getEffectivePermission(member, guild, channel) : 0n;
+        if (channel.type !== ChannelType.Category || !member) return false;
+
+        const permission = getEffectivePermission(member, guild, channel);
         const visibleChildren = guild.channels.filter(ch => {
             if (!member) return false;
             const permission = getEffectivePermission(member, guild, ch);
+
             return ch.parent?.id === channel.id && checkPermission(permission, Permissions.VIEW_CHANNELS);
         });
 
-        return !channel.parent
-            && (channel.type === ChannelType.Category ? checkPermission(permission, Permissions.VIEW_CHANNELS) || visibleChildren.length > 0 : true)
-            && checkPermission(permission, Permissions.VIEW_CHANNELS);
+        return checkPermission(permission, Permissions.MANAGE_CHANNELS) || visibleChildren.length > 0;
     }) ?? [];
 
     const router = useRouter();
@@ -208,6 +216,15 @@ export default function Page({ children }: { children: ReactNode }) {
                     </SidebarHeader>
                     <SidebarContentContainer>
                         <div className="py-[8px]">
+                            {channelsWithoutParent.sort((a, b) => a.createdAt > b.createdAt ? 1 : a.createdAt === b.createdAt ? 0 : -1).map(channel => {
+                                return (
+                                    <div className="mt-[8px] px-[8px]" key={channel.id}>
+                                        <ChannelButton collapse={false} channel={channel} />
+                                    </div>
+                                );
+
+                            }
+                            )}
                             {parents.sort((a, b) => a.createdAt > b.createdAt ? 1 : a.createdAt === b.createdAt ? 0 : -1).map(channel => {
                                 const visibleChannels = guild.channels.filter(ch => {
                                     if (!member) return false;

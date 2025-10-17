@@ -1,3 +1,4 @@
+import { ChannelType } from "@/enums/channel-type.enum";
 import { Channel } from "@/interfaces/channel";
 import { Guild } from "@/interfaces/guild";
 import { GuildMember } from "@/interfaces/guild-member";
@@ -71,7 +72,20 @@ export const useGuildsStore = create<GuildStoreState>((set, get) => ({
             const guild = state.guilds.get(guildId);
             if (!guild) return state;
 
-            const updatedChannels = guild.channels.filter((ch) => ch.id !== channelId);
+            const deletedChannel = guild.channels.find(ch => ch.id === channelId);
+            if (!deletedChannel) return state;
+
+            let updatedChannels = guild.channels;
+
+            if (deletedChannel.type === ChannelType.Category) {
+                updatedChannels = updatedChannels.map(ch =>
+                    ch.parent?.id === deletedChannel.id
+                        ? { ...ch, parent: undefined }
+                        : ch
+                );
+            }
+
+            updatedChannels = updatedChannels.filter((ch) => ch.id !== channelId);
 
             const updatedGuild: Guild = { ...guild, channels: updatedChannels };
 

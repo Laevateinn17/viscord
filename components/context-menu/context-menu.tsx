@@ -1,10 +1,12 @@
 import { useGuildsStore } from "@/app/stores/guilds-store";
+import { useSettingsOverlay } from "@/app/stores/settings-overlay-store";
 import { useContextMenu } from "@/contexts/context-menu.context";
 import { useModal } from "@/contexts/modal.context";
 import { ContextMenuType } from "@/enums/context-menu-type.enum";
 import { ModalType } from "@/enums/modal-type.enum";
 import { PermissionOverwriteTargetType } from "@/enums/permission-overwrite-target-type.enum";
 import { RelationshipType } from "@/enums/relationship-type.enum";
+import { SettingsOverlayType } from "@/enums/settings-overlay-type.enum";
 import { useDeleteRelationshipMutation } from "@/hooks/mutations";
 import { useDMChannelsQuery } from "@/hooks/queries";
 import { Channel } from "@/interfaces/channel";
@@ -140,6 +142,35 @@ function GuildSidebarContextMenu({ guild }: { guild: Guild }) {
     )
 }
 
+function ChannelCategoryContextMenu({ category }: { category: Channel }) {
+    const { openSettings } = useSettingsOverlay();
+    const { openModal } = useModal();
+    const { hideMenu } = useContextMenu();
+
+    return (
+        <Fragment>
+            <div className="">
+                <ListItem
+                    onClick={() => {
+                        openSettings(SettingsOverlayType.CHANNEL_SETTINGS, { channelId: category.id, guildId: category.guildId });
+                        hideMenu();
+                    }}>
+                    <p>Edit Category</p>
+                </ListItem>
+                <ListItem
+                    className="flex items-center justify-between text-[var(--text-danger)]"
+                    onClick={() => {
+                        openModal(ModalType.DELETE_CHANNEL, { channel: category });
+                        hideMenu();
+                    }}>
+                    <p>Delete Category</p>
+                    <FaTrash color="var(--text-danger)" />
+                </ListItem>
+            </div>
+        </Fragment>
+    );
+}
+
 export default function ContextMenu() {
     const { menuState, hideMenu } = useContextMenu();
     const menuRef = useRef<HTMLDivElement>(null!);
@@ -186,6 +217,7 @@ export default function ContextMenu() {
             {menuState.type === ContextMenuType.USER && <UserContextMenu relationship={menuState.data} />}
             {menuState.type === ContextMenuType.GUILD_SIDEBAR && <GuildSidebarContextMenu guild={menuState.data} />}
             {menuState.type === ContextMenuType.REMOVE_PERMISSION_OVERWRITE && <RemovePermissionOverwriteContextMenu channel={menuState.data.channel} target={menuState.data.target} targetType={menuState.data.targetType} />}
+            {menuState.type === ContextMenuType.CHANNEL_CATEGORY && <ChannelCategoryContextMenu category={menuState.data.category} />}
         </ContextMenuContainer>
     );
 }

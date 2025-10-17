@@ -7,6 +7,8 @@ import ChannelButton from "./channel-button";
 import { usePathname } from "next/navigation";
 import { useModal } from "@/contexts/modal.context";
 import { ModalType } from "@/enums/modal-type.enum";
+import { useContextMenu } from "@/contexts/context-menu.context";
+import { ContextMenuType } from "@/enums/context-menu-type.enum";
 
 
 const Container = styled.div`
@@ -28,8 +30,8 @@ const CategoryContainer = styled.div`
     display: flex;
     color: var(--channels-default);
     cursor: pointer;
-    padding: 0 8px;
-    padding-top: 16px;
+    margin: 0 8px;
+    margin-top: 16px;
     &:hover ${CategoryToggleContainer}{
         color: var(--interactive-hover);
     }
@@ -54,21 +56,22 @@ const ChildrenContainer = styled.div`
 `
 
 export function ChannelCategory({ channel, children }: { channel: Channel, children: Channel[] }) {
-    const {openModal} = useModal();
+    const { openModal } = useModal();
     const [collapse, setCollapse] = useState(false);
     const [hoverAddChannel, setHoverAddChannel] = useState(false);
     const pathname = usePathname();
-    
+    const { showMenu } = useContextMenu();
+
     return (
-        <Container>
+        <Container >
             <CategoryContainer>
-                <CategoryToggleContainer onClick={() => setCollapse(!collapse)}>
+                <CategoryToggleContainer onClick={() => setCollapse(!collapse)} onContextMenu={(e) => { e.stopPropagation(); showMenu(e, ContextMenuType.CHANNEL_CATEGORY, { category: channel }) }}>
                     <p>{channel.name}</p>
                     <ToggleIcon className={`${collapse ? 'item-collapse' : ''}`}><FaAngleDown size={10} /></ToggleIcon>
                 </CategoryToggleContainer>
                 <div className="relative">
                     <CreateChannelButton
-                        onClick={ () => openModal(ModalType.CREATE_CHANNEL, {category: channel, guildId: channel.guildId})}
+                        onClick={() => openModal(ModalType.CREATE_CHANNEL, { category: channel, guildId: channel.guildId })}
                         onMouseEnter={() => setHoverAddChannel(true)}
                         onMouseLeave={() => setHoverAddChannel(false)}>
                         <FaPlus size={13} />

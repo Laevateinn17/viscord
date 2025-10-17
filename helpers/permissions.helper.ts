@@ -54,6 +54,7 @@ export function getEffectivePermission(member: GuildMember, guild: Guild, channe
     const everyoneRole = guild.roles.find(role => role.id === guild.id);
 
     let basePermissions: bigint = everyoneRole ? BigInt(everyoneRole.permissions) : 0n;
+
     const roles = guild.roles.filter(role => member.roles.find(roleId => roleId === role.id));
 
     for (const role of roles) {

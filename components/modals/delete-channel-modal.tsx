@@ -134,7 +134,7 @@ export function DeleteChannelModal({ channel, onClose }: { channel: Channel, onC
             <ContentContainer>
                 <ContentHeader>
                     <div className="flex flex-col">
-                        <h1>Delete Channel</h1>
+                        <h1>Delete {channel.type === ChannelType.Category ? "Category" : "Channel"}</h1>
                     </div>
                     <button onClick={onClose}><MdClose size={24} /></button>
                 </ContentHeader>
