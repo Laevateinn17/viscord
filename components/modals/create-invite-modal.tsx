@@ -207,7 +207,7 @@ export function CreateInviteModal({ channelId, guildId, onClose }: CreateInviteM
     const [search, setSearch] = useState('');
     const { channels } = useChannelsStore();
     const [invite, setInvite] = useState<Invite | undefined>();
-    const inviteLink = `http://viscord.gg/${invite?.code ?? ''}`;
+    const inviteLink = `${process.env.NEXT_PUBLIC_FRONTEND_URL}/${invite?.code ?? ''}`;
     const [copied, setCopied] = useState(false);
     const [screen, setScreen] = useState<"create-invite" | "edit-invite">("create-invite")
     const [inviteSettings, setInviteSettings] = useState<CreateInviteDto>({ guildId, channelId, maxAge: INVITE_DURATIONS["7 days"] });

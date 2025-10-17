@@ -8,8 +8,10 @@ import { useUserProfileStore } from "@/app/stores/user-profiles-store";
 import { useGetChannelVoiceStates, useVoiceStateStore } from "@/app/stores/voice-state-store";
 import Tooltip from "@/components/tooltip/tooltip";
 import UserAvatar from "@/components/user-avatar/user-avatar";
+import { useContextMenu } from "@/contexts/context-menu.context";
 import { useModal } from "@/contexts/modal.context";
 import { ChannelType } from "@/enums/channel-type.enum";
+import { ContextMenuType } from "@/enums/context-menu-type.enum";
 import { ModalType } from "@/enums/modal-type.enum";
 import { Permissions } from "@/enums/permissions.enum";
 import { SettingsOverlayType } from "@/enums/settings-overlay-type.enum";
@@ -150,7 +152,7 @@ export default function ChannelButton({ channel, collapse }: { channel: Channel,
     const [hover, setHover] = useState(false);
     const pathname = usePathname();
     const router = useRouter();
-
+    const { showMenu } = useContextMenu();
     const [active, setActive] = useState(false);
     const { openModal } = useModal();
     const { openSettings } = useSettingsOverlay();
@@ -195,7 +197,12 @@ export default function ChannelButton({ channel, collapse }: { channel: Channel,
                 className={`${collapse ? 'hidden' : ''} ${active ? 'active' : ''}`}
                 onMouseEnter={() => setHover(true)}
                 onMouseLeave={() => setHover(false)}
-                onClick={onClick}>
+                onClick={onClick}
+                onContextMenu={(e) => {
+                    e.stopPropagation();
+                    showMenu(e, ContextMenuType.CHANNEL_BUTTON, { channel })
+                }}
+            >
                 {
                     channel.type === ChannelType.Text ?
                         <Fragment>
