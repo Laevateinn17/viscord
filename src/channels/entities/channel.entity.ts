@@ -53,7 +53,7 @@ export class Channel {
     updatedAt: Date;
 
     @AutoMap()
-    @ManyToOne(() => Channel, (channel) => channel.children, { nullable: true, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+    @ManyToOne(() => Channel, (channel) => channel.children, { nullable: true, onDelete: 'SET NULL', onUpdate: 'CASCADE' })
     @JoinColumn({ name: 'parent_id' })
     parent?: Channel;
 
