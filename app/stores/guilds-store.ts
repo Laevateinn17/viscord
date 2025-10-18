@@ -12,7 +12,7 @@ type GuildMap = Map<string, Guild>;
 interface GuildStoreState {
     guilds: Map<string, Guild>;
     setGuilds: (guilds: GuildMap) => void;
-    addGuild: (guild: Guild) => void;
+    upsertGuild: (guild: Guild) => void;
     removeGuild: (guildId: string) => void;
     getGuild: (guildId: string) => Guild | undefined;
     getChannel: (channelId: string) => Channel | undefined;
@@ -29,10 +29,22 @@ interface GuildStoreState {
 export const useGuildsStore = create<GuildStoreState>((set, get) => ({
     guilds: new Map(),
     setGuilds: (guilds) => set({ guilds }),
-    addGuild: (guild) => set((state) => {
+    upsertGuild: (guild) => set((state) => {
         const newGuilds = new Map(state.guilds);
-        newGuilds.set(guild.id, guild);
+        const existing = newGuilds.get(guild.id);
+        if (!existing) {
+            newGuilds.set(guild.id, guild);
+        } else {
+            const updatedGuild: Guild = {
+                ...existing,
+                ...guild,
+                channels: guild.channels ?? existing.channels,
+                members: guild.members ?? existing.members,
+                roles: guild.roles ?? existing.roles,
+            };
 
+            newGuilds.set(guild.id, updatedGuild);
+        }
         return { guilds: newGuilds };
     }),
     removeGuild: (guildId) => set((state) => {

@@ -16,13 +16,14 @@ import { CreateChannelDTO } from "@/interfaces/dto/create-channel.dto";
 import { Guild } from "@/interfaces/guild";
 import { joinGuild } from "@/services/invites/invites.service";
 import { useUserProfileStore } from "@/app/stores/user-profiles-store";
-import { assignRoleMembers, createRole, leaveGuild, updateMember, updateRole } from "@/services/guild/guild.service";
+import { assignRoleMembers, createRole, leaveGuild, updateGuild, updateMember, updateRole } from "@/services/guild/guild.service";
 import { AssignRoleDTO } from "@/interfaces/dto/assign-role.dto";
 import { UpdateMemberDTO } from "@/interfaces/dto/update-member.dto";
 import { Role } from "@/interfaces/role";
 import { PermissionOverwrite } from "@/interfaces/permission-ovewrite";
 import { updatePermissionOverwriteDTO } from "@/interfaces/dto/update-permission-overwrite.dto";
 import { Channel } from "@/interfaces/channel";
+import { UpdateGuildDTO } from "@/interfaces/dto/update-guild.dto";
 
 
 
@@ -297,7 +298,7 @@ export function useJoinGuildMutation() {
         onSuccess: (response) => {
             if (!response.success) throw new Error(response.message as string);
 
-            const { addGuild } = useGuildsStore.getState();
+            const { upsertGuild: addGuild } = useGuildsStore.getState();
             const { addUserProfile } = useUserProfileStore.getState();
             const guild = response.data!;
 
@@ -418,7 +419,6 @@ export function useDeletePermissionOverwrite() {
         onSuccess: (response, dto) => {
             if (!response.success) throw new Error(response.message as string);
 
-            const overwrite = response.data!;
             const { updateChannel, getChannel } = useGuildsStore.getState();
             const channel = getChannel(dto.channelId);
             if (!channel) return;
@@ -427,5 +427,18 @@ export function useDeletePermissionOverwrite() {
             channel.permissionOverwrites = oldOverwrites.filter(ow => ow.targetId !== dto.targetId);
             updateChannel(channel.guildId, channel.id, channel);
         }
-    })
+    });
+}
+
+export function useUpdateGuildMutation() {
+    return useMutation({
+        mutationFn: (dto: UpdateGuildDTO) => updateGuild(dto),
+        onSuccess: (response, dto) => {
+            if (!response.success) throw new Error(response.message as string);
+
+            const { upsertGuild } = useGuildsStore.getState();
+
+            upsertGuild(response.data!);
+        }
+    });
 }

@@ -1,6 +1,7 @@
 import { useVoiceEvents } from "@/app/(auth)/hooks/socket-events";
 import { useAppSettingsStore } from "@/app/stores/app-settings-store";
 import { useChannelsStore } from "@/app/stores/channels-store";
+import { useCurrentUserStore } from "@/app/stores/current-user-store";
 import { useGuildsStore } from "@/app/stores/guilds-store";
 import { useMediasoupStore } from "@/app/stores/mediasoup-store";
 import { useSettingsOverlay } from "@/app/stores/settings-overlay-store";
@@ -16,11 +17,12 @@ import { ModalType } from "@/enums/modal-type.enum";
 import { Permissions } from "@/enums/permissions.enum";
 import { SettingsOverlayType } from "@/enums/settings-overlay-type.enum";
 import { VoiceEventType } from "@/enums/voice-event-type";
-import { checkPermission } from "@/helpers/permissions.helper";
+import { checkPermission, getEffectivePermission } from "@/helpers/permissions.helper";
 import { Channel } from "@/interfaces/channel";
 import { VoiceState } from "@/interfaces/voice-state";
 import { ringChannelRecipients } from "@/services/channels/channels.service";
 import { getImageURL } from "@/services/storage/storage.service";
+import { getCurrentUserData } from "@/services/users/users.service";
 import { usePathname, useRouter } from "next/navigation";
 import { Fragment, MouseEvent, MouseEventHandler, useEffect, useState } from "react";
 import { FaLock } from "react-icons/fa6";
@@ -160,9 +162,13 @@ export default function ChannelButton({ channel, collapse }: { channel: Channel,
     const { activeSpeakers } = useMediasoupStore();
     const { emitVoiceEvent } = useVoiceEvents();
     const { mediaSettings } = useAppSettingsStore();
+    const { user } = useCurrentUserStore();
     const { getUserProfile } = useUserProfileStore();
-    const { getChannel } = useGuildsStore();
+    const { getChannel, getGuild } = useGuildsStore();
+    const guild = getGuild(channel.guildId)!;
+    const member = guild.members.find(m => m.userId === user.id);
     const parent = channel.parent ? getChannel(channel.parent.id) : undefined;
+    const effectivePermission = member ? getEffectivePermission(member, guild, channel, parent) : 0n;
     const everyoneOW = channel.isSynced
         ? parent!.permissionOverwrites.find(ow => ow.targetId === channel.guildId)
         : channel.permissionOverwrites.find(ow => ow.targetId === channel.guildId);
@@ -200,7 +206,7 @@ export default function ChannelButton({ channel, collapse }: { channel: Channel,
                 onClick={onClick}
                 onContextMenu={(e) => {
                     e.stopPropagation();
-                    showMenu(e, ContextMenuType.CHANNEL_BUTTON, { channel })
+                    showMenu(e, ContextMenuType.CHANNEL_BUTTON, { channelId: channel.id, guildId: channel.guildId })
                 }}
             >
                 {
@@ -216,14 +222,14 @@ export default function ChannelButton({ channel, collapse }: { channel: Channel,
                                 <p>{channel.name}</p>
                             </ChannelInfo>
                             <ActionButtonContainer className={`${hover || active ? 'active' : ''}`}>
-                                <CreateInviteButton onClick={(e) => {
+                                {checkPermission(effectivePermission, Permissions.CREATE_INVITES) && <CreateInviteButton onClick={(e) => {
                                     e.stopPropagation();
                                     openModal(ModalType.CREATE_INVITE, { channelId: channel.id, guildId: channel.guildId });
-                                }} />
-                                <EditChannelButton onClick={(e) => {
+                                }} />}
+                                {checkPermission(effectivePermission, Permissions.MANAGE_CHANNELS) && <EditChannelButton onClick={(e) => {
                                     e.stopPropagation();
                                     openSettings(SettingsOverlayType.CHANNEL_SETTINGS, { channelId: channel.id, guildId: channel.guildId })
-                                }} />
+                                }} />}
                             </ActionButtonContainer>
                         </Fragment>
                         :
@@ -238,14 +244,14 @@ export default function ChannelButton({ channel, collapse }: { channel: Channel,
                                 <p>{channel.name}</p>
                             </ChannelInfo>
                             <ActionButtonContainer className={`${hover || active ? 'active' : ''}`}>
-                                <CreateInviteButton onClick={(e) => {
+                                {checkPermission(effectivePermission, Permissions.CREATE_INVITES) && <CreateInviteButton onClick={(e) => {
                                     e.stopPropagation();
                                     openModal(ModalType.CREATE_INVITE, { channelId: channel.id, guildId: channel.guildId });
-                                }} />
-                                <EditChannelButton onClick={(e) => {
+                                }} />}
+                                {checkPermission(effectivePermission, Permissions.MANAGE_CHANNELS) && <EditChannelButton onClick={(e) => {
                                     e.stopPropagation();
                                     openSettings(SettingsOverlayType.CHANNEL_SETTINGS, { channelId: channel.id, guildId: channel.guildId })
-                                }} />
+                                }} />}
                             </ActionButtonContainer>
                         </Fragment>
                 }

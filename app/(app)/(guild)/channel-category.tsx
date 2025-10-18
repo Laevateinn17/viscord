@@ -65,7 +65,12 @@ export function ChannelCategory({ channel, children }: { channel: Channel, child
     return (
         <Container >
             <CategoryContainer>
-                <CategoryToggleContainer onClick={() => setCollapse(!collapse)} onContextMenu={(e) => { e.stopPropagation(); showMenu(e, ContextMenuType.CHANNEL_CATEGORY, { category: channel }) }}>
+                <CategoryToggleContainer
+                    onClick={() => setCollapse(!collapse)}
+                    onContextMenu={(e) => {
+                        e.stopPropagation();
+                        showMenu(e, ContextMenuType.CHANNEL_CATEGORY, { categoryId: channel.id, guildId: channel.guildId })
+                    }}>
                     <p>{channel.name}</p>
                     <ToggleIcon className={`${collapse ? 'item-collapse' : ''}`}><FaAngleDown size={10} /></ToggleIcon>
                 </CategoryToggleContainer>

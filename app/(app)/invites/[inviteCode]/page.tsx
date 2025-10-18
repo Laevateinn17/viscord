@@ -7,7 +7,7 @@ import { useEffect } from "react";
 
 export default function ReceiveInvitePage() {
     const { inviteCode } = useParams();
-    const { addGuild } = useGuildsStore();
+    const { upsertGuild: addGuild } = useGuildsStore();
     const router = useRouter();
 
     useEffect(() => {

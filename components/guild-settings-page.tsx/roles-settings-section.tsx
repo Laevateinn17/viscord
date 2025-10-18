@@ -34,6 +34,7 @@ const Header = styled.h2`
 const DescriptionText = styled.p`
     font-size: 14px;
     gap: 4px;
+    margin-top: 8px;
     margin-bottom: 20px;
 
     a {

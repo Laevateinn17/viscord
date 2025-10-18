@@ -85,6 +85,7 @@
   --rounded-sm: 4px;
   --rounded-md: 6px;
   --rounded-lg: 8px;
+  --rounded-xl: 16px;
   --rounded-full: 50%;
 
   --text-xs: 12px;

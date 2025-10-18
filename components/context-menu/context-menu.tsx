@@ -1,3 +1,4 @@
+import { useCurrentUserStore } from "@/app/stores/current-user-store";
 import { useGuildsStore } from "@/app/stores/guilds-store";
 import { useSettingsOverlay } from "@/app/stores/settings-overlay-store";
 import { useContextMenu } from "@/contexts/context-menu.context";
@@ -5,8 +6,10 @@ import { useModal } from "@/contexts/modal.context";
 import { ContextMenuType } from "@/enums/context-menu-type.enum";
 import { ModalType } from "@/enums/modal-type.enum";
 import { PermissionOverwriteTargetType } from "@/enums/permission-overwrite-target-type.enum";
+import { Permissions } from "@/enums/permissions.enum";
 import { RelationshipType } from "@/enums/relationship-type.enum";
 import { SettingsOverlayType } from "@/enums/settings-overlay-type.enum";
+import { checkPermission, getEffectivePermission } from "@/helpers/permissions.helper";
 import { useDeleteRelationshipMutation } from "@/hooks/mutations";
 import { useDMChannelsQuery } from "@/hooks/queries";
 import { Channel } from "@/interfaces/channel";
@@ -142,51 +145,64 @@ function GuildSidebarContextMenu({ guild }: { guild: Guild }) {
     )
 }
 
-function ChannelCategoryContextMenu({ category }: { category: Channel }) {
+function ChannelCategoryContextMenu({ categoryId, guildId }: { categoryId: string, guildId: string }) {
     const { openSettings } = useSettingsOverlay();
     const { openModal } = useModal();
     const { hideMenu } = useContextMenu();
+    const { getGuild } = useGuildsStore();
+    const guild = getGuild(guildId)!;
+    const category = guild.channels.find(ch => ch.id === categoryId)!;
+    const { user } = useCurrentUserStore();
+    const effectivePermission = getEffectivePermission(guild.members.find(m => m.userId === user.id)!, guild, category);
 
     return (
         <Fragment>
-            <div className="">
-                <ListItem
-                    onClick={() => {
-                        openSettings(SettingsOverlayType.CHANNEL_SETTINGS, { channelId: category.id, guildId: category.guildId });
-                        hideMenu();
-                    }}>
-                    <p>Edit Category</p>
-                </ListItem>
-                <ListItem
-                    className="flex items-center justify-between text-[var(--text-danger)]"
-                    onClick={() => {
-                        openModal(ModalType.DELETE_CHANNEL, { channel: category });
-                        hideMenu();
-                    }}>
-                    <p>Delete Category</p>
-                    <FaTrash color="var(--text-danger)" />
-                </ListItem>
-            </div>
+            {checkPermission(effectivePermission, Permissions.MANAGE_CHANNELS) &&
+                <div className="">
+                    <ListItem
+                        onClick={() => {
+                            openSettings(SettingsOverlayType.CHANNEL_SETTINGS, { channelId: category.id, guildId: category.guildId });
+                            hideMenu();
+                        }}>
+                        <p>Edit Category</p>
+                    </ListItem>
+                    <ListItem
+                        className="flex items-center justify-between text-[var(--text-danger)]"
+                        onClick={() => {
+                            openModal(ModalType.DELETE_CHANNEL, { channel: category });
+                            hideMenu();
+                        }}>
+                        <p>Delete Category</p>
+                        <FaTrash color="var(--text-danger)" />
+                    </ListItem>
+                </div>}
         </Fragment>
     );
 }
 
 
-function ChannelButtonContextMenu({ channel }: { channel: Channel }) {
+function ChannelButtonContextMenu({ channelId, guildId }: { channelId: string, guildId: string }) {
     const { openSettings } = useSettingsOverlay();
     const { openModal } = useModal();
     const { hideMenu } = useContextMenu();
+    const { getGuild } = useGuildsStore();
+    const guild = getGuild(guildId)!;
+    const channel = guild.channels.find(ch => ch.id === channelId)!;
+    const parent = guild.channels.find(ch => ch.id === channel.parent?.id);
+    const { user } = useCurrentUserStore();
+    const effectivePermission = getEffectivePermission(guild.members.find(m => m.userId === user.id)!, guild, channel, parent);
 
     return (
         <Fragment>
             <div className="">
-                <ListItem
-                    onClick={() => {
-                        openModal(ModalType.CREATE_INVITE, { channelId: channel.id, guildId: channel.guildId });
-                        hideMenu();
-                    }}>
-                    <p>Invite People</p>
-                </ListItem>
+                {checkPermission(effectivePermission, Permissions.CREATE_INVITES) &&
+                    <ListItem
+                        onClick={() => {
+                            openModal(ModalType.CREATE_INVITE, { channelId, guildId });
+                            hideMenu();
+                        }}>
+                        <p>Invite People</p>
+                    </ListItem>}
                 <ListItem
                     className="flex items-center justify-between"
                     onClick={() => {
@@ -196,25 +212,28 @@ function ChannelButtonContextMenu({ channel }: { channel: Channel }) {
                     <p>Copy Link</p>
                 </ListItem>
             </div>
-            <Separator />
-            <div className="">
-                <ListItem
-                    onClick={() => {
-                        openSettings(SettingsOverlayType.CHANNEL_SETTINGS, { channelId: channel.id, guildId: channel.guildId });
-                        hideMenu();
-                    }}>
-                    <p>Edit Channel</p>
-                </ListItem>
-                <ListItem
-                    className="flex items-center justify-between text-[var(--text-danger)]"
-                    onClick={() => {
-                        openModal(ModalType.DELETE_CHANNEL, { channel: channel });
-                        hideMenu();
-                    }}>
-                    <p>Delete Channel</p>
-                    <FaTrash color="var(--text-danger)" />
-                </ListItem>
-            </div>
+            {checkPermission(effectivePermission, Permissions.MANAGE_CHANNELS) && (
+                <Fragment>
+                    <Separator />
+                    <div className="">
+                        <ListItem
+                            onClick={() => {
+                                openSettings(SettingsOverlayType.CHANNEL_SETTINGS, { channelId: channel.id, guildId: channel.guildId });
+                                hideMenu();
+                            }}>
+                            <p>Edit Channel</p>
+                        </ListItem>
+                        <ListItem
+                            className="flex items-center justify-between text-[var(--text-danger)]"
+                            onClick={() => {
+                                openModal(ModalType.DELETE_CHANNEL, { channel: channel });
+                                hideMenu();
+                            }}>
+                            <p>Delete Channel</p>
+                            <FaTrash color="var(--text-danger)" />
+                        </ListItem>
+                    </div>
+                </Fragment>)}
         </Fragment>
     );
 }
@@ -264,8 +283,8 @@ export default function ContextMenu() {
             {menuState.type === ContextMenuType.USER && <UserContextMenu relationship={menuState.data} />}
             {menuState.type === ContextMenuType.GUILD_SIDEBAR && <GuildSidebarContextMenu guild={menuState.data} />}
             {menuState.type === ContextMenuType.REMOVE_PERMISSION_OVERWRITE && <RemovePermissionOverwriteContextMenu channel={menuState.data.channel} target={menuState.data.target} targetType={menuState.data.targetType} />}
-            {menuState.type === ContextMenuType.CHANNEL_CATEGORY && <ChannelCategoryContextMenu category={menuState.data.category} />}
-            {menuState.type === ContextMenuType.CHANNEL_BUTTON && <ChannelButtonContextMenu channel={menuState.data.channel} />}
+            {menuState.type === ContextMenuType.CHANNEL_CATEGORY && <ChannelCategoryContextMenu categoryId={menuState.data.categoryId} guildId={menuState.data.guildId} />}
+            {menuState.type === ContextMenuType.CHANNEL_BUTTON && <ChannelButtonContextMenu channelId={menuState.data.channelId} guildId={menuState.data.guildId}/>}
         </ContextMenuContainer>
     );
 }

@@ -29,7 +29,7 @@ export function SettingsOverlayProvider({ children }: { children: ReactNode }) {
             {children}
             <SettingsPage show={metadata?.type === SettingsOverlayType.SETTINGS} onClose={closeSettings} />
             <ChannelSettingsPage channelId={metadata?.data?.channelId} guildId={metadata?.data?.guildId} show={metadata?.type === SettingsOverlayType.CHANNEL_SETTINGS} onClose={closeSettings} />
-            <GuildSettingsPage guildId={metadata?.data?.guildId} show={metadata?.type === SettingsOverlayType.GUILD_SETTINGS} onClose={() => closeSettings} />
+            <GuildSettingsPage guildId={metadata?.data?.guildId} show={metadata?.type === SettingsOverlayType.GUILD_SETTINGS} onClose={closeSettings} />
         </div>
     )
 }

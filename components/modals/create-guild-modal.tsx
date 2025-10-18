@@ -104,7 +104,7 @@ export function CreateGuildModal({ onClose }: { onClose: () => void }) {
     const [errorMessage, setErrorMessage] = useState<string>();
 
     const queryClient = useQueryClient();
-    const { addGuild } = useGuildsStore();
+    const { upsertGuild: addGuild } = useGuildsStore();
 
     const { mutate: createGuildMutation, isPending } = useMutation({
         mutationFn: (dto: CreateGuildDto) => createGuild(dto),

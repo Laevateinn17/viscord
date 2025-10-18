@@ -6,6 +6,7 @@ import { FaTrash } from "react-icons/fa6"
 import { useGuildsStore } from "@/app/stores/guilds-store"
 import { RoleSettingsSection } from "./roles-settings-section"
 import { AnimatePresence, motion } from "framer-motion"
+import { GuildProfileSection } from "./guild-profile-section"
 
 interface GuildSettingsPageProps {
     guildId: string;
@@ -32,7 +33,7 @@ export default function GuildSettingsPage({ guildId, show, onClose }: GuildSetti
         [guild?.name ?? 'Server']: [
             {
                 id: 'server-profile',
-                page: undefined,
+                page: <GuildProfileSection guildId={guildId} />,
                 element: <p>Server Profile</p>
             }
         ],
