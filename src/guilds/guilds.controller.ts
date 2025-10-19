@@ -36,11 +36,7 @@ export class GuildsController {
 
   @GrpcMethod('GuildsService', 'FindAll')
   async findAllGrpc({ userId }: { userId: string }) {
-    const response = await this.guildsService.findAll(userId);
-
-    console.log('response', response);
-
-    return response;
+    return await this.guildsService.findAll(userId);
   }
 
   @Get(':id')
@@ -117,5 +113,14 @@ export class GuildsController {
   @GrpcMethod('GuildsService', 'CheckPermission')
   async checkPermission(dto: CheckPermissionDTO): Promise<CheckPermissionResponseDTO> {
     return { isAllowed: await this.guildsService.checkPermission(dto) };
+  }
+
+  @Get(':guildId/invites')
+  async getGuildInvites(@Headers('X-User-Id') userId: string, @Param('guildId') guildId: string, @Res() res: Response) {
+    const result = await this.guildsService.getGuildInvites(userId, guildId);
+    const { status } = result;
+
+    return res.status(status).json(result);
+
   }
 }

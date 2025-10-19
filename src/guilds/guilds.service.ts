@@ -9,12 +9,10 @@ import { GuildMember } from "./entities/guild-members.entity";
 import { Result } from "../interfaces/result.interface"
 import { GuildResponseDTO } from "./dto/guild-response.dto";
 import { StorageService } from "src/storage/storage.service";
-import { HttpStatusCode } from "axios";
 import { ChannelsService } from "src/channels/channels.service";
 import { ChannelType } from "src/channels/enums/channel-type.enum";
 import { ChannelResponseDTO } from "src/channels/dto/channel-response.dto";
 import { Channel } from "src/channels/entities/channel.entity";
-import { HttpService } from "@nestjs/axios";
 import { firstValueFrom } from "rxjs";
 import { UserProfileResponseDTO } from "src/user-profiles/dto/user-profile-response.dto";
 import { UserProfilesService } from "src/user-profiles/grpc/user-profiles.service";
@@ -38,6 +36,8 @@ import { PermissionOverwrite } from "src/channels/entities/permission-overwrite.
 import { PermissionOverwriteResponseDTO } from "src/channels/dto/permission-overwrite-response.dto";
 import { UpdateMemberDTO } from "./dto/update-member.dto";
 import { UpdateGuildDTO } from "./dto/update-guild.dto";
+import { InvitesService } from "src/invites/invites.service";
+import { InviteResponseDTO } from "src/invites/dto/invite-response.dto";
 
 @Injectable()
 export class GuildsService {
@@ -48,6 +48,7 @@ export class GuildsService {
     @InjectRepository(GuildMember) private readonly guildMembersRepository: Repository<GuildMember>,
     @InjectRepository(Role) private readonly rolesRepository: Repository<Role>,
     @Inject(forwardRef(() => ChannelsService)) private readonly channelsService: ChannelsService,
+    @Inject(forwardRef(() => InvitesService)) private readonly invitesService: InvitesService,
     private readonly storageService: StorageService,
     @Inject('USERS_SERVICE') private usersGRPCClient: ClientGrpc
   ) {
@@ -808,6 +809,28 @@ export class GuildsService {
 
   remove(id: number) {
     return `This action removes a #${id} guild`;
+  }
+
+  async getGuildInvites(userId: string, guildId: string): Promise<Result<InviteResponseDTO[]>> {
+    const guild = await this.guildsRepository.findOneBy({id: guildId});
+
+    if (!guild) {
+      return {
+        status: HttpStatus.BAD_REQUEST,
+        data: null,
+        message: 'Guild does not exist'
+      };
+    }
+
+    if (guild.ownerId !== userId) {
+      return {
+        status: HttpStatus.FORBIDDEN,
+        data: null,
+        message: 'Only owner is permitted to perform this action'
+      };
+    }
+
+    return await this.invitesService.getGuildInvites(guildId);
   }
 
   onModuleInit() {

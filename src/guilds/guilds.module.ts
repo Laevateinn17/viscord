@@ -10,11 +10,12 @@ import { HttpModule } from "@nestjs/axios";
 import { GrpcClientModule } from "src/grpc-client/grpc-client.module";
 import { UserChannelState } from "src/channels/entities/user-channel-state.entity";
 import { Role } from "src/roles/entities/role.entity";
+import { InvitesModule } from "src/invites/invites.module";
 
 @Module({
   controllers: [GuildsController],
   providers: [GuildsService],
-  imports: [TypeOrmModule.forFeature([Guild, GuildMember, Role]), StorageModule, ChannelsModule, HttpModule, GrpcClientModule],
+  imports: [TypeOrmModule.forFeature([Guild, GuildMember, Role]), StorageModule, ChannelsModule, HttpModule, GrpcClientModule, InvitesModule],
   exports: [GuildsService]
 })
 

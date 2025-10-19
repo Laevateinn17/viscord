@@ -1,7 +1,7 @@
 import { forwardRef, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { CreateInviteDto } from './dto/create-invite.dto';
 import { UpdateInviteDto } from './dto/update-invite.dto';
-import { MoreThan, Repository } from "typeorm";
+import { IsNull, MoreThan, Or, Repository } from "typeorm";
 import { Invite } from "./entities/invite.entity";
 import { InjectRepository } from "@nestjs/typeorm";
 import { generateRandomString } from "src/helpers/string";
@@ -29,6 +29,7 @@ export class InvitesService {
     @InjectRepository(Guild) private readonly guildsRepository: Repository<Guild>
   ) { }
   async createOrGet(dto: CreateInviteDto): Promise<Result<InviteResponseDTO>> {
+    console.log('max age', dto.maxAge);
     if (!dto.inviterId || !dto.guildId) {
       return {
         status: HttpStatus.BAD_REQUEST,
@@ -77,9 +78,11 @@ export class InvitesService {
 
     const invite = mapper.map(dto, CreateInviteDto, Invite);
 
+    console.log('maxage', dto.maxAge);
     if (dto.maxAge) {
       const expiresDate = new Date();
       expiresDate.setSeconds(expiresDate.getSeconds() + dto.maxAge);
+      console.log('setting expire data', expiresDate.toDateString())
       invite.expiresAt = expiresDate;
     }
 
@@ -106,7 +109,7 @@ export class InvitesService {
   }
 
   async getChannelInvites(channelId: string): Promise<Result<InviteResponseDTO[]>> {
-    const invites = await this.invitesRepository.findBy({ channelId, expiresAt: MoreThan(new Date()) });
+    const invites = await this.invitesRepository.findBy({ channelId, expiresAt: Or(MoreThan(new Date()), IsNull()) });
 
     const payload: InviteResponseDTO[] = invites.map(invite => mapper.map(invite, Invite, InviteResponseDTO));
 
@@ -117,9 +120,20 @@ export class InvitesService {
     };
   }
 
-  async findOne(channelId: string, maxAge: number): Promise<Result<InviteResponseDTO>> {
-    const existingInvite = await this.invitesRepository.findOneBy({ channelId, maxAge });
+  async getGuildInvites(guildId: string): Promise<Result<InviteResponseDTO[]>> {
+    const invites = await this.invitesRepository.findBy({ guildId, expiresAt: Or(MoreThan(new Date()), IsNull()) });
 
+    const payload: InviteResponseDTO[] = invites.map(invite => mapper.map(invite, Invite, InviteResponseDTO));
+
+    return {
+      status: HttpStatus.OK,
+      data: payload,
+      message: 'Invites retrieved successfully'
+    };
+  }
+
+  async findOne(channelId: string, maxAge: number | null): Promise<Result<InviteResponseDTO>> {
+    const existingInvite = await this.invitesRepository.findOneBy({ channelId, maxAge: maxAge ?? IsNull() });
     const payload: InviteResponseDTO = mapper.map(existingInvite, Invite, InviteResponseDTO);
 
     if (!existingInvite) {
@@ -145,6 +159,16 @@ export class InvitesService {
         status: HttpStatus.BAD_REQUEST,
         data: null,
         message: 'Invite does not exist'
+      };
+    }
+
+    const effectivePermission = await this.guildsService.getBasePermission(userId, invite.guildId);
+
+    if ((effectivePermission & Permissions.MANAGE_SERVERS) !== Permissions.MANAGE_SERVERS) {
+      return {
+        status: HttpStatus.FORBIDDEN,
+        data: null,
+        message: 'User does not have permission to manage invites'
       };
     }
 
