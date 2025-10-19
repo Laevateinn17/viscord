@@ -39,8 +39,6 @@ import { MessagesService } from "src/messages/messages.service";
 import { MessageCreatedDTO } from "./dto/message-created.dto";
 import { GuildUpdateDTO } from "src/guilds/dto/guild-update.dto";
 import { GuildUpdateType } from "src/guilds/enums/guild-update-type.enum";
-import { Role } from "src/roles/entities/role.entity";
-import { RoleResponseDTO } from "../guilds/dto/role-response.dto";
 import { PermissionOverwrite } from "./entities/permission-overwrite.entity";
 import { PermissionOverwriteResponseDTO } from "./dto/permission-overwrite-response.dto";
 import { GuildsService } from "src/guilds/guilds.service";
@@ -49,9 +47,7 @@ import { PermissionOverwriteTargetType } from "./enums/permission-overwrite-targ
 import { ALL_PERMISSIONS, Permissions } from "../guilds/enums/permissions.enum";
 import { UpdateChannelPermissionOverwriteDTO } from "./dto/update-channel-permission.dto";
 import { GuildMember } from "src/guilds/entities/guild-members.entity";
-import { stat } from "fs";
 import { MessageResponseDTO } from "src/messages/dto/message-response.dto";
-import { domainToASCII } from "url";
 
 @Injectable()
 export class ChannelsService {
@@ -91,7 +87,7 @@ export class ChannelsService {
     }
 
     const guild = await this.guildsRepository.findOne({ where: { id: dto.guildId }, relations: ['members'] });
-    const effectivePermission = await (parent ? this.getEffectivePermission({ userId, channelId: dto.parentId, guildId: dto.guildId }) : this.guildsService.getBasePermission(userId, dto.guildId));
+    const effectivePermission = await (dto.parentId ? this.getEffectivePermission({ userId, channelId: dto.parentId, guildId: dto.guildId }) : this.guildsService.getBasePermission(userId, dto.guildId));
 
     if ((effectivePermission & Permissions.MANAGE_CHANNELS) !== Permissions.MANAGE_CHANNELS) {
       return {
@@ -1049,7 +1045,9 @@ export class ChannelsService {
       };
     }
 
-    if (channel.ownerId !== userId) {
+    const guild = await this.guildsRepository.findOne({ where: { id: channel.guildId }, relations: ['members'] })
+    const effectivePermission = channel.guildId ? await this.getEffectivePermission({ userId, channelId: dto.channelId, guildId: channel.guildId }) : 0n;
+    if (channel.guildId && (effectivePermission & Permissions.MANAGE_CHANNELS) !== Permissions.MANAGE_CHANNELS) {
       return {
         status: HttpStatus.FORBIDDEN,
         data: null,
@@ -1080,8 +1078,16 @@ export class ChannelsService {
 
 
     const payload = mapper.map(channel, Channel, ChannelResponseDTO);
+    const recipients = guild.members.map(m => m.userId).filter(id => id !== userId);
     try {
-      this.gatewayMQ.emit(GUILD_UPDATE_EVENT, { recipients: channel.recipients.map(r => r.userId).filter(id => id !== userId), data: { guildId: channel.guildId, type: GuildUpdateType.CHANNEL_UPDATE, data: payload } } as Payload<GuildUpdateDTO>);
+      this.gatewayMQ.emit(GUILD_UPDATE_EVENT, {
+        recipients,
+        data: {
+          guildId: channel.guildId,
+          type: GuildUpdateType.CHANNEL_UPDATE,
+          data: payload
+        }
+      } as Payload<GuildUpdateDTO>);
     } catch (error) {
       console.error("Failed emitting channel delete update");
     }
