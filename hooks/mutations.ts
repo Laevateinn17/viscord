@@ -16,7 +16,7 @@ import { CreateChannelDTO } from "@/interfaces/dto/create-channel.dto";
 import { Guild } from "@/interfaces/guild";
 import { joinGuild } from "@/services/invites/invites.service";
 import { useUserProfileStore } from "@/app/stores/user-profiles-store";
-import { assignRoleMembers, createRole, leaveGuild, updateGuild, updateMember, updateRole } from "@/services/guild/guild.service";
+import { assignRoleMembers, createRole, deleteRole, leaveGuild, updateGuild, updateMember, updateRole } from "@/services/guild/guild.service";
 import { AssignRoleDTO } from "@/interfaces/dto/assign-role.dto";
 import { UpdateMemberDTO } from "@/interfaces/dto/update-member.dto";
 import { Role } from "@/interfaces/role";
@@ -24,6 +24,7 @@ import { PermissionOverwrite } from "@/interfaces/permission-ovewrite";
 import { updatePermissionOverwriteDTO } from "@/interfaces/dto/update-permission-overwrite.dto";
 import { Channel } from "@/interfaces/channel";
 import { UpdateGuildDTO } from "@/interfaces/dto/update-guild.dto";
+import { DeleteRoleDTO } from "@/interfaces/dto/delete-role.dto";
 
 
 
@@ -439,6 +440,19 @@ export function useUpdateGuildMutation() {
             const { upsertGuild } = useGuildsStore.getState();
 
             upsertGuild(response.data!);
+        }
+    });
+}
+
+export function useDeleteRoleMutation() {
+    return useMutation({
+        mutationFn: (dto: DeleteRoleDTO) => deleteRole(dto),
+        onSuccess: (response, dto) => {
+            if (!response.success) throw new Error(response.message as string);
+
+            const { removeRole } = useGuildsStore.getState();
+
+            removeRole(dto.guildId, dto.roleId);
         }
     });
 }

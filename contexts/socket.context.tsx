@@ -133,7 +133,7 @@ export default function SocketProvider({ children }: { children: ReactNode }) {
 
     function handleGuildUpdate(dto: GuildUpdateDTO) {
         console.log('guild update', dto);
-        const { deleteChannel, upsertMember, removeMember, upsertChannel, upsertRole } = useGuildsStore.getState();
+        const { deleteChannel, upsertMember, removeMember, upsertChannel, upsertRole, upsertGuild, removeRole } = useGuildsStore.getState();
         switch (dto.type) {
             case GuildUpdateType.MEMBER_JOIN: upsertMember(dto.guildId, dto.data); break;
             case GuildUpdateType.MEMBER_LEAVE: removeMember(dto.guildId, dto.data); break;
@@ -146,6 +146,8 @@ export default function SocketProvider({ children }: { children: ReactNode }) {
                 break;
             }
             case GuildUpdateType.ROLE_UPDATE: upsertRole(dto.guildId, dto.data); break;
+            case GuildUpdateType.GUILD_UPDATE: upsertGuild(dto.data); break;
+            case GuildUpdateType.ROLE_DELETE: removeRole(dto.guildId, dto.data); break;
         }
 
     }

@@ -654,6 +654,8 @@ function EditRolesScreen({ guild, initialRoleId, onScreenBack }: { guild: Guild,
     const [selectedTab, setSelectedTab] = useState<Tab>('display');
     const members = guild.members.filter(m => m.roles.find(roleId => roleId === selectedRole.id));
     const { mutateAsync: updateRole, isPending } = useUpdateRole();
+    const { mutateAsync: createRole } = useCreateRole(guild.id);
+    const { openModal } = useModal();
     const haveChanges = useMemo(() => {
         let ret = false;
         if (updatedRole.name !== selectedRole.name) ret = true;
@@ -674,6 +676,13 @@ function EditRolesScreen({ guild, initialRoleId, onScreenBack }: { guild: Guild,
         setUpdatedRole(selectedRole);
     }
 
+    async function handleCreateRole() {
+        const response = await createRole();
+        if (!response.success) return;
+
+        setSelectedRole(response.data!);
+    }
+
     useEffect(() => {
         if (selectedRole.id === guild.id) {
             if (selectedTab === 'manage-members' || selectedTab === 'display') setSelectedTab('permissions')
@@ -681,7 +690,7 @@ function EditRolesScreen({ guild, initialRoleId, onScreenBack }: { guild: Guild,
 
         setUpdatedRole(selectedRole);
     }, [selectedRole]);
-    
+
     return (
         <div className="flex gap-[16px] w-full relative">
             <EditRolesSidebar>
@@ -690,7 +699,7 @@ function EditRolesScreen({ guild, initialRoleId, onScreenBack }: { guild: Guild,
                         <IoMdArrowBack size={20} />
                         <h1>Back</h1>
                     </BackButton>
-                    <FaPlus size={16} />
+                    <FaPlus className="cursor-pointer" onClick={handleCreateRole} size={16} />
                 </SidebarHeader>
                 <RoleListContainer>
                     {guild.roles.map(role => {
@@ -707,7 +716,7 @@ function EditRolesScreen({ guild, initialRoleId, onScreenBack }: { guild: Guild,
             <EditRolesContent>
                 <ContentHeader>
                     <ContentTitle>Edit Role — {selectedRole.name}</ContentTitle>
-                    <DeleteRoleButton>
+                    <DeleteRoleButton onClick={() => openModal(ModalType.DELETE_ROLE, { role: selectedRole })}>
                         <FaTrash size={16} />
                     </DeleteRoleButton>
                 </ContentHeader>
@@ -766,17 +775,16 @@ export function RoleSettingsSection({ guildId }: RoleSettingsSectionProps) {
                     <Header>Roles</Header>
                     <DescriptionText>Use roles to group your server members and assign permissions.</DescriptionText>
                 </div>
-                <DefaultPermissionButton>
+                {defaultPermissionsRole && <DefaultPermissionButton onClick={() => openEditRolesScreen(defaultPermissionsRole.id)}>
                     <div className="flex-grow flex items-center">
                         <svg aria-hidden="true" role="img" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24"><path fill="currentColor" d="M14.5 8a3 3 0 1 0-2.7-4.3c-.2.4.06.86.44 1.12a5 5 0 0 1 2.14 3.08c.01.06.06.1.12.1ZM18.44 17.27c.15.43.54.73 1 .73h1.06c.83 0 1.5-.67 1.5-1.5a7.5 7.5 0 0 0-6.5-7.43c-.55-.08-.99.38-1.1.92-.06.3-.15.6-.26.87-.23.58-.05 1.3.47 1.63a9.53 9.53 0 0 1 3.83 4.78ZM12.5 9a3 3 0 1 1-6 0 3 3 0 0 1 6 0ZM2 20.5a7.5 7.5 0 0 1 15 0c0 .83-.67 1.5-1.5 1.5a.2.2 0 0 1-.2-.16c-.2-.96-.56-1.87-.88-2.54-.1-.23-.42-.15-.42.1v2.1a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-2.1c0-.25-.31-.33-.42-.1-.32.67-.67 1.58-.88 2.54a.2.2 0 0 1-.2.16A1.5 1.5 0 0 1 2 20.5Z"></path></svg>
-                        {defaultPermissionsRole && <DefaultPermissionDescription onClick={() => openEditRolesScreen(defaultPermissionsRole.id)}>
+                        <DefaultPermissionDescription >
                             <h2>Default Permissions</h2>
                             <p>{defaultPermissionsRole.name} • applies to all members</p>
                         </DefaultPermissionDescription>
-                        }
                     </div>
                     <FaAngleRight />
-                </DefaultPermissionButton>
+                </DefaultPermissionButton>}
                 <div className="">
                     <div className="flex gap-[8px]">
                         <SearchBarContainer>

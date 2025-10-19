@@ -11,7 +11,3 @@ interface ModalStore {
     closeModal: (type?: ModalType) => void;
     modal: ModalMetadata
 }
-
-export const useModalStore = create<ModalStore>((set, get) => ({
-    
-}))
