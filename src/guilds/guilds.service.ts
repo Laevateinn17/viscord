@@ -38,6 +38,7 @@ import { UpdateMemberDTO } from "./dto/update-member.dto";
 import { UpdateGuildDTO } from "./dto/update-guild.dto";
 import { InvitesService } from "src/invites/invites.service";
 import { InviteResponseDTO } from "src/invites/dto/invite-response.dto";
+import { DeleteRoleDTO } from "./dto/delete-role.dto";
 
 @Injectable()
 export class GuildsService {
@@ -845,6 +846,66 @@ export class GuildsService {
     }
 
     return await this.invitesService.getGuildInvites(guildId);
+  }
+
+  async deleteRole(dto: DeleteRoleDTO): Promise<Result<null>> {
+    const guild = await this.guildsRepository.findOne({ where: { id: dto.guildId }, relations: ['roles', 'members'] });
+
+    if (!guild) {
+      return {
+        status: HttpStatus.BAD_REQUEST,
+        data: null,
+        message: 'Guild does not exist'
+      };
+    }
+
+    if (!guild.roles.find(role => role.id === dto.roleId)) {
+      return {
+        status: HttpStatus.BAD_REQUEST,
+        data: null,
+        message: 'Role does not exist'
+      };
+    }
+
+    const effectivePermission = await this.getBasePermission(dto.userId, dto.guildId);
+
+    if ((effectivePermission & Permissions.MANAGE_SERVERS) !== Permissions.MANAGE_SERVERS) {
+      return {
+        status: HttpStatus.FORBIDDEN,
+        data: null,
+        message: 'User is not permitted to perform this action'
+      };
+    }
+
+    try {
+      await this.rolesRepository.delete({ id: dto.roleId });
+    } catch (error) {
+      console.error(error);
+      return {
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        data: null,
+        message: 'An error occurred while deleting role'
+      };
+    }
+
+    try {
+      this.gatewayMQ.emit(GUILD_UPDATE_EVENT, {
+        recipients: guild.members.map(m => m.userId).filter(id => id !== dto.userId),
+        data: {
+          guildId: guild.id,
+          data: dto.roleId,
+          type: GuildUpdateType.ROLE_DELETE
+        }
+      } as Payload<GuildUpdateDTO>)
+    } catch (error) {
+      console.error(error)
+    }
+
+    return {
+      status: HttpStatus.NO_CONTENT,
+      data: null,
+      message: 'Role deleted successfully'
+    };
   }
 
   onModuleInit() {

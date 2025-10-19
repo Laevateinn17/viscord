@@ -11,6 +11,7 @@ import { CheckPermissionResponseDTO } from "./dto/check-permission-response.dto"
 import { UpdateMemberDTO } from "./dto/update-member.dto";
 import { dot } from "node:test/reporters";
 import { UpdateGuildDTO } from "./dto/update-guild.dto";
+import { DeleteRoleDTO } from "./dto/delete-role.dto";
 
 @Controller('guilds')
 export class GuildsController {
@@ -121,6 +122,18 @@ export class GuildsController {
     const { status } = result;
 
     return res.status(status).json(result);
+  }
 
+  @Delete(':guildId/roles/:roleId')
+  async deleteRole(@Headers('X-User-Id') userId: string, @Param('guildId') guildId: string, @Param('roleId') roleId: string, @Res() res: Response) {
+    const dto = new DeleteRoleDTO();
+    dto.guildId = guildId;
+    dto.roleId = roleId;
+    dto.userId = userId;
+    
+    const result = await this.guildsService.deleteRole(dto);
+    const { status } = result;
+
+    return res.status(status).json(result);
   }
 }
