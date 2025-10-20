@@ -11,7 +11,7 @@ import { UpdateStatusDTO } from "src/users/dto/update-status.dto";
 import { StorageService } from "src/storage/storage.service";
 import { UpdateUsernameDTO } from "src/users/dto/update-username.dto";
 import { ClientProxy, ClientProxyFactory, Transport } from "@nestjs/microservices";
-import { GATEWAY_QUEUE, USER_STATUS_UPDATE_EVENT } from "src/constants/events";
+import { GATEWAY_QUEUE, USER_PROFILE_UPDATE_EVENT } from "src/constants/events";
 import { UserStatusUpdateDTO } from "src/user-profiles/dto/user-status-update.dto";
 import { Payload } from "src/interfaces/payload.dto";
 import { HttpService } from "@nestjs/axios";
@@ -122,53 +122,22 @@ export class UserProfilesService {
         data: null
       };
     }
+    const userProfile = mapper.map(userResponse.data, UserProfileResponseDTO, UserProfile);
 
     try {
-      const userProfile = mapper.map(userResponse.data, UserProfileResponseDTO, UserProfile);
       const previousStatus = userProfile.status;
 
       userProfile.status = dto.status;
       await this.userProfileRepository.save(userProfile);
 
 
-      let recipients: string[] = [];
-      const relationshipsResponse = await this.relationshipsService.findAll(dto.userId);
-      console.log(relationshipsResponse);
-      if (relationshipsResponse.status === HttpStatus.OK) {
-        recipients = recipients.concat(relationshipsResponse.data.map(rel => rel.user.id));
-      }
-
-      const dmChannelsResponse = await firstValueFrom(this.guildsService.get(`http://${process.env.GUILDS_SERVICE_HOST}:${process.env.GUILDS_SERVICE_PORT}/users/me/channels`, {
-        headers: {
-          "X-User-Id": dto.userId
-        }
-      }));
-
-      if (dmChannelsResponse.status === HttpStatus.OK) {
-        const channels = dmChannelsResponse.data.data;
-        recipients = recipients.concat(channels.map(ch => {
-          return ch.recipients.find(recipient => recipient.id != dto.userId)!;
-        }));
-      }
-
-      recipients = [...(new Set(recipients))];
-
-      const payload: Payload<UserStatusUpdateDTO> = { recipients: recipients, data: { status: dto.status, userId: dto.userId } };
-
       if (dto.status === UserStatus.Invisible) {
-        this.relationshipsService.emitUserOffline({ recipients, data: dto.userId });
+        this.relationshipsService.emitUserOffline({ recipients: [], targetIds: [userProfile.id], data: userProfile.id });
       }
       else if (previousStatus === UserStatus.Invisible) {
-        this.relationshipsService.emitUserOnline({ recipients, data: dto.userId });
+        this.relationshipsService.emitUserOnline({ recipients: [], targetIds: [userProfile.id], data: userProfile.id });
       }
 
-      this.gatewayMQ.emit(USER_STATUS_UPDATE_EVENT, payload);
-
-      return {
-        status: HttpStatus.OK,
-        message: "Status updated successfully",
-        data: null
-      };
     } catch (error) {
       console.log(error)
       return {
@@ -177,6 +146,28 @@ export class UserProfilesService {
         message: "An error occurred when updating user status",
       };
     }
+
+
+    const profileDTO = mapper.map(userProfile, UserProfile, UserProfileResponseDTO);
+
+    const payload: Payload<UserProfileResponseDTO> = {
+      recipients: [],
+      targetIds: [profileDTO.id],
+      data: profileDTO
+    };
+
+    try {
+      this.gatewayMQ.emit(USER_PROFILE_UPDATE_EVENT, payload);
+    } catch (error) {
+      console.error(error);
+    }
+
+
+    return {
+      status: HttpStatus.OK,
+      message: "Status updated successfully",
+      data: null
+    };
 
   }
   async updateUsername(id: string, dto: UpdateUsernameDTO): Promise<Result<any>> {

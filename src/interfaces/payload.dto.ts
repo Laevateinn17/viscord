@@ -1,5 +1,6 @@
 
 export interface Payload<T> {
-    recipients: string[]
+    recipients: string[];
+    targetIds: string[];
     data: T
 }

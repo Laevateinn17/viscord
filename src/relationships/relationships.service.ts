@@ -372,7 +372,7 @@ export class RelationshipsService {
     const friends: Relationship[] = await this.relationshipRepository.findBy([{ senderId: userId, type: RelationshipType.Friends }, { recipientId: userId, type: RelationshipType.Friends }]);
 
     const p = {
-      recipients: friends.map(rel => rel.senderId === userId ? rel.recipientId : rel.senderId),
+      recipients: [...friends.map(rel => rel.senderId === userId ? rel.recipientId : rel.senderId), userId],
       data: userId
     } as Payload<string>;
 
@@ -389,7 +389,7 @@ export class RelationshipsService {
     const friends: Relationship[] = await this.relationshipRepository.findBy([{ senderId: userId, type: RelationshipType.Friends }, { recipientId: userId, type: RelationshipType.Friends }]);
 
     const p = {
-      recipients: friends.map(rel => rel.senderId === userId ? rel.recipientId : rel.senderId),
+      recipients: [...friends.map(rel => rel.senderId === userId ? rel.recipientId : rel.senderId), userId],
       data: userId
     } as Payload<string>;
 
@@ -418,8 +418,10 @@ export class RelationshipsService {
     if (!userId || userId.length === 0) return
 
     const friends: Relationship[] = await this.relationshipRepository.findBy([{ senderId: userId, type: RelationshipType.Friends }, { recipientId: userId, type: RelationshipType.Friends }]);
-    const friendIds = friends.map(rel => rel.senderId === userId ? rel.recipientId : rel.senderId);
-    const userProfilesResponse = await this.userProfilesService.getUserProfiles(friendIds);
+    console.log('1', friends);
+    const userIds = [...friends.map(rel => rel.senderId === userId ? rel.recipientId : rel.senderId), userId];
+    const userProfilesResponse = await this.userProfilesService.getUserProfiles(userIds);
+    console.log('2');
     if (userProfilesResponse.status !== HttpStatus.OK) {
       return {
         status: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -428,17 +430,16 @@ export class RelationshipsService {
       };
     }
 
+    console.log('3');
     const payload = {
       status: HttpStatus.OK,
       message: '',
-      data: friendIds.filter(friendId => {
-        console.log(userProfilesResponse.data.find(up => up.id === friendId).status !== UserStatus.Invisible);
-        return userProfilesResponse.data.find(up => up.id === friendId).status !== UserStatus.Invisible;
+      data: userIds.filter(friendId => {
+        return userProfilesResponse.data.find(up => up.id === friendId)?.status !== UserStatus.Invisible;
       })
     };
 
-    console.log(payload);
-
+    console.log('4');
     return payload;
   }
 
