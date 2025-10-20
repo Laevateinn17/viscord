@@ -527,14 +527,48 @@ export class ChannelsService {
   }
 
   async broadcastUserTyping(userId: string, channelId: string): Promise<Result<null>> {
-    const recipients = await this.channelRecipientsRepository.findBy({ channelId: channelId, userId: Not(userId) });
+    const channel = await this.channelsRepository.findOne({ where: { id: channelId }, relations: ['recipients'] });
+
+    if (!channel) {
+      return {
+        status: HttpStatus.BAD_REQUEST,
+        data: null,
+        message: 'Channel not found'
+      };
+    }
+
+    let recipients: string[] = [];
+
+    if (channel.type === ChannelType.DM) {
+      if (!channel.recipients!.find(r => r.userId === userId)) {
+        return {
+          status: HttpStatus.FORBIDDEN,
+          data: null,
+          message: 'User is not a recipient of this channel'
+        };
+      }
+      recipients = channel.recipients.filter(r => r.userId !== userId).map(r => r.userId);
+    }
+    else {
+      const members = await this.guildsService.getMembersWithPermissions(channel.guildId, Permissions.VIEW_CHANNELS);
+
+      if (!members.find(m => m.userId === userId)) {
+        return {
+          status: HttpStatus.FORBIDDEN,
+          data: null,
+          message: 'User is not a recipient of this channel'
+        };
+      }
+
+      recipients = members.map(m => m.userId).filter(id => id !== userId);
+    }
+
     const dto: UserTypingDTO = {
       userId: userId,
       channelId: channelId
     };
-
     try {
-      this.gatewayMQ.emit(USER_TYPING_EVENT, { recipients: recipients.map(r => r.userId), data: dto } as Payload<UserTypingDTO>)
+      this.gatewayMQ.emit(USER_TYPING_EVENT, { recipients: recipients, data: dto } as Payload<UserTypingDTO>)
     } catch (error) {
       return {
         status: HttpStatus.INTERNAL_SERVER_ERROR,
