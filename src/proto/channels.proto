@@ -105,7 +105,7 @@ message Channel {
   Channel parent = 7;
   Guild guild = 8;
   repeated UserProfile recipients = 9;
-  string lastReadId = 10;
+  string lastMessageId = 10;
   string guildId = 11;
   UserChannelState userChannelState = 12;
   repeated PermissionOverwrite permissionOverwrites = 13;

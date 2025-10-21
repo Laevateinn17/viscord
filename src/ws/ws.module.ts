@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { WsGateway } from "./ws.gateway";
 import { ClientsModule, Transport } from "@nestjs/microservices";
 import { WsController } from './ws.controller';
@@ -14,7 +14,7 @@ import { SubscriptionsModule } from "src/subscriptions/subscriptions.module";
     providers: [WsGateway],
     controllers: [WsController],
     exports: [WsGateway],
-    imports: [SfuModule, GrpcClientModule, PresenceModule, RedisModule, ConnectionsModule, SubscriptionsModule]
+    imports: [SfuModule, GrpcClientModule, forwardRef(() => PresenceModule), RedisModule, ConnectionsModule, SubscriptionsModule]
 })
 export class WsModule {
 }

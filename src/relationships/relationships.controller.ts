@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Inject, ValidationPipe } from '@nestjs/common';
 import { EventPattern, MessagePattern } from "@nestjs/microservices";
-import { FRIEND_ADDED_EVENT, FRIEND_REMOVED_EVENT, FRIEND_REQUEST_RECEIVED_EVENT, USER_OFFLINE_EVENT, USER_ONLINE_EVENT } from "src/constants/events";
+import { FRIEND_ADDED_EVENT, FRIEND_REMOVED_EVENT, FRIEND_REQUEST_RECEIVED_EVENT, USER_PRESENCE_UPDATE_EVENT, USER_ONLINE_EVENT } from "src/constants/events";
 import { RelationshipResponseDTO } from "./dto/relationship-response.dto";
 import { Payload } from "src/interfaces/payload.dto";
 import { WsGateway } from "src/ws/ws.gateway";
@@ -29,18 +29,6 @@ export class RelationshipsController {
     async handleFriendRemoved(@Body(new ValidationPipe({ transform: true })) dto: Payload<RelationshipResponseDTO>) {
         console.log("\n\n\nfriend removed", dto);
         this.gateway.handleFriendRemoved(dto);
-    }
-
-    @MessagePattern(USER_ONLINE_EVENT)
-    async handleUserOnline(@Body(new ValidationPipe({ transform: true })) dto: Payload<string>) {
-        console.log("USER ONLINE", dto.recipients)
-        this.gateway.handleUserOnline(dto);
-    }
-
-    @MessagePattern(USER_OFFLINE_EVENT)
-    async handleUserOffline(@Body(new ValidationPipe({ transform: true })) dto: Payload<string>) {
-        console.log("USER OFFLINE", dto.recipients)
-        this.gateway.handleUserOffline(dto);
     }
 
 }

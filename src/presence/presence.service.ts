@@ -12,7 +12,8 @@ export class PresenceService {
         try {
             const client = await this.redisService.getClient();
             const key = this.getUserPresenceKey(userId);
-            client.setEx(key, USER_PRESENCE_TTL, userId);
+            // await client.setEx(key, USER_PRESENCE_TTL, userId);
+            await client.set(key, userId);
         } catch (error) {
             console.error(error);
             return false;

@@ -1,10 +1,10 @@
 import { ConnectedSocket, MessageBody, OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit, SubscribeMessage, WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
 import { Server, Socket } from "socket.io";
 import { RelationshipResponseDTO } from "src/relationships/dto/relationship-response.dto";
-import { Body, Controller, HttpStatus, Inject, Injectable, OnModuleInit, ValidationPipe } from "@nestjs/common";
+import { Body, Controller, forwardRef, HttpStatus, Inject, Injectable, OnModuleInit, ValidationPipe } from "@nestjs/common";
 import { Payload } from "../interfaces/payload.dto";
 import { ClientGrpc, ClientProxy, ClientProxyFactory, EventPattern, MessagePattern, Transport } from "@nestjs/microservices";
-import { CLIENT_READY_EVENT, FRIEND_ADDED_EVENT, FRIEND_REMOVED_EVENT, FRIEND_REQUEST_RECEIVED_EVENT, GET_DM_CHANNELS_EVENT, GET_GUILDS_EVENT, GET_RELATIONSHIPS_EVENT, MESSAGE_RECEIVED_EVENT, USER_OFFLINE_EVENT, USER_ONLINE_EVENT, USER_QUEUE, USER_PROFILE_UPDATE_EVENT, USER_TYPING_EVENT, VOICE_RING_EVENT, CHANNEL_QUEUE, VOICE_UPDATE_EVENT, GET_VOICE_STATES_EVENT, GET_VOICE_RINGS_EVENT, VOICE_RING_DISMISS_EVENT, VOICE_MUTE, GUILD_UPDATE_EVENT, SUBSCRIBE_EVENTS } from "src/constants/events";
+import { CLIENT_READY_EVENT, FRIEND_ADDED_EVENT, FRIEND_REMOVED_EVENT, FRIEND_REQUEST_RECEIVED_EVENT, GET_DM_CHANNELS_EVENT, GET_GUILDS_EVENT, GET_RELATIONSHIPS_EVENT, MESSAGE_RECEIVED_EVENT, USER_PRESENCE_UPDATE_EVENT, USER_QUEUE, USER_PROFILE_UPDATE_EVENT, USER_TYPING_EVENT, VOICE_RING_EVENT, CHANNEL_QUEUE, VOICE_UPDATE_EVENT, GET_VOICE_STATES_EVENT, GET_VOICE_RINGS_EVENT, VOICE_RING_DISMISS_EVENT, VOICE_MUTE, GUILD_UPDATE_EVENT, SUBSCRIBE_EVENTS, USER_ONLINE_EVENT, USER_OFFLINE_EVENT, GET_USERS_PRESENCE_EVENT } from "src/constants/events";
 import { UserStatusUpdateDTO } from "src/user-profiles/dto/user-status-update.dto";
 import { UserTypingDTO } from "src/guilds/dto/user-typing.dto";
 import { VoiceEventDTO } from "src/channels/dto/voice-event.dto";
@@ -22,6 +22,7 @@ import { GuildResponseDTO } from "src/guilds/dto/guild-response.dto";
 import { ConnectionsService } from "src/connections/connections.service";
 import { SubscribeEventDTO } from "src/subscriptions/dto/subscribe-event.dto";
 import { SubscriptionsService } from "src/subscriptions/subscriptions.service";
+import { UserPresenceUpdateDTO } from "src/presence/dto/user-presence-update.dto";
 
 @Injectable()
 @WebSocketGateway({ namespace: "/ws" })
@@ -39,7 +40,7 @@ export class WsGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayD
 
   constructor(
     private readonly sfuService: SfuService,
-    private readonly presenceService: PresenceService,
+    @Inject(forwardRef(() => PresenceService)) private readonly presenceService: PresenceService,
     private readonly connectionsService: ConnectionsService,
     private readonly subscriptionsService: SubscriptionsService,
     @Inject('CHANNELS_SERVICE') private channelsGRPCClient: ClientGrpc,
@@ -73,15 +74,14 @@ export class WsGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayD
       return;
     }
 
-
+    await this.presenceService.setUserPresence(userId);
+    await this.connectionsService.addConnection(userId, client.id, this.gatewayNodeId);
     this.userMQ.emit(USER_ONLINE_EVENT, userId);
-    this.presenceService.setUserPresence(userId);
-    this.connectionsService.addConnection(userId, client.id, this.gatewayNodeId);
   }
 
   async handleDisconnect(client: Socket) {
     const userId: string = client.handshake.headers['x-user-id'] as string;
-    this.presenceService.deleteUserPresence(userId);
+
     await this.connectionsService.removeConnection(userId, client.id);
     this.userMQ.emit(USER_OFFLINE_EVENT, userId);
   }
@@ -138,32 +138,21 @@ export class WsGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayD
     }
   }
 
-  async handleUserOnline(payload: Payload<string>) {
-    for (const userId of payload.recipients) {
-      const socketIds = await this.connectionsService.getUserConnections(userId);
-
-      for (const socketId of socketIds) {
-        const nodeId = await this.connectionsService.getConnectionNode(socketId);
-
-        if (nodeId === this.gatewayNodeId) {
-          this.server.to(socketId).emit(USER_ONLINE_EVENT, payload.data);
-        }
-        else {
-          //publish to that node's redis channel
-        }
-      }
+  async handleBroadcastPresenceUpdate(payload: Payload<UserPresenceUpdateDTO>) {
+    if (payload.data.isOnline) {
+      await this.presenceService.setUserPresence(payload.data.userId);
     }
-  }
-
-  async handleUserOffline(payload: Payload<string>) {
-    for (const userId of payload.recipients) {
-      const socketIds = await this.connectionsService.getUserConnections(userId);
+    else {
+      await this.presenceService.deleteUserPresence(payload.data.userId);
+    }
+    for (const targetId of payload.targetIds) {
+      const socketIds = await this.subscriptionsService.getEventSubscribers(USER_PRESENCE_UPDATE_EVENT, targetId);
 
       for (const socketId of socketIds) {
         const nodeId = await this.connectionsService.getConnectionNode(socketId);
 
         if (nodeId === this.gatewayNodeId) {
-          this.server.to(socketId).emit(USER_OFFLINE_EVENT, payload.data);
+          this.server.to(socketId).emit(USER_PRESENCE_UPDATE_EVENT, payload.data);
         }
         else {
           //publish to that node's redis channel
@@ -414,6 +403,12 @@ export class WsGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayD
     for (const sub of subscriptions) {
       await this.subscriptionsService.subscribeEvent(sub.event, sub.targetId, client.id);
     }
+  }
+
+  @SubscribeMessage(GET_USERS_PRESENCE_EVENT)
+  async getUsersPresence(@ConnectedSocket() client: Socket, @Body() userIds: string[]) {
+      const onlineUserIds = await this.presenceService.getUserPresence(userIds);
+      return onlineUserIds;
   }
 
 
