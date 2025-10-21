@@ -70,6 +70,7 @@ export async function sendMessage(dto: CreateMessageDto): Promise<Response<Messa
 }
 
 export async function acknowledgeMessage(channelId: string, messageId: string) {
+    console.log('yeehaw');
     try {
         const response = await api.post(`${ENDPOINT}/channels/${channelId}/messages/${messageId}/ack`, null, {
             withCredentials: true

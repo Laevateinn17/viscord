@@ -27,6 +27,7 @@ const CategoryToggleContainer = styled.div`
     gap: 4px;
     flex-grow: 1;
     height: 24px;
+    padding: 0 8px;
 
 `
 

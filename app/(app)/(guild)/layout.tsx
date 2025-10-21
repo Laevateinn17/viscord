@@ -219,7 +219,7 @@ export default function Page({ children }: { children: ReactNode }) {
                         <div className="py-[8px]">
                             {channelsWithoutParent.sort((a, b) => a.createdAt > b.createdAt ? 1 : a.createdAt === b.createdAt ? 0 : -1).map(channel => {
                                 return (
-                                    <div className="mt-[8px] px-[8px]" key={channel.id}>
+                                    <div className="mt-[8px]" key={channel.id}>
                                         <ChannelButton collapse={false} channel={channel} />
                                     </div>
                                 );
@@ -234,19 +234,7 @@ export default function Page({ children }: { children: ReactNode }) {
                                     return checkPermission(permission, Permissions.VIEW_CHANNELS);
                                 });
 
-                                if (channel.type === ChannelType.Category) {
-                                    return <div className="px-[8px]" key={channel.id}>
-                                        <ChannelCategory channel={channel} children={visibleChannels}></ChannelCategory>
-                                    </div>
-                                }
-                                else {
-                                    return (
-                                        <div className="mt-[8px] px-[8px]" key={channel.id}>
-                                            <ChannelButton collapse={false} channel={channel} />
-                                        </div>
-                                    );
-
-                                }
+                                return <ChannelCategory key={channel.id} channel={channel} children={visibleChannels}></ChannelCategory>
                             })}
                         </div>
                     </SidebarContentContainer>

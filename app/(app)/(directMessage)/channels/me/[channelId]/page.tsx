@@ -176,7 +176,7 @@ function TextInputItem({ channel, onSubmit }: { channel: Channel, onSubmit: (mes
 
     const [text, setText] = useState('');
     return (
-        <TextInput value={text} onKeyDown={handleKeyDown} style={{ height: inputHeight }} onChange={(e) => onInputChanged(e.target.value)} placeholder={`Message @${channel.recipients[0].displayName}`} />
+        <TextInput value={text} onKeyDown={handleKeyDown} style={{ height: inputHeight }} onChange={(e) => onInputChanged(e.target.value)} placeholder={`Message @${channel.recipients![0].displayName}`} />
 
     )
 }
@@ -221,7 +221,7 @@ export default function Page() {
     const hasDismounted = useRef(false)
     const typingUsers = useTypingUsersFromChannel(channelId as string);
     const { mutateAsync: sendMessage } = useSendMessageMutation();
-    const { mutate: acknowledgeMessage } = useAcknowledgeMessageMutation();
+    const { mutateAsync: acknowledgeMessage } = useAcknowledgeMessageMutation();
 
 
     useEffect(() => {
@@ -242,7 +242,6 @@ export default function Page() {
                 return;
             }
             const channel = getChannel(channelId as string);
-            console.log(channel?.lastMessageId, channel?.userChannelState.lastReadId)
             if (channel) {
                 const lastMessageId = channel.lastMessageId;
                 if (lastMessageId && lastMessageId !== channel.userChannelState.lastReadId) acknowledgeMessage({ channelId: channel!.id, messageId: lastMessageId });

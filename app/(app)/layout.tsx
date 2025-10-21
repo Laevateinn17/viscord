@@ -320,6 +320,7 @@ function AppInitializer({ children }: { children: ReactNode }) {
 
             if (data.guilds) {
                 for (const guild of data.guilds) {
+                    console.log(guild);
                     guildsMap.set(guild.id, guild);
                 }
             }

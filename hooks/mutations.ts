@@ -76,7 +76,7 @@ export function useAcceptFriendRequestMutation() {
     });
 }
 
-export function useSendMessageMutation() {
+export function useSendMessageMutation(guildId?: string) {
     const queryClient = useQueryClient();
 
     return useMutation({
@@ -85,7 +85,9 @@ export function useSendMessageMutation() {
             const messages = queryClient.getQueryData<Message[]>([MESSAGES_CACHE, dto.channelId]);
             const { user } = useCurrentUserStore.getState();
             const { getChannel, updateChannel } = useChannelsStore.getState();
-            const channel = getChannel(dto.channelId);
+            const { getGuild } = useGuildsStore.getState();
+            const guild = guildId ? getGuild(guildId)! : null;
+            const channel = guild ? guild.channels.find(ch => ch.id === dto.channelId)! : getChannel(dto.channelId)!;
 
             const id = `pending-${messages!.length}`
             const createdAt = new Date();
@@ -102,9 +104,7 @@ export function useSendMessageMutation() {
                 is_pinned: false,
             };
 
-            if (channel) {
-                updateChannel({ ...channel, lastMessageId: message.id, userChannelState: { ...channel.userChannelState, lastReadId: message.id, unreadCount: 0 } });
-            }
+            updateChannel({ ...channel, lastMessageId: message.id, userChannelState: { ...channel.userChannelState, lastReadId: message.id, unreadCount: 0 } });
 
             queryClient.setQueryData<Message[]>([MESSAGES_CACHE, dto.channelId], (old) => {
                 if (!old) {
@@ -121,7 +121,9 @@ export function useSendMessageMutation() {
         },
         onSuccess: (response, dto, optimisticMessage) => {
             const { getChannel, updateChannel } = useChannelsStore.getState();
-            const channel = getChannel(dto.channelId);
+            const { getGuild, upsertChannel } = useGuildsStore.getState();
+            const guild = guildId ? getGuild(guildId)! : null;
+            const channel = guild ? guild.channels.find(ch => ch.id === dto.channelId)! : getChannel(dto.channelId)!;
             if (!response.success) {
                 queryClient.setQueryData<Message[]>([MESSAGES_CACHE, dto.channelId], (old) => {
                     if (!old) {
@@ -138,7 +140,6 @@ export function useSendMessageMutation() {
                 })
                 return;
             }
-
             const message = response.data!;
             queryClient.setQueryData<Message[]>([MESSAGES_CACHE, dto.channelId], (old) => {
                 if (!old) {
@@ -155,8 +156,8 @@ export function useSendMessageMutation() {
                 return newMessages;
             });
 
-            if (!channel) return;
-            updateChannel({ ...channel, lastMessageId: response.data!.id, userChannelState: { ...channel.userChannelState, lastReadId: response.data?.id } });
+            updateChannel({ ...channel, lastMessageId: message.id, userChannelState: { ...channel.userChannelState, lastReadId: message.id, unreadCount: 0 } });
+
         }
     })
 }
@@ -169,9 +170,8 @@ export function useSendMessageGuildMutation(guildId: string) {
         onMutate: (dto) => {
             const messages = queryClient.getQueryData<Message[]>([MESSAGES_CACHE, dto.channelId]) ?? [];
             const { user } = useCurrentUserStore.getState();
-            const { getChannel, updateChannel } = useChannelsStore.getState();
-            const { getGuild, updateChannelLastRead } = useGuildsStore.getState();
-            const guild = getGuild(guildId as string);
+            const { getGuild, upsertChannel } = useGuildsStore.getState();
+            const guild = getGuild(guildId)!;
             const channel = guild?.channels.find(ch => ch.id === dto.channelId);
 
             const id = `pending-${messages.length}`
@@ -199,16 +199,15 @@ export function useSendMessageGuildMutation(guildId: string) {
                 return newMessages;
             });
 
-            if (channel) {
-                updateChannelLastRead(guildId, dto.channelId, message.id);
-            }
+            if (!channel) return
+            upsertChannel(guild.id, channel?.id, { ...channel, lastMessageId: message.id, userChannelState: { ...channel.userChannelState, lastReadId: message.id, unreadCount: 0 } });
 
 
             return message;
         },
         onSuccess: (response, dto, optimisticMessage) => {
-            const { getGuild, updateChannelLastRead } = useGuildsStore.getState();
-            const guild = getGuild(guildId as string);
+            const { getGuild, upsertChannel } = useGuildsStore.getState();
+            const guild = getGuild(guildId)!;
             const channel = guild?.channels.find(ch => ch.id === dto.channelId);
             if (!response.success) {
                 queryClient.setQueryData<Message[]>([MESSAGES_CACHE, dto.channelId], (old) => {
@@ -244,7 +243,7 @@ export function useSendMessageGuildMutation(guildId: string) {
             });
 
             if (!channel) return;
-            updateChannelLastRead(guildId as string, dto.channelId as string, response.data!.id);
+            upsertChannel(guild.id, channel?.id, { ...channel, lastMessageId: message.id, userChannelState: { ...channel.userChannelState, lastReadId: message.id, unreadCount: 0 } });
         }
     })
 }
@@ -291,6 +290,19 @@ export function useAcknowledgeMessageMutation() {
             const channel = getChannel(dto.channelId);
             if (!channel) return;
             updateChannel({ ...channel, userChannelState: { ...channel.userChannelState, lastReadId: dto.messageId, unreadCount: 0 } })
+        }
+    });
+}
+
+export function useAcknowledgeGuildMessageMutation(guildId: string) {
+    return useMutation({
+        mutationFn: (dto: { channelId: string, messageId: string }) => acknowledgeMessage(dto.channelId, dto.messageId),
+        onMutate: (dto) => {
+            const { getGuild, upsertChannel } = useGuildsStore.getState();
+            const guild = getGuild(guildId)!;
+            const channel = guild.channels.find(ch => ch.id === dto.channelId)!;
+
+            upsertChannel(guildId, channel.id, {...channel, userChannelState: {...channel.userChannelState, unreadCount: 0, lastReadId: dto.messageId}})
         }
     });
 }

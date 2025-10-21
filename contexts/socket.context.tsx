@@ -90,8 +90,17 @@ export default function SocketProvider({ children }: { children: ReactNode }) {
     function handleMessageReceived(payload: Message) {
         handleTypingStop(payload.channelId, payload.senderId);
         const { getChannel, updateChannel } = useChannelsStore.getState();
+        const { upsertChannel, getGuild, getChannel: getGuildChannel } = useGuildsStore.getState();
+
         const channel = getChannel(payload.channelId);
-        if (channel) updateChannel({ ...channel, lastMessageId: payload.id, userChannelState: { ...channel.userChannelState, unreadCount: channel.userChannelState.unreadCount + 1 } });
+        if (channel) {
+            updateChannel({ ...channel, lastMessageId: payload.id, userChannelState: { ...channel.userChannelState, unreadCount: channel.userChannelState.unreadCount + 1 } });
+        }
+        else {
+            const channel = getGuildChannel(payload.channelId)
+            if (!channel) return;
+            upsertChannel(channel.guildId, channel.id, { ...channel, lastMessageId: payload.id, userChannelState: { ...channel.userChannelState, unreadCount: channel.userChannelState.unreadCount + 1 } })
+        }
 
         queryClient.setQueryData<Message[]>([MESSAGES_CACHE, payload.channelId], (old) => {
             if (!old) {

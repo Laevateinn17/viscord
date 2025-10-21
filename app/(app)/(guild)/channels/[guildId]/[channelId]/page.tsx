@@ -1,7 +1,7 @@
 "use client"
 import { useMessagesQuery } from "@/hooks/queries";
 import { useParams, useRouter } from "next/navigation";
-import { Fragment, KeyboardEvent, useEffect, useMemo, useState } from "react";
+import { Fragment, KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import { GuildChannelHeader } from "./header";
 import { CreateMessageDto } from "@/interfaces/dto/create-message.dto";
@@ -20,7 +20,7 @@ import { useIsUserTyping, useTypingUsersFromChannel, useUserTypingStore } from "
 import UserAvatar from "@/components/user-avatar/user-avatar";
 import { useUserPresenceStore } from "@/app/stores/user-presence-store";
 import { useGuildsStore } from "@/app/stores/guilds-store";
-import { useSendMessageGuildMutation } from "@/hooks/mutations";
+import { useAcknowledgeGuildMessageMutation, useAcknowledgeMessageMutation, useSendMessageGuildMutation } from "@/hooks/mutations";
 import { checkPermission, getEffectivePermission } from "@/helpers/permissions.helper";
 import { Permissions } from "@/enums/permissions.enum";
 import { Role } from "@/interfaces/role";
@@ -249,12 +249,13 @@ function formatTyping(names: string[]) {
 export default function Page() {
     const { guildId, channelId } = useParams();
     const { user } = useCurrentUserStore();
-    const { getGuild, updateChannelLastRead } = useGuildsStore();
+    const { getGuild, getChannel } = useGuildsStore();
     const guild = getGuild(guildId as string);
-
     const channel = guild?.channels.find(ch => ch.id == channelId);
+    const hasDismounted = useRef(false)
     const { data: messages } = useMessagesQuery(channelId! as string);
     const { mutateAsync: sendMessage } = useSendMessageGuildMutation(guildId as string);
+    const { mutateAsync: acknowledgeMessage } = useAcknowledgeGuildMessageMutation(guildId as string);
     const groupedMessages = messages?.reduce((groups, message) => {
         const key = message.createdAt.toLocaleDateString();
 
@@ -302,6 +303,28 @@ export default function Page() {
 
         return groups;
     }, [allowedMembers, guild]);
+
+    useEffect(() => {
+        return () => {
+            if (process.env.NODE_ENV === 'development' && !hasDismounted.current) {
+                console.log('discmounted')
+                hasDismounted.current = true;
+                return;
+            }
+            const channel = getChannel(channelId as string);
+            console.log(channel);
+            if (channel) {
+                const lastMessageId = channel.lastMessageId;
+                console.log(lastMessageId, channel.userChannelState);
+                if (lastMessageId && lastMessageId !== channel.userChannelState.lastReadId){
+                    console.log('acknowledign', acknowledgeMessage);
+                    acknowledgeMessage({ channelId: channel!.id, messageId: lastMessageId });
+                }
+
+            }
+        }
+    }, []);
+
 
     if (!channel) {
         return <div>bingbong</div>

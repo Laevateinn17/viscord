@@ -29,12 +29,29 @@ import { FaLock } from "react-icons/fa6";
 import { PiHash } from "react-icons/pi";
 import styled from "styled-components";
 
+const ChannelInfo = styled.div`
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-grow: 1;
+    p {
+        line-height: 24px;
+    }
+
+    &.highlight {
+        p {
+            color: var(--text-primary);
+        }
+    }
+`
+
 const ButtonContainer = styled.div`
     display: flex;
     color: var(--channels-default);
     cursor: pointer;
     padding: 4px 8px;
     border-radius: 8px;
+    position: relative;
     &:hover {
         background-color: var(--background-modifier-hover);
         color: var(--interactive-hover);
@@ -48,20 +65,12 @@ const ButtonContainer = styled.div`
         background-color: var(--background-modifier-selected);
         color: var(--text-primary);
     }
+
 `
 
 const Container = styled.div`
-
-`
-
-const ChannelInfo = styled.div`
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    flex-grow: 1;
-    p {
-        line-height: 24px;
-    }
+    position: relative;
+    padding: 0 8px;
 `
 
 const ActionButtonContainer = styled.div`
@@ -115,6 +124,38 @@ const ChannelLockedIcon = styled.div`
     // pointer-events: none; /* let clicks pass through */
 `
 
+const PillWrapper = styled.div`
+    position: absolute;
+    min-width: 8px;
+    display: flex;
+    align-items: center;
+    left: 0;
+    height: 100%;
+    top: 0;
+`
+const Pill = styled.div`
+    width: 4px;
+    background-color: white;
+    height: 20px;
+    border-top-right-radius: 8px;
+    border-bottom-right-radius: 8px;
+    transform: scale(0);
+    transition: all 150ms ease-in;
+
+    &.active {
+        height: 40px;
+        transform: scale(1);
+    }
+
+    &.hover {
+        transform: scale(1);
+    }
+
+    &.minimal {
+        transform: scale(1);
+        height: 10px;
+    }
+`
 
 function CreateInviteButton({ onClick }: { onClick: (e: MouseEvent<HTMLDivElement>) => void }) {
     const [hover, setHover] = useState(false)
@@ -177,6 +218,8 @@ export default function ChannelButton({ channel, collapse }: { channel: Channel,
         ? checkPermission(BigInt(everyoneOW.deny), Permissions.VIEW_CHANNELS)
         : false;
 
+    const hasUnread = channel.userChannelState.unreadCount > 0;
+
     async function handleJoinVoiceCall() {
         emitVoiceEvent(channel.id, VoiceEventType.VOICE_JOIN, {
             isMuted: mediaSettings.isMuted,
@@ -199,8 +242,13 @@ export default function ChannelButton({ channel, collapse }: { channel: Channel,
 
     return (
         <Container>
+            {!active && hasUnread &&
+                <PillWrapper>
+                    <Pill className="minimal" />
+                </PillWrapper>
+            }
             <ButtonContainer
-                className={`${collapse ? 'hidden' : ''} ${active ? 'active' : ''}`}
+                className={`${collapse ? 'hidden' : ''} ${active ? 'active' : ''} `}
                 onMouseEnter={() => setHover(true)}
                 onMouseLeave={() => setHover(false)}
                 onClick={onClick}
@@ -212,7 +260,7 @@ export default function ChannelButton({ channel, collapse }: { channel: Channel,
                 {
                     channel.type === ChannelType.Text ?
                         <Fragment>
-                            <ChannelInfo>
+                            <ChannelInfo className={`${!active && hasUnread ? 'highlight' : ''}`} >
                                 <div className="relative">
                                     <PiHash size={20} strokeWidth={5} />
                                     {isHiddenFromEveryone && <ChannelLockedIcon>
