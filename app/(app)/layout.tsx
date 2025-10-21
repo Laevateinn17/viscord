@@ -17,7 +17,7 @@ import { ContextMenuProvider } from "@/contexts/context-menu.context";
 import AppStateProvider, { useAppState } from "@/contexts/app-state.context";
 import SocketProvider, { useSocket } from "@/contexts/socket.context";
 import { UserPresenceProvider, useUserPresence } from "@/contexts/user-presence.context";
-import { CLIENT_READY_EVENT, SUBSCRIBE_EVENTS, USER_PROFILE_UPDATE_EVENT } from "@/constants/events";
+import { CLIENT_READY_EVENT, GET_USERS_PRESENCE_EVENT, SUBSCRIBE_EVENTS, USER_PRESENCE_UPDATE_EVENT, USER_PROFILE_UPDATE_EVENT } from "@/constants/events";
 import { UserProfile } from "@/interfaces/user-profile";
 import { unique } from "next/dist/build/utils";
 import { useGetUserProfile, useUserProfileStore } from "../stores/user-profiles-store";
@@ -78,7 +78,7 @@ const Pill = styled.div`
         transform: scale(1);
         height: 8px;
     }
-        
+
     &.active {
         height: 40px;
         transform: scale(1);
@@ -309,7 +309,7 @@ function AppInitializer({ children }: { children: ReactNode }) {
     // const { data: relationships } = useRelationshipsQuery({ enabled: !!user });
     // const { data: dmChannels } = useDMChannelsQuery({ enabled: !!user })
     const { setUserProfiles } = useUserProfileStore();
-    const { setPresenceMap } = useUserPresenceStore();
+    const { setPresenceMap, updatePresence } = useUserPresenceStore();
     const { setChannels } = useChannelsStore();
     const { setCurrentUser } = useCurrentUserStore();
     const { setGuilds } = useGuildsStore();
@@ -345,6 +345,7 @@ function AppInitializer({ children }: { children: ReactNode }) {
             let userProfilesMap: Map<string, UserProfile> = new Map();
             for (let [key, value] of uniqueUsers) {
                 eventSubscriptions.push({ event: USER_PROFILE_UPDATE_EVENT, targetId: value.id });
+                eventSubscriptions.push({ event: USER_PRESENCE_UPDATE_EVENT, targetId: value.id });
                 userProfilesMap.set(key, value);
             }
 
@@ -369,8 +370,12 @@ function AppInitializer({ children }: { children: ReactNode }) {
             setPresenceMap(presenceMap);
 
             socket.emit(SUBSCRIBE_EVENTS, eventSubscriptions);
-
-            setIsLoading(false);
+            socket.emit(GET_USERS_PRESENCE_EVENT, Array.from(uniqueUsers.values()).map(u => u.id), (userIds: string[]) => {
+                for (const id of userIds) {
+                    updatePresence(id, true);
+                }
+                setIsLoading(false);
+            });
         });
 
     }, [isReady])

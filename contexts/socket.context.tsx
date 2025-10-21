@@ -3,7 +3,7 @@ import { createContext, ReactNode, useCallback, useContext, useEffect, useRef, u
 import { io, Socket } from "socket.io-client";
 import { useQueryClient } from "@tanstack/react-query";
 import Relationship from "@/interfaces/relationship";
-import { FRIEND_ADDED_EVENT, FRIEND_REMOVED_EVENT, FRIEND_REQUEST_RECEIVED_EVENT, GET_VOICE_STATES_EVENT, GUILD_UPDATE_EVENT, MESSAGE_RECEIVED_EVENT, USER_OFFLINE_EVENT, USER_ONLINE_EVENT, USER_PROFILE_UPDATE_EVENT, USER_TYPING_EVENT, VOICE_RING_CANCEL, VOICE_RING_DISMISS_EVENT, VOICE_RING_EVENT, VOICE_UPDATE_EVENT } from "@/constants/events";
+import { FRIEND_ADDED_EVENT, FRIEND_REMOVED_EVENT, FRIEND_REQUEST_RECEIVED_EVENT, GET_VOICE_STATES_EVENT, GUILD_UPDATE_EVENT, MESSAGE_RECEIVED_EVENT, USER_PRESENCE_UPDATE_EVENT, USER_ONLINE_EVENT, USER_PROFILE_UPDATE_EVENT, USER_TYPING_EVENT, VOICE_RING_CANCEL, VOICE_RING_DISMISS_EVENT, VOICE_RING_EVENT, VOICE_UPDATE_EVENT } from "@/constants/events";
 import { MESSAGES_CACHE, RELATIONSHIPS_CACHE } from "@/constants/query-keys";
 import { Message } from "@/interfaces/message";
 import { HttpStatusCode } from "axios";
@@ -25,6 +25,7 @@ import { useGuildsStore } from "@/app/stores/guilds-store";
 import { Channel } from "@/interfaces/channel";
 import { GuildMember } from "@/interfaces/guild-member";
 import { UserProfile } from "@/interfaces/user-profile";
+import { UserPresenceUpdateDTO } from "@/interfaces/dto/user-presence-update.dto";
 
 export interface SocketContextType {
     socket: Socket | undefined;
@@ -78,13 +79,9 @@ export default function SocketProvider({ children }: { children: ReactNode }) {
         })
     }
 
-    function handleFriendOnline(userId: string) {
-        console.log(userId, 'online');
-        updatePresence(userId, true);
-    }
 
-    function handleFriendOffline(userId: string) {
-        updatePresence(userId, false);
+    function handlePresenceUpdate(dto: UserPresenceUpdateDTO) {
+        updatePresence(dto.userId, dto.isOnline);
     }
 
     function handleMessageReceived(payload: Message) {
@@ -193,8 +190,7 @@ export default function SocketProvider({ children }: { children: ReactNode }) {
         socket!.on(FRIEND_REQUEST_RECEIVED_EVENT, handleFriendReceived);
         socket!.on(FRIEND_REMOVED_EVENT, handleFriendRemoved);
         socket!.on(FRIEND_ADDED_EVENT, handleFriendAdded);
-        socket!.on(USER_ONLINE_EVENT, handleFriendOnline);
-        socket!.on(USER_OFFLINE_EVENT, handleFriendOffline);
+        socket!.on(USER_PRESENCE_UPDATE_EVENT, handlePresenceUpdate);
         socket!.on(MESSAGE_RECEIVED_EVENT, handleMessageReceived);
         socket!.on(USER_TYPING_EVENT, handleUserTyping);
         socket!.on(USER_PROFILE_UPDATE_EVENT, handleUserStatusUpdate);
