@@ -1,4 +1,5 @@
 "use client"
+import { useCurrentUserStore } from "@/app/stores/current-user-store";
 import { api } from "@/services/api";
 import { refreshToken } from "@/services/auth/auth.service";
 import axios, { AxiosInstance, HttpStatusCode } from "axios";
@@ -17,18 +18,20 @@ export function useAuth() {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-    const [isAuthorized, setIsAuthorized] = useState(false);
+    const { isAuthorized } = useCurrentUserStore();
     const router = useRouter();
 
 
     const handleRefreshToken = async () => {
+        const { setIsAuthorized } = useCurrentUserStore.getState();
         const response = await refreshToken();
         if (!response.success) {
             setIsAuthorized(false);
             router.push('/login');
             return response;
         }
-        setIsAuthorized(true);
+
+        setIsAuthorized(true)
         return response;
     };
 
@@ -57,7 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 
     return (
-        <AuthContext.Provider value={{ isAuthorized: isAuthorized, handleRefreshToken }}>
+        <AuthContext.Provider value={{ isAuthorized, handleRefreshToken }}>
             {children}
         </AuthContext.Provider>
     );

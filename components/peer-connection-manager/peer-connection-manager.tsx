@@ -163,13 +163,13 @@ export function PeerConnectionManager() {
                     //     } as ActiveSpeakerState);
                     // }, 3000);
 
-                    updateActiveSpeakers(user.id, true);
+                    updateActiveSpeakers(user!.id, true);
                     socket?.emit(ACTIVE_SPEAKER_STATE, { speaking: true } as ActiveSpeakerState);
                 }
             } else {
                 if (speaking && now - lastSpokeTime > STOP_DELAY) {
                     speaking = false;
-                    updateActiveSpeakers(user.id, false);
+                    updateActiveSpeakers(user!.id, false);
                     socket?.emit(ACTIVE_SPEAKER_STATE, { speaking: false } as ActiveSpeakerState);
                 }
             }
@@ -204,7 +204,7 @@ export function PeerConnectionManager() {
         socket.on('connect_error', (e) => console.log('connect error', e));
         socket.on('connect', () => {
             console.log('peer socket connected')
-            socket.emit(JOIN_ROOM, { channelId, userId: user.id }, onRoomJoined);
+            socket.emit(JOIN_ROOM, { channelId, userId: user!.id }, onRoomJoined);
         });
     }
 
@@ -409,6 +409,7 @@ export function PeerConnectionManager() {
         if (!socket) return;
         socket.on(VOICE_UPDATE_EVENT, handleVoiceStateUpdate);
         setReady(true);
+        console.log('peer socket is ready');
         return () => {
             socket?.removeListener(VOICE_UPDATE_EVENT, handleVoiceStateUpdate);
         }

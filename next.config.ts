@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
     styledComponents: true
   },
   output: "standalone",
-  // reactStrictMode: false,
+  reactStrictMode: false,
   /* config options here */
 };
 

@@ -311,7 +311,7 @@ function AppInitializer({ children }: { children: ReactNode }) {
     const { setUserProfiles } = useUserProfileStore();
     const { setPresenceMap, updatePresence } = useUserPresenceStore();
     const { setChannels } = useChannelsStore();
-    const { setCurrentUser } = useCurrentUserStore();
+    const { setCurrentUser, isAuthorized } = useCurrentUserStore();
     const { setGuilds } = useGuildsStore();
 
 
@@ -374,6 +374,7 @@ function AppInitializer({ children }: { children: ReactNode }) {
                 for (const id of userIds) {
                     updatePresence(id, true);
                 }
+                console.log('setting isloading false');
                 setIsLoading(false);
             });
         });
@@ -412,11 +413,11 @@ function AppInitializer({ children }: { children: ReactNode }) {
 
 
 export default function HomeLayout({ children, sidebar }: HomeLayoutProps) {
-    const { isAuthorized } = useAuth();
+    // if (!isAuthorized) {
+    //     return <div></div>;
+    // }
 
-    if (!isAuthorized) {
-        return <div></div>;
-    }
+    console.log('rerendering');
 
     return (
         // <AppStateProvider>

@@ -3,7 +3,7 @@ import { createContext, ReactNode, useCallback, useContext, useEffect, useRef, u
 import { io, Socket } from "socket.io-client";
 import { useQueryClient } from "@tanstack/react-query";
 import Relationship from "@/interfaces/relationship";
-import { FRIEND_ADDED_EVENT, FRIEND_REMOVED_EVENT, FRIEND_REQUEST_RECEIVED_EVENT, GET_VOICE_STATES_EVENT, GUILD_UPDATE_EVENT, MESSAGE_RECEIVED_EVENT, USER_PRESENCE_UPDATE_EVENT, USER_ONLINE_EVENT, USER_PROFILE_UPDATE_EVENT, USER_TYPING_EVENT, VOICE_RING_CANCEL, VOICE_RING_DISMISS_EVENT, VOICE_RING_EVENT, VOICE_UPDATE_EVENT } from "@/constants/events";
+import { FRIEND_ADDED_EVENT, FRIEND_REMOVED_EVENT, FRIEND_REQUEST_RECEIVED_EVENT, GET_VOICE_STATES_EVENT, GUILD_UPDATE_EVENT, MESSAGE_RECEIVED_EVENT, USER_PRESENCE_UPDATE_EVENT, USER_PROFILE_UPDATE_EVENT, USER_TYPING_EVENT, VOICE_RING_CANCEL, VOICE_RING_DISMISS_EVENT, VOICE_RING_EVENT, VOICE_UPDATE_EVENT } from "@/constants/events";
 import { MESSAGES_CACHE, RELATIONSHIPS_CACHE } from "@/constants/query-keys";
 import { Message } from "@/interfaces/message";
 import { HttpStatusCode } from "axios";
@@ -39,7 +39,7 @@ export function useSocket() {
 }
 
 export default function SocketProvider({ children }: { children: ReactNode }) {
-    const { socket, initializeSocket } = useSocketStore();
+    const { socket, initializeSocket, removeSocket } = useSocketStore();
     const [isConnected, setIsConnected] = useState(false);
     const [isReady, setIsReady] = useState(false);
 
@@ -49,7 +49,7 @@ export default function SocketProvider({ children }: { children: ReactNode }) {
     const { handleTypingStart, handleTypingStop } = useUserTypingStore();
     const { updateVoiceState, removeVoiceState, setVoiceStates } = useVoiceStateStore();
     const { getChannel, updateChannel } = useChannelsStore();
-    const { ready } = useMediasoupStore();
+    const { ready: mediaSoupReady } = useMediasoupStore();
 
 
     function handleFriendReceived(payload: Relationship) {
@@ -164,10 +164,11 @@ export default function SocketProvider({ children }: { children: ReactNode }) {
         //     reconnection: true,
         //     reconnectionDelay: 5000,
         // })
+        console.log('intiializing socket');
         const socket = initializeSocket();
 
         const handleConnect = () => {
-            // console.log('Socket connected');
+            console.log('Socket connected');
             setIsConnected(true);
         };
 
@@ -198,25 +199,28 @@ export default function SocketProvider({ children }: { children: ReactNode }) {
         socket!.on(GET_VOICE_STATES_EVENT, handleGetVoiceStates);
         socket.on(GUILD_UPDATE_EVENT, handleGuildUpdate);
 
+        socket.connect();
         const handleBeforeUnload = () => {
+            console.log('before unload');
             socket?.disconnect();
         };
 
         window.addEventListener('beforeunload', handleBeforeUnload);
         // setSocket(socket);
         return () => {
-            socket.removeAllListeners();
+            removeSocket();
             window.removeEventListener('beforeunload', handleBeforeUnload);
         };
     }, []);
 
     useEffect(() => {
-        const socketAndMediasoupReady = isConnected && ready;
-
+        const { socket } = useSocketStore.getState();
+        const socketAndMediasoupReady = socket ? socket.connected : false && mediaSoupReady;
+        console.log('socket is ready?', isConnected, mediaSoupReady, socket?.connected);
         if (socketAndMediasoupReady !== isReady) {
             setIsReady(socketAndMediasoupReady);
         }
-    }, [isConnected, ready]);
+    }, [socket?.connected, mediaSoupReady]);
 
     return (
         <SocketContext.Provider value={{ socket, isReady }}>

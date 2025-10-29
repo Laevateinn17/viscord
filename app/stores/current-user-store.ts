@@ -3,13 +3,17 @@ import { UserData } from "@/interfaces/user-data";
 import { create } from "zustand";
 
 interface CurrentUserStoreState {
-    user: UserData;
-    setCurrentUser: (user: UserData) => void;
+    isAuthorized: boolean;
+    user: null | UserData;
+    setIsAuthorized: (isAuthorized: boolean) => void;
+    setCurrentUser: (user: UserData | null) => void;
     updateStatus: (status: UserStatus) => void;
 }
 
 export const useCurrentUserStore = create<CurrentUserStoreState>((set, get) => ({
-    user: null!,
+    isAuthorized: false,
+    user: null,
+    setIsAuthorized: (isAuthorized: boolean) => set({ isAuthorized }),
     setCurrentUser: user => set({ user }),
     updateStatus: (status) => {
         set((state) =>

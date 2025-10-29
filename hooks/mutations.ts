@@ -2,7 +2,7 @@ import { CURRENT_USER_CACHE, GUILDS_CACHE, MESSAGES_CACHE, RELATIONSHIPS_CACHE }
 import { RelationshipType } from "@/enums/relationship-type.enum";
 import { CreateMessageDto } from "@/interfaces/dto/create-message.dto";
 import Relationship from "@/interfaces/relationship";
-import { logout } from "@/services/auth/auth.service";
+import { login, logout } from "@/services/auth/auth.service";
 import { acknowledgeMessage, sendMessage } from "@/services/messages/messages.service";
 import { acceptFriendRequest, declineFriendRequest } from "@/services/relationships/relationships.service";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -27,6 +27,7 @@ import { UpdateGuildDTO } from "@/interfaces/dto/update-guild.dto";
 import { DeleteRoleDTO } from "@/interfaces/dto/delete-role.dto";
 import { UpdateUserProfileDto } from "@/interfaces/dto/update-user-profile.dto";
 import { updateUserProfile } from "@/services/user-profiles/user-profiles.service";
+import { LoginDTO } from "@/interfaces/dto/login.dto";
 
 
 
@@ -37,6 +38,9 @@ export function useLogoutMutation() {
     return useMutation({
         mutationFn: async () => await logout(),
         onSuccess: () => {
+            const { setIsAuthorized } = useCurrentUserStore.getState();
+
+            setIsAuthorized(false);
             queryClient.removeQueries({ queryKey: [CURRENT_USER_CACHE] });
         }
     });
@@ -95,7 +99,7 @@ export function useSendMessageMutation(guildId?: string) {
                 id: id,
                 createdAt: createdAt,
                 updatedAt: createdAt,
-                senderId: user.id,
+                senderId: user!.id,
                 status: MessageStatus.Pending,
                 attachments: [],
                 channelId: dto.channelId,
@@ -180,7 +184,7 @@ export function useSendMessageGuildMutation(guildId: string) {
                 id: id,
                 createdAt: createdAt,
                 updatedAt: createdAt,
-                senderId: user.id,
+                senderId: user!.id,
                 status: MessageStatus.Pending,
                 attachments: [],
                 channelId: dto.channelId,
@@ -302,7 +306,7 @@ export function useAcknowledgeGuildMessageMutation(guildId: string) {
             const guild = getGuild(guildId)!;
             const channel = guild.channels.find(ch => ch.id === dto.channelId)!;
 
-            upsertChannel(guildId, channel.id, {...channel, userChannelState: {...channel.userChannelState, unreadCount: 0, lastReadId: dto.messageId}})
+            upsertChannel(guildId, channel.id, { ...channel, userChannelState: { ...channel.userChannelState, unreadCount: 0, lastReadId: dto.messageId } })
         }
     });
 }
@@ -483,4 +487,16 @@ export function useUpdateUserProfileMutation() {
         }
     });
 
+}
+
+export function useLoginMutation() {
+    return useMutation({
+        mutationFn: (dto: LoginDTO) => login(dto),
+        onSuccess: (response) => {
+            const { setIsAuthorized } = useCurrentUserStore.getState();
+            if (!response.success) return;
+
+            setIsAuthorized(true);
+        }
+    })
 }

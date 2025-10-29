@@ -10,6 +10,7 @@ import { Response } from "@/interfaces/response"
 import { LoginDTO } from "@/interfaces/dto/login.dto"
 import { redirect, useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/auth.context"
+import { useLoginMutation } from "@/hooks/mutations"
 
 export default function Login() {
     const containerRef = useRef<HTMLDivElement>(null!);
@@ -21,8 +22,7 @@ export default function Login() {
 
     const { isAuthorized } = useAuth();
 
-    const [isLoading, setIsLoading] = useState(true);
-    const [isSubmitting, setIsSubmitting] = useState(false);
+    const {mutateAsync: login, isPending: isSubmitting} = useLoginMutation();
 
     const router = useRouter();
 
@@ -30,7 +30,6 @@ export default function Login() {
         if (isAuthorized) {
             router.push("/channels/me");
         }
-        setIsLoading(false);
     }, [isAuthorized])
 
     function validateIdentifier(): boolean {
@@ -66,9 +65,7 @@ export default function Login() {
 
         const dto: LoginDTO = { identifier: identifier, password: password };
 
-        setIsSubmitting(true);
         const response: Response<null> = await login(dto);
-        setIsSubmitting(false);
 
         if (!response.success) {
             setIdentifierError(response.message as string);
@@ -82,7 +79,6 @@ export default function Login() {
     }
 
     return (
-        !isLoading &&
         <div className={styles['content-container'] + " drop-shadow-xl"} ref={containerRef}>
             <div className={styles['login-container']}>
                 <div className={styles['title-container']}>

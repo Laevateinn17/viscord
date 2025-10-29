@@ -17,6 +17,7 @@ import { MediaSettingsSection } from "./media-settings-section"
 import styled from "styled-components"
 import { AnimatePresence, motion } from "framer-motion"
 import { UserProfileSection } from "./user-profile-section"
+import { useAuth } from "@/contexts/auth.context"
 
 interface SettingsPageProps {
     show: boolean
@@ -38,6 +39,7 @@ export default function SettingsPage({ show, onClose }: SettingsPageProps) {
     const [searchText, setSearchText] = useState("")
     const headers: string[] = ["User Settings", "Billing Settings", "App Settings", "Activity Settings"];
     const { mutateAsync: logoutMutation } = useLogoutMutation();
+    const { } = useAuth();
 
     const sidebarItems: Record<string, SidebarItem[]> = {
         "User Settings": [
@@ -48,7 +50,7 @@ export default function SettingsPage({ show, onClose }: SettingsPageProps) {
             },
             {
                 id: "profiles",
-                page: <UserProfileSection/>,
+                page: <UserProfileSection />,
                 element: <p>Profiles</p>
             },
             {
@@ -176,6 +178,7 @@ export default function SettingsPage({ show, onClose }: SettingsPageProps) {
     async function handleLogout() {
         await logoutMutation();
         router.push("/login");
+        onClose();
     }
 
     function getActivePage(): ReactNode {

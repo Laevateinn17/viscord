@@ -185,6 +185,7 @@ export default function FriendListPage() {
     }, [relationships, activeTab, searchText, presenceMap]);
 
     useEffect(() => {
+        console.log('hehe')
         document.title = "Viscord | Friends";
     }, [])
 
