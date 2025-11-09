@@ -1,0 +1,182 @@
+services:
+  sfu-service:
+    build:
+      context: ./sfu-service
+    image: vincentramaputra/viscord-sfu-service:latest
+    networks:
+      - app
+    ports:
+      - 40000-40100:40000-40100/udp
+      - 40000-40100:40000-40100/tcp
+      - 4000:3000
+      
+    
+  ws-gateway-service:
+    build:
+      context: ./ws-gateway
+    image: vincentramaputra/viscord-ws-gateway-service:latest
+    networks:
+      - app
+    ports:
+      - "4444:80"
+    depends_on:
+       message-broker:
+        condition: service_healthy
+    env_file:
+      - ./ws-gateway/.env.production
+
+  message-service:
+    image: vincentramaputra/viscord-message-service:latest
+    build:
+      context: ./message-service
+    networks:
+      - app
+    depends_on:
+      message-db:
+        condition: service_started
+    env_file:
+      - ./message-service/.env.production
+      
+  guild-service:
+    image: vincentramaputra/viscord-guild-service:latest
+    build:
+      context: ./guild-service
+    networks:
+      - app
+    depends_on:
+      guild-db:
+        condition: service_started
+      message-broker:
+        condition: service_healthy
+    env_file:
+      - ./guild-service/.env.production
+
+  user-service:
+    image: vincentramaputra/viscord-user-service:latest
+    build:
+      context: ./user-service
+    networks:
+      - app
+    depends_on:
+      user-db:
+        condition: service_started
+      message-broker:
+        condition: service_healthy
+    env_file:
+      - ./user-service/.env.production
+
+  auth-service:
+    build: 
+      context: ./auth-service
+    image: vincentramaputra/viscord-auth-service:latest
+    # ports:
+    #   - "3000:80"
+    networks:
+      - app
+    depends_on:
+      auth-db:
+        condition: service_started
+      message-broker:
+        condition: service_healthy
+    env_file:
+      - ./auth-service/.env.production
+    # labels:
+    #   - "traefik.enable=true"
+    #   - "traefik.http.routers.auth-router.rule=PathPrefix(`/auth/login`) || PathPrefix(`/auth/register`) || PathPrefix(`/auth/logout`) || PathPrefix(`/auth/refresh-token`) || PathPrefix(`/auth/verify-token`)"
+    #   - "traefik.http.routers.auth-router.middlewares=cors"
+    #   - "traefik.http.services.auth-service.loadbalancer.server.port=3000"
+
+  message-db:
+    image: postgres
+    environment:
+      POSTGRES_PASSWORD: admin
+    networks:
+      - app
+    volumes:
+    - message_db_data:/var/lib/postgres/data 
+    - ./message_db_init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  guild-db:
+    image: postgres
+    environment:
+      POSTGRES_PASSWORD: admin
+    networks:
+      - app
+    volumes:
+    - guild_db_data:/var/lib/postgres/data 
+    - ./guild_db_init.sql:/docker-entrypoint-initdb.d/init.sql
+  user-db:
+    image: postgres
+    environment:
+      POSTGRES_PASSWORD: admin
+    networks:
+      - app
+    volumes:
+      - user_db_data:/var/lib/postgresql/data 
+      - ./user_db_init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  auth-db:
+    image: postgres
+    environment:
+      POSTGRES_PASSWORD: admin
+    networks:
+      - app
+    volumes:
+      - auth_db_data:/var/lib/postgresql/data 
+      - type: bind
+        source: ./auth_db_init.sql
+        target: /docker-entrypoint-initdb.d/init.sql
+  message-broker:
+    image: rabbitmq:4.0-management
+    networks:
+     - app
+    ports:
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"] 
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+  # web-service:
+  #   image: vincentramaputra/viscord-web:latest
+  #   environment:
+  #     - NEXT_PUBLIC_API_URL=https://viscord.app/api
+  #   ports:
+  #     - "3002:3002"
+  #   networks:
+  #     - app
+  gateway:
+    networks:
+      - app
+    image: traefik:3.3
+    ports: 
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./traefik.yaml:/etc/traefik/traefik.yaml
+      - ./traefik-dynamic.yaml:/etc/traefik/traefik-dynamic.yaml
+      - ./certs/cert.pem:/certs/cert.pem
+      - ./certs/key.pem:/certs/key.pem
+
+  redis:
+    image: redis:7.4-alpine
+    networks:
+      - app
+    volumes: 
+      - redis_data:/data
+
+
+
+volumes:
+  user_db_data:
+  auth_db_data:
+  guild_db_data:
+  message_db_data:
+  redis_data:
+
+networks:
+  app:
+    driver: bridge

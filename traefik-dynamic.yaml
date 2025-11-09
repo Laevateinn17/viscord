@@ -1,0 +1,112 @@
+http:
+  routers:
+    web-router:
+      tls: true
+      service: web-service
+      rule: PathPrefix(`/`)
+
+    message-service:
+      tls: true
+      service: message-service
+      rule: PathPrefix(`/api/messages`) || PathRegexp(`^/api/channels/.+/messages`)
+      middlewares:
+        - cors
+        - auth
+        - stripApiPrefix
+
+    guild-router:
+      tls: true
+      service: guild-service
+      rule: PathPrefix(`/api/guilds`) || PathPrefix(`/api/users/me/channels`) || PathPrefix(`/api/invites`) || (PathPrefix(`/api/channels`) && !PathRegexp(`^/api/channels/.+/messages`))
+      middlewares:
+        - cors
+        - auth
+        - stripApiPrefix
+
+    user-router:
+      tls: true
+      service: user-service
+      rule: (PathPrefix(`/api/users`) || PathPrefix(`/api/user-profiles`) || PathPrefix(`/api/relationships`)) && !PathPrefix(`/api/users/me/channels`)
+      middlewares:
+        - cors
+        - auth
+        - stripApiPrefix
+
+    auth-router:
+      tls: true
+      service: auth-service
+      rule: PathPrefix(`/api/auth/login`) || PathPrefix(`/api/auth/register`) || PathPrefix(`/api/auth/logout`) || PathPrefix(`/api/auth/refresh-token`) || PathPrefix(`/api/auth/verify-token`)
+      middlewares:
+        - cors
+        - stripApiPrefix
+
+    ws-router:
+      tls: true
+      service: ws-gateway-service
+      rule: PathPrefix(`/ws`) || PathPrefix(`/socket.io`)
+      middlewares:
+        - cors
+        - auth
+      #   - stripWsPrefix
+
+
+  services:
+    ws-gateway-service:
+      loadBalancer:
+        servers:
+          - url: http://ws-gateway-service
+    web-service:
+      loadBalancer:
+        servers:
+          - url: http://web-service
+    message-service:
+      loadBalancer:
+        servers:
+          - url: "http://message-service:3000"
+    guild-service:
+      loadBalancer:
+        servers:
+          - url: "http://guild-service:3000"
+    user-service:
+      loadBalancer:
+        servers:
+          - url: "http://user-service:3000"
+    auth-service:
+      loadBalancer:
+        servers:
+          - url: "http://auth-service:3000"
+
+  middlewares:
+    cors:
+      headers:
+        accessControlAllowOriginList: "https://localhost:3002"
+        accessControlAllowMethods: "GET,POST,PUT,DELETE,OPTIONS,PATCH"
+        accessControlAllowHeaders: "Content-type,Authorization"
+        accessControlAllowCredentials: true
+        accessControlMaxAge: 100
+        addVaryHeader: true
+    auth:
+      forwardAuth:
+        address: http://auth-service:3000/auth/verify-token
+        authResponseHeaders: X-User-Id
+    stripApiPrefix:
+      stripPrefix:
+        prefixes:
+            - "/api"
+    stripWsPrefix:
+      stripPrefix:
+        prefixes:
+          - "/ws"
+
+tls:
+  stores:
+    default:
+      defaultCertificate:
+        certFile: /certs/cert.pem
+        keyFile: /certs/key.pem
+
+  certificates:
+    - certFile: /certs/cert.pem
+      keyFile: /certs/key.pem
+      stores:
+        - default

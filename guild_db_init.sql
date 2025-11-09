@@ -1,0 +1,1 @@
+CREATE DATABASE viscord_guild;
