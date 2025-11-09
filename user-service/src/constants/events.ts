@@ -9,6 +9,7 @@ export const FRIEND_ADDED_EVENT = 'friend_added';
 
 export const CLIENT_READY_EVENT = 'client_ready';
 export const USER_ONLINE_EVENT = 'user_online';
+export const USER_PRESENCE_UPDATE_EVENT = 'user_presence_update';
 export const USER_OFFLINE_EVENT = 'user_offline';
 export const USER_PROFILE_UPDATE_EVENT = 'user_profile_update'
 

@@ -12,8 +12,9 @@ import { ClientProxy, ClientProxyFactory, MessagePattern, Transport } from "@nes
 import { mapper } from "src/mappings/mappers";
 import { createMap } from "@automapper/core";
 import { Payload } from "src/interfaces/payload.dto";
-import { FRIEND_ADDED_EVENT, FRIEND_REMOVED_EVENT, FRIEND_REQUEST_RECEIVED_EVENT, GATEWAY_QUEUE, GET_USERS_PRESENCE_RESPONSE_EVENT, USER_OFFLINE_EVENT, USER_ONLINE_EVENT } from "src/constants/events";
+import { FRIEND_ADDED_EVENT, FRIEND_REMOVED_EVENT, FRIEND_REQUEST_RECEIVED_EVENT, GATEWAY_QUEUE, GET_USERS_PRESENCE_RESPONSE_EVENT, USER_OFFLINE_EVENT, USER_ONLINE_EVENT, USER_PRESENCE_UPDATE_EVENT } from "src/constants/events";
 import { UserStatus } from "src/user-profiles/enums/user-status.enum";
+import { UserPresenceUpdateDTO } from "src/presence/dto/user-presence-update.dto";
 
 @Injectable()
 export class RelationshipsService {
@@ -369,46 +370,45 @@ export class RelationshipsService {
     const userResponse = await this.userProfilesService.getById(userId);
     if (userResponse.status !== HttpStatus.OK || userResponse.data.status === UserStatus.Invisible) return;
 
-    const friends: Relationship[] = await this.relationshipRepository.findBy([{ senderId: userId, type: RelationshipType.Friends }, { recipientId: userId, type: RelationshipType.Friends }]);
-
-    const p = {
-      recipients: [...friends.map(rel => rel.senderId === userId ? rel.recipientId : rel.senderId), userId],
-      data: userId
-    } as Payload<string>;
-
-    this.emitUserOnline(p);
+    this.emitUserOnline(userId);
   }
 
   async onUserOffline(userId: string) {
     if (!userId || userId.length === 0) return;
 
     const userResponse = await this.userProfilesService.getById(userId);
-
     if (userResponse.status !== HttpStatus.OK || userResponse.data.status === UserStatus.Invisible) return;
 
-    const friends: Relationship[] = await this.relationshipRepository.findBy([{ senderId: userId, type: RelationshipType.Friends }, { recipientId: userId, type: RelationshipType.Friends }]);
-
-    const p = {
-      recipients: [...friends.map(rel => rel.senderId === userId ? rel.recipientId : rel.senderId), userId],
-      data: userId
-    } as Payload<string>;
-
-    this.emitUserOffline(p);
+    this.emitUserOffline(userId);
   }
 
-  emitUserOffline(payload: Payload<string>) {
-    console.log('emitting user offline', payload);
+  emitUserOffline(userId: string) {
     try {
-      this.gatewayMQ.emit(USER_OFFLINE_EVENT, payload);
+      this.gatewayMQ.emit(USER_PRESENCE_UPDATE_EVENT, {
+        recipients: [],
+        targetIds: [userId],
+        data: {
+          userId, isOnline: false
+        }
+      } as Payload<UserPresenceUpdateDTO>);
     } catch (error) {
       console.log(error)
     }
   }
 
-  emitUserOnline(payload: Payload<string>) {
-    console.log('emitting user online', payload);
+  emitUserOnline(userId: string) {
     try {
-      this.gatewayMQ.emit(USER_ONLINE_EVENT, payload);
+      try {
+        this.gatewayMQ.emit(USER_PRESENCE_UPDATE_EVENT, {
+          recipients: [],
+          targetIds: [userId],
+          data: {
+            userId, isOnline: true
+          }
+        } as Payload<UserPresenceUpdateDTO>);
+      } catch (error) {
+        console.log(error)
+      }
     } catch (error) {
       console.log(error)
     }
@@ -418,10 +418,8 @@ export class RelationshipsService {
     if (!userId || userId.length === 0) return
 
     const friends: Relationship[] = await this.relationshipRepository.findBy([{ senderId: userId, type: RelationshipType.Friends }, { recipientId: userId, type: RelationshipType.Friends }]);
-    console.log('1', friends);
     const userIds = [...friends.map(rel => rel.senderId === userId ? rel.recipientId : rel.senderId), userId];
     const userProfilesResponse = await this.userProfilesService.getUserProfiles(userIds);
-    console.log('2');
     if (userProfilesResponse.status !== HttpStatus.OK) {
       return {
         status: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -430,7 +428,6 @@ export class RelationshipsService {
       };
     }
 
-    console.log('3');
     const payload = {
       status: HttpStatus.OK,
       message: '',
@@ -439,7 +436,6 @@ export class RelationshipsService {
       })
     };
 
-    console.log('4');
     return payload;
   }
 

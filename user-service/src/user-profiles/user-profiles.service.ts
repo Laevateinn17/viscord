@@ -133,10 +133,10 @@ export class UserProfilesService {
 
 
       if (dto.status === UserStatus.Invisible) {
-        this.relationshipsService.emitUserOffline({ recipients: [], targetIds: [userProfile.id], data: userProfile.id });
+        this.relationshipsService.emitUserOffline(dto.userId);
       }
       else if (previousStatus === UserStatus.Invisible) {
-        this.relationshipsService.emitUserOnline({ recipients: [], targetIds: [userProfile.id], data: userProfile.id });
+        this.relationshipsService.emitUserOnline(dto.userId);
       }
 
     } catch (error) {
