@@ -1,0 +1,17 @@
+.page{
+    background-image: url('/login_background.svg');
+    background-size: cover;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    user-select: none;
+}
+
+.logo {
+    width: auto;
+    position: absolute;
+    top: 48px;
+    left: 48px;
+    box-sizing: content-box;
+}

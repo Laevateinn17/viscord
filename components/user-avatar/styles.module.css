@@ -1,0 +1,36 @@
+
+.pfp-container {
+  border-radius: 50%;
+  /* background-color: var(--background-primary); */
+  align-self: center;
+  overflow: hidden;
+  z-index: 0;
+}
+
+
+.status-container {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  transform: translateY(25%) translateX(25%);
+  background-color: inherit;
+  border-radius: 50px;
+  padding: 2px;
+}
+
+.pfp-wrapper {
+  border-radius: 50%;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  background-color: inherit;
+}
+
+.mask {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  transform: translateY(25%) translateX(25%);
+  background-color: var(--background-secondary);
+  border-radius: 100%;
+}

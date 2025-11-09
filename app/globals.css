@@ -1,0 +1,271 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background-primary: #313338;
+  --background-tertiary: #28282d;
+  --background-secondary: oklab(0.303553 0.00292034 -0.0103036);
+  --background-secondary-alt: #232428;
+  --background-modifier-selected: rgba(78, 80, 88, 0.6);
+  --background-modifier-hover: rgba(78, 80, 88, 0.3);
+  --background-modifier-accent: rgba(78, 80, 88, 0.48);
+  --background-mod-strong: rgba(151, 151, 159, 0.24);
+  --background-mod-subtle: rgba(151, 151, 159, 0.08);
+  --background-mod-faint: rgba(151, 151, 159, 0.04);
+  --background-surface-higher: oklab(0.278867 0.00249027 -0.00875303);
+  --background-surface-high: oklab(0.262384 0.00252247 -0.00889932);
+  --modal-background: oklab(0.339495 0.00330827 -0.0116803);
+  --card-primary-bg: oklab(0.262384 0.00252247 -0.00889932);
+
+  --border-container: oklab(0.678888 0.00325716 -0.011175 / 0.121569);
+  --border-faint: oklab(0.678888 0.00325716 -0.011175 / 0.160784);
+  --border-subtle: oklab(0.678888 0.00325716 -0.011175 / 0.121569);
+  --placeholder: oklab(0.541247 0.00383598 -0.0133453);
+
+  --foreground: #171717;
+  --header-secondary: #c5c5d0;
+  --header-primary: oklab(0.999994 0.0000455678 0.0000200868);
+  --input-background: #2a2a30;
+  --input-border: #3d3d43;
+  --input-focused: #7bb0f5;
+  --chat-background-default: oklab(0.323409 0.00288205 -0.0101295);
+  --background-message-hover: oklab(0.678888 0.00325716 -0.011175 / 0.0784314);
+
+  --primary: #5865f2;
+
+  --text-link: #8ea2fa;
+  --text-brand: oklab(0.755592 0.00608414 -0.121619);
+  --text-positive: oklab(0.739922 -0.103905 0.0636804);
+  --text-danger: oklab(0.71871 0.140732 0.059904);
+  --text-default: oklab(0.883042 0.00118408 -0.00389016);
+  --text-primary: oklab(0.999994 0.0000455678 0.0000200868);
+  --text-muted: oklab(0.75264 0.00240251 -0.00813961);
+  --text-warning: #C89E6B;
+
+  --icon-primary: #ffffff;
+  --icon-secondary: oklab(0.834228 0.00196606 -0.00659835);
+  --icon-tertiary: oklab(0.75264 0.00240251 -0.00813961);
+
+  --container-background: #2e2e34;
+  --container-background-hover: #3a3a41;
+  --checkbox-background-checked: #5865f2;
+  --checkbox-border-default: #81828a;
+  --header-modifier-accent: #35363c;
+  --icon: #b5bac1;
+  --channel-default: oklab(0.686636 -0.00407365 -0.0149199);
+
+  --interactive-normal: oklab(0.787067 -0.00258079 -0.0110391);
+  --interactive-hover: oklab(0.89908 -0.00192907 -0.0048306);
+
+  --divider-subtle: oklab(0.999994 0.0000455678 0.0000200868 / 0.08);
+
+  --button-secondary: rgba(151, 151, 159, 0.12);
+  --button-secondary-hover: rgba(151, 151, 159, 0.2);
+  --button-secondary-text: rgb(235, 235, 237);
+  --button-primary: #5865f2;
+  --button-primary-hover: rgb(71, 84, 190);
+  --button-primary-selected: rgba(88, 101, 242, 0.16);
+  /* --button-primary-disabled: rgb(88, 101, 242) */
+  --status-danger: 	hsl(359, 87%, 60%);
+  --status-danger-hover: 	hsl(359, 87%, 50%);
+  --background-danger-hover: oklab(0.565918 0.183664 0.078399 / 0.0784314);
+  --status-positive: hsl(134, 41%, 45%);
+  --status-positive-hover: hsl(134, 41%, 35%);
+  --channels-default: oklab(0.75264 0.00240251 -0.00813961);
+
+  --shadow-high: 0 12px 24px 0 hsl(none 0% 0% / 0.24);
+
+  --opacity-red-12: rgba(210, 45, 57, 0.12);
+  --red-400: rgb(218, 62, 68);
+  --green-300: rgb(117, 195, 131);
+  --opacity-green-12: rgba(0, 134, 58, 0.12);
+  --overlay-text-background: oklab(0 0 0 / 0.54);
+
+  --rounded-sm: 4px;
+  --rounded-md: 6px;
+  --rounded-lg: 8px;
+  --rounded-xl: 16px;
+  --rounded-full: 50%;
+
+  --text-xs: 12px;
+  --text-sm: 14px;
+  --text-base: 16px;
+  --text-lg: 20px;
+  --text-xl: 24px;
+
+  --line-height-tight: 1.2;
+  --line-height-normal: 1.5;
+  --line-height-loose: 1.8;
+
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+
+  
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+@font-face {
+  font-family: "GG Sans";
+  src: url("../fonts/gg\ sans\ Bold.woff") format("woff"),
+    url("../fonts/gg sans Bold.ttf") format("truetype");
+  font-weight: var(--font-weight-bold);
+}
+
+@font-face {
+  font-family: "GG Sans";
+  src: url("../fonts/gg\ sans\ Semibold.ttf") format("truetype"),
+    url("../fonts/gg\ sans\ Semibold.woff") format("woff");
+  font-weight: var(--font-weight-semibold);
+}
+
+@font-face {
+  font-family: "GG Sans";
+  src: url("../fonts/gg\ sans\ Medium.ttf") format("truetype"),
+    url("../fonts/gg\ sans\ Medium.woff") format("woff");
+  font-weight: var(--font-weight-medium);
+}
+
+@font-face {
+  font-family: "GG Sans";
+  src: url("../fonts/gg\ sans\ Regular.ttf") format("truetype"),
+    url("../fonts/gg\ sans\ Regular.woff") format("woff");
+  font-weight: var(--font-weight-regular);
+}
+
+html,
+body,
+div,
+span,
+applet,
+object,
+iframe,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+blockquote,
+pre,
+a,
+abbr,
+acronym,
+address,
+big,
+cite,
+code,
+del,
+dfn,
+em,
+img,
+ins,
+kbd,
+q,
+s,
+samp,
+small,
+strike,
+strong,
+sub,
+sup,
+tt,
+var,
+b,
+u,
+i,
+center,
+dl,
+dt,
+dd,
+ol,
+ul,
+li,
+fieldset,
+form,
+label,
+legend,
+table,
+caption,
+tbody,
+tfoot,
+thead,
+tr,
+th,
+td,
+article,
+aside,
+canvas,
+details,
+embed,
+figure,
+figcaption,
+footer,
+header,
+hgroup,
+menu,
+nav,
+output,
+ruby,
+section,
+summary,
+time,
+mark,
+audio,
+video {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font: inherit;
+  vertical-align: baseline;
+  font-family: "GG Sans";
+}
+/* HTML5 display-role reset for older browsers */
+article,
+aside,
+details,
+figcaption,
+figure,
+footer,
+header,
+hgroup,
+menu,
+nav,
+section {
+  display: block;
+}
+ol,
+ul {
+  list-style: none;
+}
+
+table {
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  line-height: 1;
+}
+
+a {
+  text-decoration: none;
+  color: black;
+  font-weight: 600;
+}
+
+* {
+  user-select: none;
+}

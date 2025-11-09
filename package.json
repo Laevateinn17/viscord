@@ -1,0 +1,40 @@
+{
+  "name": "web-client",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --experimental-https -p 3002 --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.67.1",
+    "@welldone-software/why-did-you-render": "^10.0.1",
+    "axios": "^1.7.9",
+    "colorthief": "^2.6.0",
+    "framer-motion": "^12.23.11",
+    "mediasoup-client": "^3.14.0",
+    "next": "^15.2.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-icons": "^5.4.0",
+    "socket.io-client": "^4.8.1",
+    "styled-components": "^6.1.15",
+    "zustand": "^5.0.6"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@tanstack/eslint-plugin-query": "^5.66.1",
+    "@types/colorthief": "^2.6.0",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "babel-plugin-styled-components": "^2.1.4",
+    "eslint": "^9",
+    "eslint-config-next": "15.1.6",
+    "postcss": "^8",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5"
+  }
+}
