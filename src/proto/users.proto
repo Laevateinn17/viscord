@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+package users;
+
+service UsersService {
+    rpc GetCurrentUser(GetCurrentUserRequest) returns (GetCurrentUserResponse);
+}
+
+service UserProfilesService {
+    rpc GetUserProfiles(GetUserProfilesRequest) returns (GetUserProfilesResponse);
+}
+
+message GetUserProfilesRequest {
+    repeated string userIds = 1;
+}
+
+message GetUserProfilesResponse {
+    int32 status = 1;
+    repeated UserProfile data = 2;
+}
+
+message GetCurrentUserRequest {
+    string userId = 1;
+}
+
+message GetCurrentUserResponse {
+    int32 status = 1;
+    User data = 2;
+}
+
+message User {
+    string id = 1;
+    string email = 2;
+    string dateOfBirth = 3;
+    UserProfile profile = 4 ;
+}
+
+message UserProfile {
+    string id = 1;
+    string displayName = 2;
+    string username = 3;
+    string pronouns = 4;
+    string bio = 5;
+    UserStatus status = 6;
+    string avatarURL = 7;
+    string defaultAvatarURL = 8;
+    string createdAt = 9;
+    string updatedAt = 10;
+}
+
+enum UserStatus {
+    OFFLINE = 0;
+    ONLINE = 1;
+    INVISIBLE = 2;
+    IDLE = 3;
+    DO_NOT_DISTURB = 4;
+}

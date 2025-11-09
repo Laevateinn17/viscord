@@ -1,0 +1,11 @@
+
+export enum GuildUpdateType {
+    MEMBER_JOIN = 0,
+    MEMBER_LEAVE,
+    CHANNEL_UPDATE,
+    CHANNEL_DELETE,
+    MEMBERS_UPDATE,
+    ROLE_UPDATE,
+    GUILD_UPDATE,
+    ROLE_DELETE,
+}
