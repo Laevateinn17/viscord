@@ -1,0 +1,5 @@
+node_moules
+.env
+.env.*
+
+!.env.example
